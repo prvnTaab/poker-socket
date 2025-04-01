@@ -6,7 +6,7 @@ export class GameController {
   constructor(private readonly gameService: GameService) {}
 
   @Get()
-  getHello(): string {
+  getHello(): Promise<any> {
     return this.gameService.getHello();
   }
 }
