@@ -23,76 +23,54 @@ export class GameGateway
   @WebSocketServer()
   server;
 
-  // A map to store the user sockets by playerId (or socket.id for unique identification)
+  // A map to store the user sockets by playerId
   private users = new Map<string, Socket>();
 
   // When a player logs in
   @SubscribeMessage('login')
   handleLogin(@MessageBody() playerId: string, @ConnectedSocket() client: Socket) {
-    // Store the player's socket by their unique playerId (or socket.id)
     this.users.set(playerId, client);
-    client.join('allPlayers');  // Join general "allPlayers" room
-    console.log(`Player ${playerId} has logged in.`);
+    client.join('allPlayers');
     this.server.to('allPlayers').emit('playerLoggedIn', { playerId });
   }
 
-  // When a player wants to send a message to another individual player
-  @SubscribeMessage('privateMessage')
-  handlePrivateMessage(
-    @MessageBody() data: { playerId: string; message: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    const targetSocket = this.users.get(data.playerId);
+  // Public Method: Broadcast message to all players in a specific game room
+  public broadcastToRoom(gameId: string, event: string, message: any) {
+    this.server.to(`game-${gameId}`).emit(event, message);
+  }
 
+  // Public Method: Send a private message to a specific player
+  public sendMessageToPlayer(playerId: string, event: string, message: any) {
+    const targetSocket = this.users.get(playerId);
     if (targetSocket) {
-      // Send a private message to the specific player
-      targetSocket.emit('newPrivateMessage', { message: data.message, from: client.id });
-      console.log(`Sent private message to player ${data.playerId}`);
-    } else {
-      console.log(`Player ${data.playerId} not found.`);
+      targetSocket.emit(event, message);
     }
   }
 
-  // When a game is created or a player joins a game
-  @SubscribeMessage('joinGame')
-  handleJoinGame(@MessageBody() gameId: string, @ConnectedSocket() client: Socket) {
-    client.join(`game-${gameId}`);
-    console.log(`Player joined game ${gameId}.`);
-    this.server.to(`game-${gameId}`).emit('playerJoinedGame', { gameId, playerId: client.id });
+  // SubscribeMessage: Send message to a room (used within WebSocket)
+  @SubscribeMessage('roomBroadcast')
+  handleRoomBroadcast(@MessageBody() data: { gameId: string; message: string }) {
+    this.broadcastToRoom(data.gameId, 'newRoomMessage', data.message);
   }
 
-  // Broadcast a message to all players
-  @SubscribeMessage('broadcast')
-  handleBroadcast(@MessageBody() message: string, @ConnectedSocket() client: Socket) {
-    const senderId = this.server.id;
-    this.server.emit('newMessage', {message, cleint:client.id});
+  // SubscribeMessage: Send a direct message to a player (used within WebSocket)
+  @SubscribeMessage('directMessage')
+  handleDirectMessage(@MessageBody() data: { playerId: string; message: string }) {
+    this.sendMessageToPlayer(data.playerId, 'newPrivateMessage', data.message);
   }
 
-  // Send a message to a specific game room
-  @SubscribeMessage('gameMessage')
-  handleGameMessage(@MessageBody() data: { gameId: string; message: string }) {
-    this.server.to(`game-${data.gameId}`).emit('newGameMessage', data.message);
-  }
+  // Handle player connection
+  handleConnection(client: Socket) {}
 
-  // Handle when a player connects
-  handleConnection(client: Socket) {
-    console.log(`Player with ID ${client.id} has connected.`);
-  }
-
-  // Handle when a player disconnects
+  // Handle player disconnection
   handleDisconnect(client: Socket) {
-    // Remove the player from the users map when they disconnect
     this.users.forEach((socket, playerId) => {
       if (socket.id === client.id) {
         this.users.delete(playerId);
-        console.log(`Player ${playerId} has disconnected.`);
-        // Optionally notify others that the player has disconnected
         this.server.to('allPlayers').emit('playerDisconnected', { playerId });
       }
     });
   }
 
-  afterInit() {
-    console.log('WebSocket Gateway Initialized');
-  }
+  afterInit() {}
 }
