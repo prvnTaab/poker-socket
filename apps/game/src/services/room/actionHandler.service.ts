@@ -7,8 +7,7 @@ import * as actionLogger from './actionLogger';
 import * as channelTimerHandler from './channelTimerHandler';
 import * as waitingListHandler from './waitingListHandler';
 import * as imdb from '../../../../../shared/model/inMemoryDbQuery';
-import * as systemConfig from '../../../../../shared/systemConfig.json';
-import * as stateOfX from '../../../../../shared/stateOfX';
+import { systemConfig, stateOfX } from 'shared/common';
 // import * as pomelo from 'pomelo';
 
 @Injectable()
