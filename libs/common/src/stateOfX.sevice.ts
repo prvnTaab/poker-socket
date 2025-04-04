@@ -734,7 +734,7 @@ const stateOfX: StateOfX = {
         { name: 'Nepal' },
         { name: 'Bangladesh' }
     ],
-    
+
     mailMessages: {
         from_email: systemConfig.from_email,
         mail_subjectAffiliate: "your affiliate request is processed",
@@ -829,7 +829,9 @@ const stateOfX: StateOfX = {
             tournament: "TOURNAMENT",
             gamePlay: "GAMEPLAY"
         }
-    }
+    },
+    MantisApi: '',
+    SendGridApiKey: ''
 };
 
 export default stateOfX;
