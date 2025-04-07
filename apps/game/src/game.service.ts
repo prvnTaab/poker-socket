@@ -12,7 +12,7 @@ export class GameService {
 
   
   async getHello(): Promise<any> {
-    return this.db.getHello()
+    return this.db.findAllSpamWords()
 
     // let result = await this.dbConnection.collection('users').findOne({});
     // return result;
