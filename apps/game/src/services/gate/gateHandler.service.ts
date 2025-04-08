@@ -1,4 +1,4 @@
-import * as dispatcher from '../../../util/dispatcher';
+import { dispatcher } from 'shared/common';
 import * as _ from 'underscore';
 import * as keyValidator from '../../../../../shared/keysDictionary';
 import { PokerDatebaseService } from 'shared/common/datebase/pokerdatebase.service';
