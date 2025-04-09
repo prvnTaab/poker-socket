@@ -1,26 +1,16 @@
 // This file is used to log user activity of different events into database
+import { Injectable } from '@nestjs/common';
+
 
 import _ from "underscore";
 import async from "async";
-import stateOfX from "./stateOfX.js";
-import db from "./model/dbQuery.js";
-import customLibrary from "./customLibrary.js";
-import zmqPublish from "./infoPublisher.js";
-import logDb from './model/logDbQuery';
-import systemConfig from "./systemConfig.json";
+import stateOfX from '../stateOfX.sevice.js';
+import { systemConfig } from 'shared/common';
+import { PokerDatebaseService } from '../datebase/pokerdatebase.service.js';
+import { convertToJson } from 'shared/common';
 
-const logDB = require("./model/logDbQuery.js");
+// const logDB = require("./model/logDbQuery.js");
 
-// Create data for log generation
-function serverLog(type: string, log: any) {
-  const logObject: any = {};
-  logObject.fileName = 'activity';
-  logObject.serverName = stateOfX.serverType.connector;
-  logObject.functionName = arguments.callee.caller.name.toString();
-  logObject.type = type;
-  logObject.log = log;
-  zmqPublish.sendLogMessage(logObject);
-} 
 
 // ALL FUNCTIONS in this file
 // saves log object in
@@ -30,31 +20,41 @@ function serverLog(type: string, log: any) {
 // 
 // event is as named in function
 
-const insertInDb = async function(activityObject: any) {
+@Injectable()
+export class ActivityService {
+
+  constructor(private db:PokerDatebaseService){
+
+  }
+
+
+  async insertInDb (activityObject: any) {
   try {
-    activityObject = customLibrary.convertToJson(activityObject);
-    const activity = await logDB.createUserActivity(activityObject);
+    activityObject = convertToJson(activityObject);
+    const activity = await this.db.createUserActivity(activityObject);
     if (!activity) {
       console.log("error in creating activities in db");
     }
   } catch (err) {
     console.log("db error in creating activities");
+    throw Error('db error in creating activities');
   }
 }
 
 // saves in given collection
 // here used for "winAmount" collection
-const logDBGeneral = async function(colName: string, query: any, data: any) {
+async logDBGeneral (colName: any, query: any, data: any) {
   try {
-    await logDB.genericQuery(colName, query, [data]);
+    await this.db.genericQuery(colName, query, [data]);
   } catch (err) {
     console.log(err);
+    throw Error(err?.message);
   }
 }
 
 /// Function created By Sahiq for Player Stats Start//
 
-const insertPlayerStats = async function(rounds: any[]) {
+async insertPlayerStats (rounds: any[]) {
   console.log("inside insertPlayerStats", rounds);
   const playersStats: any[] = [];
   let tempFlopOpen = 0;
@@ -135,18 +135,18 @@ const insertPlayerStats = async function(rounds: any[]) {
         playerId: playersStats[player].playerId, 
         gameVariation: playersStats[player].gameVariation
       };
-      const result = await db.insertUserStats(query, playersStats[player]);
-      console.log("inserted player stats in DB successfully");
+       await this.db.insertUserStats(query, playersStats[player]);
     } catch (err) {
       console.log("db error in insert player stats");
+      throw Error(err.message);
     }
   }
 }
 
-const insertInDbGame = async function(activityObject: any) {
+async insertInDbGame (activityObject: any) {
   try {
-    activityObject = customLibrary.convertToJson(activityObject);
-    const activity = await logDB.createUserActivityGame(activityObject);
+    activityObject = convertToJson(activityObject);
+    const activity = await this.db.createUserActivityGame(activityObject);
     
     if (!activity) {
       console.log("error in creating activities in db");
@@ -157,9 +157,7 @@ const insertInDbGame = async function(activityObject: any) {
         typeof(activity.rawResponse.params) != 'undefined') {
       if (activityObject.rawResponse.params.table.isRealMoney == true && 
           systemConfig.isLeaderBoard == true) {
-        console.log('activity......>>>>>>>>>>>>>>>>>>', activity);
-        console.log('activity......>>>>>>>>>>>>>>>>>>11111', activity.rawResponse.params);
-        await countNumberOfHands(activityObject.rawResponse.params.table);
+        await this.countNumberOfHands(activityObject.rawResponse.params.table);
       }
       
       const winners = activity.rawResponse.winners;
@@ -220,7 +218,7 @@ const insertInDbGame = async function(activityObject: any) {
         }
       }
       
-      const result = await logDB.getRoundData(roundNumber);
+      const result = await this.db.getRoundData(roundNumber);
       const roundsData: any[] = [];
       
       if (result.length > 0) {
@@ -268,7 +266,7 @@ const insertInDbGame = async function(activityObject: any) {
         });
         
         console.log('inserting Players from logdb', roundsData);                
-        await insertPlayerStats(roundsData);
+        await this.insertPlayerStats(roundsData);
       }
       
       if (allPlayerIds.length) {
@@ -276,7 +274,7 @@ const insertInDbGame = async function(activityObject: any) {
         for (let j = 0; j < allPlayerIds.length; j++) {
           if (typeof allPlayerIds[j] != 'undefined') {
             let istempWinner = 0;
-            winners.forEach(function(winner) {
+            winners.forEach(function(winner:any) {
               if (winner.playerId == allPlayerIds[j]) {
                 istempWinner = 1;
                 return;
@@ -309,15 +307,16 @@ const insertInDbGame = async function(activityObject: any) {
           }
         }
         console.log('inserting other players Players from logdb', roundsDataPlayerNew);
-        await insertPlayerStats(roundsDataPlayerNew);        
+        await this.insertPlayerStats(roundsDataPlayerNew);        
       }
     }
   } catch (err) {
     console.log("db error in creating activities");
+    throw Error(err.message);
   }
 }
 
-const init = function(category: string, subCategory: string, logType: string) {
+async init (category: any, subCategory: any, logType: any) {
   const activityObject: any = {};
   activityObject.category = category;
   activityObject.subCategory = subCategory;
@@ -326,9 +325,9 @@ const init = function(category: string, subCategory: string, logType: string) {
   return activityObject;
 }
 
-const userActivity: any = {};
 
-userActivity.logUserActivity = async function(params: any, category: string, subCategory: string, status: string) {
+
+async logUserActivity  (params: any, category: any, subCategory: any, status: any) {
   const activityObject: any = {};
   activityObject.playerId = params.playerId;
   activityObject.category = category;
@@ -356,13 +355,13 @@ userActivity.logUserActivity = async function(params: any, category: string, sub
     //set tournament data
   }
   
-  await insertInDb(activityObject);
+  await this.insertInDb(activityObject);
 }
 
 //*** LOBBY ACTIVITIES ***
 
-userActivity.getLobbyTables = async function(rawInput: any, category: string, subCategory: string, rawResponse: any, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async getLobbyTables (rawInput: any, category: string, subCategory: string, rawResponse: any, logType: string) {
+  const activityObject :any = this.init(category, subCategory, logType);
   activityObject.rawInput = rawInput;
   activityObject.playerId = rawInput.playerId;
   activityObject.channelId = (rawInput.channelId || "");
@@ -379,12 +378,12 @@ userActivity.getLobbyTables = async function(rawInput: any, category: string, su
     activityObject.comment = rawResponse.info;
   }
   
-  await insertInDb(activityObject);
+  await this.insertInDb(activityObject);
 }
 
 //for first table on page
-userActivity.getTable = async function(rawInput: any, category: string, subCategory: string, rawResponse: any, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async getTable (rawInput: any, category: string, subCategory: string, rawResponse: any, logType: string) {
+  const activityObject :any = this.init(category, subCategory, logType);
   
   if (rawInput) {
     activityObject.channelType = rawInput.channelType ? rawInput.channelType : "NORMAL";
@@ -405,11 +404,11 @@ userActivity.getTable = async function(rawInput: any, category: string, subCateg
   }
   
   activityObject.channelId = (rawInput.channelId || "");
-  await insertInDb(activityObject);
+  await this.insertInDb(activityObject);
 }
 
-userActivity.updateProfile = async function(rawInput: any, category: string, subCategory: string, rawResponse: any, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async updateProfile (rawInput: any, category: string, subCategory: string, rawResponse: any, logType: string) {
+  const activityObject :any= this.init(category, subCategory, logType);
   activityObject.rawInput = _.omit(rawInput, "session", "self");
   activityObject.rawResponse = rawResponse;
   activityObject.playerId = rawInput.playerId;
@@ -421,11 +420,11 @@ userActivity.updateProfile = async function(rawInput: any, category: string, sub
     activityObject.comment = "Player profile update failed";
   }
   
-  await insertInDb(activityObject);
+  await this.insertInDb(activityObject);
 }
 
-userActivity.lobbyRegisterTournament = async function(rawInput: any, category: string, subCategory: string, rawResponse: any, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async lobbyRegisterTournament (rawInput: any, category: any, subCategory: any, rawResponse: any, logType: any) {
+  const activityObject:any = this.init(category, subCategory, logType);
   activityObject.rawInput = rawInput;
   activityObject.rawResponse = rawResponse;
   activityObject.playerId = rawInput.playerId;
@@ -437,11 +436,11 @@ userActivity.lobbyRegisterTournament = async function(rawInput: any, category: s
     activityObject.comment = "unable to register since " + rawResponse.info;
   }
   
-  await insertInDb(activityObject);
+  await this.insertInDb(activityObject);
 }
 
-userActivity.lobbyDeRegisterTournament = async function(rawInput: any, category: string, subCategory: string, rawResponse: any, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async lobbyDeRegisterTournament (rawInput: any, category: string, subCategory: string, rawResponse: any, logType: any) {
+  const activityObject : any = this.init(category, subCategory, logType);
   activityObject.rawInput = rawInput;
   activityObject.rawResponse = rawResponse;
   activityObject.playerId = rawInput.playerId;
@@ -453,13 +452,13 @@ userActivity.lobbyDeRegisterTournament = async function(rawInput: any, category:
     activityObject.comment = "unable to de-register since " + rawResponse.info;
   }
   
-  await insertInDb(activityObject);
+  await this.insertInDb(activityObject);
 }
 
 //*** PLAYER ACTIVITIES ***
 
-userActivity.leaveGame = async function(params: any, category: string, subCategory: string, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async leaveGame (params: any, category: string, subCategory: string, logType: string) {
+  const activityObject :any = this.init(category, subCategory, logType);
   activityObject.channelId = (params.channelId || "");
   
   if (params.data.playerId) {
@@ -496,13 +495,13 @@ userActivity.leaveGame = async function(params: any, category: string, subCatego
   }
   
   if (category === stateOfX.profile.category.gamePlay) {
-    await insertInDbGame(activityObject);
+    await this.insertInDbGame(activityObject);
   }
-  await insertInDb(activityObject);
+  await this.insertInDb(activityObject);
 }
 
-userActivity.playerSit = async function(rawResponse: any, category: string, subCategory: string, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async playerSit (rawResponse: any, category: string, subCategory: string, logType: string) {
+  const activityObject:any = this.init(category, subCategory, logType);
   
   if (rawResponse) {
     activityObject.rawResponse = _.omit(rawResponse, "self", "session", "channel");
@@ -528,13 +527,13 @@ userActivity.playerSit = async function(rawResponse: any, category: string, subC
   }
   
   if (category === stateOfX.profile.category.gamePlay) {
-    await insertInDbGame(activityObject);
+    await this.insertInDbGame(activityObject);
   }
-  await insertInDb(activityObject);
+  await this.insertInDb(activityObject);
 }
 
-userActivity.makeMove = async function(params: any, category: string, subCategory: string, rawResponse: any, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async makeMove (params: any, category: string, subCategory: string, rawResponse: any, logType: string) {
+  const activityObject :any = this.init(category, subCategory, logType);
   activityObject.channelId = (params.channelId || "");
   
   if (rawResponse) {
@@ -568,21 +567,21 @@ userActivity.makeMove = async function(params: any, category: string, subCategor
   }
   
   if (category === stateOfX.profile.category.gamePlay) {
-    await insertInDbGame(activityObject);
+    await this.insertInDbGame(activityObject);
   }
-  await insertInDb(activityObject);
+  await this.insertInDb(activityObject);
 }
 
-userActivity.info = async function(params: any, category: string, subCategory: string, logType: string) {
+async info (params: any, category: string, subCategory: string, logType: string) {
   if (logType === stateOfX.logType.error) {
-    const activityObject = init(category, subCategory, logType);
+    const activityObject :any = this.init(category, subCategory, logType);
     activityObject.comment = "Could not fetch Details-" + params;
     activityObject.channelId = (params.channelId || "");
-    await insertInDb(activityObject);
+    await this.insertInDb(activityObject);
   } else {
     if (params.table.players) {
       for (const player of params.table.players) {
-        const activityObject = init(category, subCategory, logType);
+        const activityObject :any = this.init(category, subCategory, logType);
         activityObject.channelId = (params.channelId || "");
         activityObject.comment = "";
         activityObject.playerId = player.playerId;
@@ -611,24 +610,24 @@ userActivity.info = async function(params: any, category: string, subCategory: s
         }
         
         if (category === stateOfX.profile.category.gamePlay) {
-          await insertInDbGame(activityObject);
+          await this.insertInDbGame(activityObject);
         }
-        await insertInDb(activityObject);
+        await this.insertInDb(activityObject);
       }
     }
   }
 }
 
-userActivity.deductBlinds = async function(params: any, category: string, subCategory: string, logType: string) {
+async deductBlinds (params: any, category: string, subCategory: string, logType: string) {
   if (logType === stateOfX.logType.error) {
-    const activityObject = init(category, subCategory, logType);
+    const activityObject :any = this.init(category, subCategory, logType);
     activityObject.comment = "Could not fetch Details-" + params;
     activityObject.channelId = (params.channelId || "");
-    await insertInDb(activityObject);
+    await this.insertInDb(activityObject);
   } else {
     if (params.table.players) {
       for (const player of params.table.players) {
-        const activityObject = init(category, subCategory, logType);
+        const activityObject :any = this.init(category, subCategory, logType);
         activityObject.channelId = (params.channelId || "");
         activityObject.comment = "";
         activityObject.playerId = player.playerId;
@@ -661,16 +660,16 @@ userActivity.deductBlinds = async function(params: any, category: string, subCat
         }
         
         if (category === stateOfX.profile.category.gamePlay) {
-          await insertInDbGame(activityObject);
+          await this.insertInDbGame(activityObject);
         }
-        await insertInDb(activityObject);
+        await this.insertInDb(activityObject);
       }
     }
   }
 }
 
-userActivity.playerState = async function(player: any, category: string, subCategory: string, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async playerState (player: any, category: string, subCategory: string, logType: string) {
+  const activityObject:any = this.init(category, subCategory, logType);
   activityObject.channelId = (player.channelId || "");
   console.log("params activity -------------------");
   console.log(JSON.stringify(player));
@@ -682,15 +681,15 @@ userActivity.playerState = async function(player: any, category: string, subCate
     }
     
     if (category === stateOfX.profile.category.gamePlay) {
-      await insertInDbGame(activityObject);
+      await this.insertInDbGame(activityObject);
     }
-    await insertInDb(activityObject);
+    await this.insertInDb(activityObject);
   }
 }
 
 // this method is used for setting card player card on game over.
-userActivity.playerCards = async function(player: any, category: string, subCategory: string, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async playerCards (player: any, category: string, subCategory: string, logType: string) {
+  const activityObject :any = this. init(category, subCategory, logType);
   activityObject.channelId = (player.channelId || "");
   
   if (player) {
@@ -702,16 +701,16 @@ userActivity.playerCards = async function(player: any, category: string, subCate
     }
     
     if (category === stateOfX.profile.category.gamePlay) {
-      await insertInDbGame(activityObject);
+      await this.insertInDbGame(activityObject);
     }
-    await insertInDb(activityObject);
+    await this.insertInDb(activityObject);
   }
 }
 
-userActivity.winner = async function(params: any, category: string, subCategory: string, rawResponse: any, logType: string) {
+async winner (params: any, category: string, subCategory: string, rawResponse: any, logType: string) {
   if (params) {
     for (const player of params.table.players) {
-      const activityObject = init(category, subCategory, logType);
+      const activityObject :any = this.init(category, subCategory, logType);
       activityObject.rawResponse = rawResponse;
       activityObject.playerId = player.playerId;
       activityObject.channelId = (player.channelId || "");
@@ -729,15 +728,15 @@ userActivity.winner = async function(params: any, category: string, subCategory:
       }
       
       if (category === stateOfX.profile.category.gamePlay) {
-        await insertInDbGame(activityObject);
+        await this.insertInDbGame(activityObject);
       }
-      await insertInDb(activityObject);
+      await this.insertInDb(activityObject);
     }
   }
 }
 
-userActivity.startGame = async function(params: any, category: string, subCategory: string, rawResponse: any, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async startGame (params: any, category: string, subCategory: string, rawResponse: any, logType: string) {
+  const activityObject:any = this.init(category, subCategory, logType);
   
   if (logType === stateOfX.logType.success) {
     activityObject.comment = "Game starts ";
@@ -751,12 +750,12 @@ userActivity.startGame = async function(params: any, category: string, subCatego
   }
   
   activityObject.rawResponse = _.omit(rawResponse, "app", "session", "self", "channel");
-  await insertInDb(activityObject);
+  await this.insertInDb(activityObject);
 }
 
 //***GAME LOG***
-userActivity.startGameInfo = async function(params: any, category: string, subCategory: string, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async startGameInfo (params: any, category: string, subCategory: string, logType: string) {
+  const activityObject :any = this.init(category, subCategory, logType);
   activityObject.channelId = (params.channelId || "");
   activityObject.comment = "Game starts at " + new Date().toString().substring(0, 25);
   
@@ -769,12 +768,12 @@ userActivity.startGameInfo = async function(params: any, category: string, subCa
     activityObject.rawResponse = _.omit(params, "app", "session", "self", "channel");    
   }
   
-  await insertInDbGame(activityObject);
-  await insertInDb(activityObject); // for user game play activity
+  await this.insertInDbGame(activityObject);
+  await this.insertInDb(activityObject); // for user game play activity
 }
 
-userActivity.gameOver = async function(params: any, category: string, subCategory: string, rawResponse: any, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async gameOver (params: any, category: string, subCategory: string, rawResponse: any, logType: string) {
+  const activityObject :any = this.init(category, subCategory, logType);
   activityObject.rawResponse = rawResponse;
   activityObject.channelId = (params.channelId || params.table ? params.table.channelId : "");
   activityObject.roundId = (params.roundId || params.table ? params.table.roundId : "");
@@ -813,11 +812,11 @@ userActivity.gameOver = async function(params: any, category: string, subCategor
   }
   
   activityObject.rawResponse = rawResponse;
-  await insertInDbGame(activityObject);
+  await this.insertInDbGame(activityObject);
 }
 
-userActivity.potWinner = async function(params: any, category: string, subCategory: string, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async potWinner (params: any, category: string, subCategory: string, logType: string) {
+  const activityObject :any = this.init(category, subCategory, logType);
   activityObject.channelId = (params.channelId || "");
   activityObject.comment = "Pot winners: ";
   
@@ -827,11 +826,11 @@ userActivity.potWinner = async function(params: any, category: string, subCatego
       winner.amount + " won by " + player[0].playerName;
   }
   
-  await insertInDbGame(activityObject);
+  await this.insertInDbGame(activityObject);
 }
 
-userActivity.rakeDeducted = async function(params: any, category: string, subCategory: string, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async rakeDeducted (params: any, category: string, subCategory: string, logType: string) {
+  const activityObject :any = this.init(category, subCategory, logType);
   
   if (logType === stateOfX.logType.success) {
     activityObject.channelId = (params.data.channelId || "");
@@ -847,12 +846,12 @@ userActivity.rakeDeducted = async function(params: any, category: string, subCat
     activityObject.comment = "Rake was not deducted - " + params.info;
   }
   
-  await insertInDbGame(activityObject);
-  await insertInDb(activityObject); // for inserting in user activity
+  await this.insertInDbGame(activityObject);
+  await this.insertInDb(activityObject); // for inserting in user activity
 }
 
-userActivity.gameEndInfo = async function(params: any, category: string, subCategory: string, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async gameEndInfo (params: any, category: string, subCategory: string, logType: string) {
+  const activityObject :any = this.init(category, subCategory, logType);
   activityObject.channelId = (params.channelId || "");
   activityObject.comment = "Game ends at " + new Date().toString().substring(0, 25);
   
@@ -861,12 +860,12 @@ userActivity.gameEndInfo = async function(params: any, category: string, subCate
       params.table.channelName + " : " + params.table.channelVariation; 
   }
   
-  await insertInDbGame(activityObject);
+  await this.insertInDbGame(activityObject);
 }
 
 // this function is used for saving player chat in user activity
-userActivity.chat = async function(params: any, category: string, subCategory: string, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async chat (params: any, category: string, subCategory: string, logType: string) {
+  const activityObject :any = this.init(category, subCategory, logType);
   
   if (params) {
     activityObject.playerId = (params.playerId || "");
@@ -874,13 +873,13 @@ userActivity.chat = async function(params: any, category: string, subCategory: s
     activityObject.comment = params.playerName + ": " + params.message;
   }
   
-  await insertInDb(activityObject);
-  await insertInDbGame(activityObject);
+  await this.insertInDb(activityObject);
+  await this.insertInDbGame(activityObject);
 }
 
 //for saving run it twice activity in game
-userActivity.runItTwice = async function(params: any, category: string, subCategory: string, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async runItTwice (params: any, category: string, subCategory: string, logType: string) {
+  const activityObject :any= this.init(category, subCategory, logType);
   const player = _.where(params.table.players, {playerId: params.data.playerId});
   
   if (params) {
@@ -895,13 +894,13 @@ userActivity.runItTwice = async function(params: any, category: string, subCateg
     }
   }
   
-  await insertInDb(activityObject);
-  await insertInDbGame(activityObject);
+  await this.insertInDb(activityObject);
+  await this.insertInDbGame(activityObject);
 }
 
 //for saving sitOUtNextHand
-userActivity.sitoutNextHand = async function(params: any, category: string, subCategory: string, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async sitoutNextHand (params: any, category: string, subCategory: string, logType: string) {
+  const activityObject :any = this.init(category, subCategory, logType);
   const player = _.where(params.table.players, {playerId: params.data.playerId});
   
   if (params) {
@@ -911,13 +910,13 @@ userActivity.sitoutNextHand = async function(params: any, category: string, subC
     activityObject.comment = player[0].playerName + ": enabled sitoutNextHand in " + params.table.channelName;
   }
   
-  await insertInDb(activityObject);
-  await insertInDbGame(activityObject);
+  await this.insertInDb(activityObject);
+  await this.insertInDbGame(activityObject);
 }
 
 // for saving sitoutNextBigBlind
-userActivity.sitoutNextBigBlind = async function(params: any, category: string, subCategory: string, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async sitoutNextBigBlind (params: any, category: string, subCategory: string, logType: string) {
+  const activityObject:any = this.init(category, subCategory, logType);
   const player = _.where(params.table.players, {playerId: params.data.playerId});
   
   if (params) {
@@ -927,13 +926,13 @@ userActivity.sitoutNextBigBlind = async function(params: any, category: string, 
     activityObject.comment = player[0].playerName + ": enabled sitoutNextBigBlind in " + params.table.channelName;
   }
   
-  await insertInDb(activityObject);
-  await insertInDbGame(activityObject);
+  await this.insertInDb(activityObject);
+  await this.insertInDbGame(activityObject);
 }
 
 // for saving resetSitOut
-userActivity.resetSitOut = async function(params: any, category: string, subCategory: string, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async resetSitOut (params: any, category: string, subCategory: string, logType: string) {
+  const activityObject :any = this.init(category, subCategory, logType);
   const player = _.where(params.table.players, {playerId: params.data.playerId});
   
   if (params) {
@@ -943,13 +942,13 @@ userActivity.resetSitOut = async function(params: any, category: string, subCate
     activityObject.comment = player[0].playerName + ": reset sit out in " + params.table.channelName;
   }
   
-  await insertInDb(activityObject);
-  await insertInDbGame(activityObject);
+  await this.insertInDb(activityObject);
+  await this.insertInDbGame(activityObject);
 }
 
 // for saving resume
-userActivity.resume = async function(params: any, category: string, subCategory: string, logType: string) {
-  const activityObject = init(category, subCategory, logType);
+async resume (params: any, category: string, subCategory: string, logType: string) {
+  const activityObject : any = this.init(category, subCategory, logType);
   const player = _.where(params.table.players, {playerId: params.data.playerId});
   
   if (params) {
@@ -960,13 +959,13 @@ userActivity.resume = async function(params: any, category: string, subCategory:
       " from " + params.data.previousState + " state to " + params.data.state;
   }
   
-  await insertInDb(activityObject);
-  await insertInDbGame(activityObject);
+  await this.insertInDb(activityObject);
+  await this.insertInDbGame(activityObject);
 }
 
 // for saving add chip in game 
-userActivity.addChipsOnTable = async function(params: any, category: string, subCategory: string, logType: string, playerChipDetails: any) {
-  const activityObject = init(category, subCategory, logType);
+async addChipsOnTable (params: any, category: string, subCategory: string, logType: string, playerChipDetails: any) {
+  const activityObject :any = this.init(category, subCategory, logType);
   const player = _.where(params.table.players, {playerId: params.data.playerId});
   
   if (params && playerChipDetails) {
@@ -986,12 +985,12 @@ userActivity.addChipsOnTable = async function(params: any, category: string, sub
     }
   }
   
-  await insertInDb(activityObject);
-  await insertInDbGame(activityObject);
+  await this.insertInDb(activityObject);
+  await this.insertInDbGame(activityObject);
 }
 
-userActivity.updateTableSettings = async function(params: any, category: string, subCategory: string, logType: string, playerName: string) {
-  const activityObject = init(category, subCategory, logType);
+async updateTableSettings (params: any, category: string, subCategory: string, logType: string, playerName: string) {
+  const activityObject :any = this.init(category, subCategory, logType);
   
   if (params && params.key === "isMuckHand") {
     activityObject.playerId = (params.playerId || "");
@@ -1005,12 +1004,12 @@ userActivity.updateTableSettings = async function(params: any, category: string,
     }
   }
   
-  await insertInDb(activityObject);
-  await insertInDbGame(activityObject);
+  await this.insertInDb(activityObject);
+  await this.insertInDbGame(activityObject);
 }
 
 // saves player winnings in logDb-> winAmount
-userActivity.logWinnings = async function(channelType: string, channelVariation: string, channelId: string, timestamp: number, winners: any[], contributors: any[]) {
+async logWinnings (channelType: string, channelVariation: string, channelId: string, timestamp: number, winners: any[], contributors: any[]) {
   for (const winner of winners) {
     const t = _.findWhere(contributors, {playerId: winner.playerId}) || {amount: 0};
     const amount = winner.amount - t.amount;
@@ -1023,11 +1022,11 @@ userActivity.logWinnings = async function(channelType: string, channelVariation:
       amount: amount
     };
 
-    await logDBGeneral('winAmount', 'insert', logObject); // colName, query, data
+    await this.logDBGeneral('winAmount', 'insert', logObject); // colName, query, data
   }
 }
 
-const countNumberOfHands = async function(params: any) {
+async countNumberOfHands (params: any) {
   let slab = "N/A";
   const blinds = [params.smallBlind, params.bigBlind];
   
@@ -1082,12 +1081,12 @@ const countNumberOfHands = async function(params: any) {
     };
     
     // Added by Kunal - for IPL
-    await logDB.insertAndUpdateContestDataIPL(queryIPLFilter, update);
-    await logDB.insertAndUpdateContestData(query, update);
+    await this.db.insertAndUpdateContestDataIPL(queryIPLFilter, update);
+    await this.db.insertAndUpdateContestData(query, update);
   }
 }
 
-export default userActivity;
+}
 
 // import { Injectable } from '@nestjs/common';
 // import * as _ from 'underscore';

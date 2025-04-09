@@ -1,60 +1,28 @@
 import { dispatcher } from 'shared/common';
 import * as _ from 'underscore';
-import * as keyValidator from '../../../../../shared/keysDictionary';
+// import * as keyValidator from '../../../../../shared/keysDictionary';
+import { validateKeySets } from 'shared/common/utils/activity';
 import { PokerDatebaseService } from 'shared/common/datebase/pokerdatebase.service';
-import * as activity from '../../../../../shared/activity';
-import * as sharedModule from '../../../../../shared/sharedModule';
+import { ActivityService } from 'shared/common/activity/activity.service';
+// import * as sharedModule from '../../../../../shared/sharedModule';
 import { systemConfig, stateOfX, popupTextManager } from 'shared/common';
-import * as serverDownManager from '../../../util/serverDownManager';
+import { ServerDownManagerService } from 'shared/common/server-down-manager/server-down-manager.service';
 
 
 
 export class GateHandler {
-    constructor(private db : PokerDatebaseService){
+    constructor(private db : PokerDatebaseService,
+        private activity :ActivityService,
+        private serverDownManager : ServerDownManagerService
+    ){
 
     }
 
 
     async getConnector(msg: any, session: any, next: (err: any, data?: any) => void): Promise<void> {
         const self = this;
-        
-        if (serverDownManager.checkServerState('login', self.app)) {
-            try {
-                const result = await this.db.findMultipleScheduleTasks({ 
-                    limit: 1, 
-                    type: 'serverDown', 
-                    status: { $in: ["STARTED", "PENDING"] } 
-                });
-
-                const ct = new Date().getTime();
-                let infoServerUpTime = 0;
-                if (result && result[0] && result[0].serverUpTime) {
-                    infoServerUpTime = result[0].serverUpTime;
-                }
-
-                let minutes = infoServerUpTime ? (infoServerUpTime - ct) / 60000 : 0;
-                if (minutes <= 0) minutes = 30;
-
-                const timeString = minutes >= 60 
-                    ? `${Math.floor(minutes / 60)} hour(s) and ${Math.floor(minutes % 60)} minute(s)`
-                    : `${minutes} minute(s)`;
-
-                next(null, { 
-                    success: false, 
-                    info: `Server is under maintenance. Please try again after ${timeString}. We appreciate your support.` 
-                });
-                return;
-            } catch (err) {
-                next(null, { 
-                    success: false, 
-                    info: "Server maintenance information unavailable. Please try again later." 
-                });
-                return;
-            }
-        }
-
         try {
-            const clientStatus = await serverDownManager.checkClientStatus('login', msg, self.app);
+            const clientStatus = await this.serverDownManager.checkClientStatus('login', msg, self.app);
             
             if (!clientStatus) {
                 next(null, { 
@@ -73,7 +41,7 @@ export class GateHandler {
             const activityCategory = stateOfX.profile.category.profile;
             const activitySubCategory = stateOfX.profile.subCategory.login;
 
-            const keyValidation = await keyValidator.validateKeySets(
+            const keyValidation = await validateKeySets(
                 "Request", 
                 self.app.serverType, 
                 "getConnector", 
@@ -142,7 +110,7 @@ export class GateHandler {
             if (!validateUserResponse) {
                 activityParams.comment = "not able to find data from db";
                 activityParams.rawResponse = { success: false, info: "not able to find data from db" };
-                activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
+                this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
                 next(null, { success: false, info: "not able to find data from db" });
                 return;
             }
@@ -163,7 +131,7 @@ export class GateHandler {
                     activityParams.rawResponse = { success: true, user: validateUserResponse.user };
                     activityParams.data = validateUserResponse.user;
                     
-                    activity.logUserActivity(
+                    this.activity.logUserActivity(
                         activityParams, 
                         activityCategory, 
                         activitySubCategory, 
@@ -197,13 +165,13 @@ export class GateHandler {
                 } else {
                     activityParams.comment = "user not found";
                     activityParams.rawResponse = hostPortData;
-                    activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
+                    this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
                     next(null, hostPortData);
                 }
             } else {
                 activityParams.comment = validateUserResponse.info;
                 activityParams.rawResponse = validateUserResponse.info;
-                activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
+                this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
                 next(null, { success: false, isDisplay: false, info: validateUserResponse.info });
             }
         } else if (msg.loginMode.toLowerCase() === 'facebook' || msg.loginMode.toLowerCase() === 'google') {
@@ -212,7 +180,7 @@ export class GateHandler {
             if (!profile) {
                 activityParams.comment = "not able to find data from db for socialLogin";
                 activityParams.rawResponse = { success: false, info: "not able to find data from db for socialLogin" };
-                activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
+                this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
                 next(null, { success: false, info: "not able to find data from db for socialLogin" });
                 return;
             }
@@ -232,24 +200,24 @@ export class GateHandler {
                     activityParams.rawResponse = { success: true, user: profile.user };
                     activityParams.playerId = profile.user.playerId;
                     activityParams.data = profile.user;
-                    activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.completed);
+                    this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.completed);
                     next(null, { success: true, serverVersion: systemConfig.serverVersion, user: profile.user });
                 } else {
                     activityParams.comment = "error in creating user";
                     activityParams.rawResponse = hostPortData;
-                    activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
+                    this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
                     next(null, hostPortData);
                 }
             } else {
                 activityParams.comment = "error in creating user";
                 activityParams.rawResponse = profile;
-                activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
+                this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
                 next(null, { success: false, info: profile.info });
             }
         } else {
             activityParams.comment = "unknown loginMode";
             activityParams.rawResponse = { success: false, info: "unknown loginMode" };
-            activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
+            this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
             next(null, { 
                 success: false, 
                 isRetry: false, 
@@ -318,7 +286,7 @@ export class GateHandler {
         if (!createdProfile) {
             activityParams.comment = "not able to create user in db";
             activityParams.rawResponse = { success: false, info: "not able to create user in db" };
-            activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
+            this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
             next({ 
                 success: false, 
                 isRetry: false, 
@@ -361,7 +329,7 @@ export class GateHandler {
                 activityParams.rawResponse = { success: true, info: createdProfile.user };
                 activityParams.playerId = createdProfile.user.playerId;
                 activityParams.data = createdProfile.user;
-                activity.logUserActivity(activityParams, activityCategory, stateOfX.profile.subCategory.signUp, stateOfX.profile.activityStatus.completed);
+                this.activity.logUserActivity(activityParams, activityCategory, stateOfX.profile.subCategory.signUp, stateOfX.profile.activityStatus.completed);
 
                 await this.db.dailyLoggedInUser({
                     fullName: `${createdProfile.user.firstName || ''} ${createdProfile.user.lastName || ''}`,
@@ -388,13 +356,13 @@ export class GateHandler {
             } else {
                 activityParams.comment = "not able to find suitable connector";
                 activityParams.rawResponse = { success: false, info: hostPortData };
-                activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
+                this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
                 next(null, hostPortData);
             }
         } else {
             activityParams.comment = createdProfile.info;
             activityParams.rawResponse = { success: false, info: createdProfile.info };
-            activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
+            this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
             next(null, { 
                 success: false, 
                 info: createdProfile.info, 
@@ -415,7 +383,7 @@ export class GateHandler {
             return { success: true, host: "", port: 0 };
         }
 
-        const validated = await keyValidator.validateKeySets(
+        const validated = await validateKeySets(
             "Request", 
             params.self.app.serverType, 
             "getHostAndPort", 
