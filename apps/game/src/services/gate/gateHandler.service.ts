@@ -1,4 +1,4 @@
-import { dispatcher } from 'shared/common';
+import { dispatcher, sendMailWithHtml } from 'shared/common';
 import * as _ from 'underscore';
 // import * as keyValidator from '../../../../../shared/keysDictionary';
 import { validateKeySets } from 'shared/common/utils/activity';
@@ -7,13 +7,15 @@ import { ActivityService } from 'shared/common/activity/activity.service';
 // import * as sharedModule from '../../../../../shared/sharedModule';
 import { systemConfig, stateOfX, popupTextManager } from 'shared/common';
 import { ServerDownManagerService } from 'shared/common/server-down-manager/server-down-manager.service';
+import { DbRemoteService } from '../database/dbRemote.service';
 
 
 
 export class GateHandler {
     constructor(private db : PokerDatebaseService,
         private activity :ActivityService,
-        private serverDownManager : ServerDownManagerService
+        private serverDownManager : ServerDownManagerService,
+        private dbRemote : DbRemoteService
     ){
 
     }
@@ -310,9 +312,7 @@ export class GateHandler {
                     subject: stateOfX.mailMessages.mail_subjectEmailVerification.toString()
                 };
 
-                sharedModule.sendMailWithHtml(params, (mailSentResponse) => {
-                    console.log("mail sent successfully", mailSentResponse);
-                });
+                let mailSentResponse =  sendMailWithHtml(params);
             }
 
             const hostPortData = await this.getHostAndPort({
@@ -395,7 +395,7 @@ export class GateHandler {
         }
 
         try {
-            const response = await params.self.app.rpc.database.dbRemote.findUserSessionInDB(
+            const response = await this.dbRemote.findUserSessionInDB(
                 params.self.session, 
                 params.playerId
             );
@@ -411,9 +411,8 @@ export class GateHandler {
                 }
             }
 
-            const res = dispatcher.dispatch(params.playerId, params.connector);
+            const res = dispatcher(params.playerId, params.connector);
             await this.dbRemote.insertUserSessionInDB(
-                params.self.session, 
                 { playerId: params.playerId, serverId: res.id }
             );
 

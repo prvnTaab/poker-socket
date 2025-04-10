@@ -6,6 +6,7 @@ import { GameGateway } from './game/game.gateway';
 import { RedisService } from './redis/redis.service';
 import { DatebaseModule } from 'shared/common';
 import { GameController } from './game.controller';
+import { DbRemoteService } from './services/database/dbRemote.service';
 
 @Module({
   imports: [
@@ -15,7 +16,7 @@ import { GameController } from './game.controller';
     // MongooseModule.forRoot(process.env.DB, {connectionName: 'db'}),
   ],
   controllers: [GameController],
-  providers: [GameService, GameGateway, RedisService],
-  exports:[RedisService]
+  providers: [GameService, GameGateway, RedisService, DbRemoteService],
+  exports:[RedisService, DbRemoteService]
 })
 export class GameModule {}
