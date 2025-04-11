@@ -8,8 +8,8 @@ import _ld from "lodash";
 import async from 'async';
 import { v4 as uuid } from "uuid";
 import { stateOfX, systemConfig , popupTextManager, convertIntToDecimal, encrypt, decrypt, sendMailWithHtml} from "shared/common";
+import { UserRemoteService } from "./userRemote.service";
 
-import userRemote from "./userRemote";
 import responseHandler from './responseHandler';
 import shortid from 'shortid32';
 import wallet from '../../walletQuery';
@@ -20,7 +20,8 @@ shortid.characters('QWERTYUIOPASDFGHJKLZXCVBNM012345');
 @Injectable()
 export class DbRemoteService {
     constructor(private db : PokerDatebaseService,
-        private imdb : ImdbDatebaseService
+        private imdb : ImdbDatebaseService,
+        private userRemote : UserRemoteService
     ){
     }
 
@@ -677,8 +678,8 @@ export class DbRemoteService {
       }
 
       const formattedUser = await this.formatUser(createdUser);
-      if (userRemote.afterUserCreated instanceof Function) {
-        userRemote.afterUserCreated(createdUser);
+      if (this.userRemote.afterUserCreated instanceof Function) {
+        this.userRemote.afterUserCreated(createdUser);
       }
 
       return { success: true, user: formattedUser };
