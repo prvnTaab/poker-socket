@@ -1,18 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import * as async from 'async';
 import * as _ from 'underscore';
-import * as broadcastHandler from './broadcastHandler';
-import * as startGameHandler from './startGameHandler';
-import * as actionLogger from './actionLogger';
-import * as channelTimerHandler from './channelTimerHandler';
-import * as waitingListHandler from './waitingListHandler';
-import * as imdb from '../../../../../shared/model/inMemoryDbQuery';
+
 import { systemConfig, stateOfX } from 'shared/common';
-// import * as pomelo from 'pomelo';
+import { BroadcastHandlerService } from './broadcastHandler.service';
+import { ActionLoggerService } from './actionLogger.service';
+import { ImdbDatabaseService } from 'shared/common/datebase/Imdbdatabase.service';
+import { ChannelTimerHandlerService } from './channelTimerHandler.service';
+import { StartGameHandlerService } from './startGameHandler.service';
+import { WaitingListHandlerService } from './waitingListHandler.service';
+
+
+declare const pomelo:any;
 
 @Injectable()
 export class ActionHandlerService {
-    constructor() { }
+    constructor(
+        private imdb: ImdbDatabaseService,
+        private readonly broadcastHandler: BroadcastHandlerService,
+        private readonly actionLogger:ActionLoggerService,
+        private readonly channelTimerHandler:ChannelTimerHandlerService,
+        private readonly startGameHandler:StartGameHandlerService,
+        private readonly waitingListHandler:WaitingListHandlerService
+
+
+    ) { }
 
     /**
     * Handle events after some player left
@@ -22,7 +34,7 @@ export class ActionHandlerService {
     */
     async handleLeaveEvents(params: any): Promise<void> {
         try {
-            await broadcastHandler.fireLeaveBroadcast({
+            await this.broadcastHandler.fireLeaveBroadcast({
                 channel: params.channel,
                 serverType: pomelo.app.serverType,
                 data: params.response.broadcast,
@@ -30,7 +42,7 @@ export class ActionHandlerService {
 
             // Broadcast next queued player for this channel
             if (params.response.isSeatsAvailable) {
-                await waitingListHandler.processNextQueuedPlayer({
+                await this.waitingListHandler.processNextQueuedPlayer({
                     channelId: params.channelId,
                     session: params.session,
                     channel: params.channel,
@@ -38,7 +50,7 @@ export class ActionHandlerService {
             }
 
             // Broadcast for lobby
-            await broadcastHandler.fireBroadcastToAllSessions({
+            await this.broadcastHandler.fireBroadcastToAllSessions({
                 app: pomelo.app,
                 data: {
                     _id: params.channelId,
@@ -50,7 +62,7 @@ export class ActionHandlerService {
 
             // Start timer for player standup or kill existing timer on leave
             if (params.request.isStandup) {
-                await channelTimerHandler.kickPlayerToLobby({
+                await this.channelTimerHandler.kickPlayerToLobby({
                     session: params.session,
                     channel: params.channel,
                     channelId: params.channelId,
@@ -58,7 +70,7 @@ export class ActionHandlerService {
                     data: params.request,
                 });
             } else {
-                await broadcastHandler.sendMessageToUser({
+                await this.broadcastHandler.sendMessageToUser({
                     playerId: params.request.playerId,
                     serverId: params.session.frontendId,
                     msg: {
@@ -68,7 +80,7 @@ export class ActionHandlerService {
                     },
                     route: stateOfX.broadcasts.joinTableList,
                 });
-                await channelTimerHandler.killKickToLobbyTimer({
+                await this.channelTimerHandler.killKickToLobbyTimer({
                     channel: params.channel,
                     playerId: params.request.playerId,
                 });
@@ -126,13 +138,13 @@ export class ActionHandlerService {
             let fireOnTurnBroadcastResponse = await this.broadcastHandler.fireOnTurnBroadcast(params.response.turn)
             if (fireOnTurnBroadcastResponse.success) {
                 if (!params.response.isGameOver) {
-                    channelTimerHandler.startTurnTimeOut(params);
+                    this.channelTimerHandler.startTurnTimeOut(params);
                     //}, 500);
                 } else {
-                    channelTimerHandler.killChannelTurnTimer({ channel: params.channel });
+                    this.channelTimerHandler.killChannelTurnTimer({ channel: params.channel });
                 }
             } else {
-                channelTimerHandler.killChannelTurnTimer({ channel: params.channel, request: params.request });
+                this.channelTimerHandler.killChannelTurnTimer({ channel: params.channel, request: params.request });
             }
         }
 
@@ -150,7 +162,7 @@ export class ActionHandlerService {
                 broadcastData = _.omit(broadcastData, 'playerId');
                 broadcastData.event = stateOfX.recordChange.tournamentBlindChange;
                 broadcastData.updated = params.response.newBlinds;
-                broadcastHandler.fireBroadcastToAllSessions({ app: pomelo.app, data: broadcastData, route: stateOfX.broadcasts.tournamentLobby });
+                this.broadcastHandler.fireBroadcastToAllSessions({ app: pomelo.app, data: broadcastData, route: stateOfX.broadcasts.tournamentLobby });
             }
         }
 
@@ -162,10 +174,10 @@ export class ActionHandlerService {
         // Fire round over broadcast
         if (params.response.isRoundOver) {
             if (params.response.flopPercent >= 0) {
-                broadcastHandler.fireBroadcastToAllSessions({ app: pomelo.app, data: { _id: params.channelId, updated: { flopPercent: params.response.flopPercent }, event: stateOfX.recordChange.tableFlopPercent }, route: stateOfX.broadcasts.tableUpdate });
+                this.broadcastHandler.fireBroadcastToAllSessions({ app: pomelo.app, data: { _id: params.channelId, updated: { flopPercent: params.response.flopPercent }, event: stateOfX.recordChange.tableFlopPercent }, route: stateOfX.broadcasts.tableUpdate });
             }
             if (params.response.round.roundName !== stateOfX.round.showdown) {
-                actionLogger.createEventLog({ session: params.session, channel: params.channel, data: { channelId: params.channelId, eventName: stateOfX.logEvents.roundOver, rawData: params.response.round } });
+                this.actionLogger.createEventLog({ session: params.session, channel: params.channel, data: { channelId: params.channelId, eventName: stateOfX.logEvents.roundOver, rawData: params.response.round } });
             }
             // params.response.round.self 		= params.self;
             params.response.round.channel = params.channel;
@@ -181,7 +193,7 @@ export class ActionHandlerService {
                 params.response.bestHands.channelId = params.channelId;
                 params.response.bestHands.channel = params.channel;
                 setTimeout(function () {
-                    broadcastHandler.fireBestHandBroadcast(params.response.bestHands);
+                    this.broadcastHandler.fireBestHandBroadcast(params.response.bestHands);
                 }, 1000);
             }
         }
@@ -195,10 +207,7 @@ export class ActionHandlerService {
             var removeQuery: any = {};
             removeQuery.channelId = params.response.channelId;
             // setTimeout(function () {
-            imdb.removeCardShow(removeQuery, function (rErr, rRes) {
-                //console.log("-------------------removedEyeCards-----------------------");
-            })
-            // }, 2500);
+            await this.imdb.removeCardShow(removeQuery);
 
             console.log("params.response.over.endingType", params.response.over.endingType)
             // if(params.response.over.endingType != 'EVERYBODYPACKED' && params.response.allInCards.length > 0){
@@ -212,14 +221,14 @@ export class ActionHandlerService {
                 var broadcastData: any = {};
                 broadcastData.channelId = channelIdOriginal;
                 broadcastData.allInCards = params.response.allInCards;
-                broadcastHandler.fireAllInCards({ channel: channel, channelId: channelIdOriginal, data: broadcastData });
+                this.broadcastHandler.fireAllInCards({ channel: channel, channelId: channelIdOriginal, data: broadcastData });
             }
             if (params.response.avgPot >= 0) {
-                broadcastHandler.fireBroadcastToAllSessions({ app: pomelo.app, data: { _id: params.channelId, updated: { avgPot: params.response.avgPot }, event: stateOfX.recordChange.tableAvgPot }, route: stateOfX.broadcasts.tableUpdate });
+                this.broadcastHandler.fireBroadcastToAllSessions({ app: pomelo.app, data: { _id: params.channelId, updated: { avgPot: params.response.avgPot }, event: stateOfX.recordChange.tableAvgPot }, route: stateOfX.broadcasts.tableUpdate });
             }
             setTimeout(function () {
-                actionLogger.createEventLog({ session: params.session, channel: params.channel, data: { channelId: params.channelId, eventName: stateOfX.logEvents.summary, rawData: _.omit(params.response.over, 'self', 'session', 'channel') } });
-            }, parseInt(systemConfig.recordSummaryAfterGameOver) * 1000);
+                this.actionLogger.createEventLog({ session: params.session, channel: params.channel, data: { channelId: params.channelId, eventName: stateOfX.logEvents.summary, rawData: _.omit(params.response.over, 'self', 'session', 'channel') } });
+            }, Number(systemConfig.recordSummaryAfterGameOver) * 1000);
 
             params.response.over.channel = params.channel;
             params.response.over.session = params.session;
@@ -238,14 +247,14 @@ export class ActionHandlerService {
             // cardAnim += 3000; // for rabbit
             //rabbit end
             setTimeout(function () {
-                broadcastHandler.fireGameOverBroadcast(params.response.over);
+                this.broadcastHandler.fireGameOverBroadcast(params.response.over);
             }, (cardAnim));
 
             console.log('Printing cardAnim extraDelay ', cardAnim, extraDelay, extraAniMationTime);
 
             //Broadcast for ROE after gameOver
             if (params.response.isROE) {
-                var isRoeTime = cardAnim + parseInt(systemConfig.gameROEBroadcastDelay) * 1000;
+                var isRoeTime = cardAnim + Number(systemConfig.gameROEBroadcastDelay) * 1000;
                 setTimeout(function () {
                     var tableDetails = {
                         channel: params.channel,
@@ -254,7 +263,7 @@ export class ActionHandlerService {
                         channelVariation: params.response.channelVariation,
                         message: params.response.channelRoundCount + "/" + params.response.maxPlayers
                     }
-                    broadcastHandler.fireGameVariationBroadcast(tableDetails);
+                    this.broadcastHandler.fireGameVariationBroadcast(tableDetails);
                 }, isRoeTime);
                 if (params.response.channelRound == params.response.maxPlayers) {
                     var variationDetails = {
@@ -263,7 +272,7 @@ export class ActionHandlerService {
                         isROE: params.response.isROE,
                         channelVariation: params.response.channelVariation
                     }
-                    broadcastHandler.fireROEGameVariationBroadcast(variationDetails);
+                    this.broadcastHandler.fireROEGameVariationBroadcast(variationDetails);
                 }
             }
 
@@ -271,10 +280,10 @@ export class ActionHandlerService {
             var msgsPlayer = {};
             for (var i = 0; i < broadcastForAddChipsFailed.length; i++) {
                 msgsPlayer[broadcastForAddChipsFailed[i]] = { heading: "Add Points Failed", serverId: params.session.frontendId, info: "Unable to add points since enough points not available in account.", channelId: params.channelId, playerId: broadcastForAddChipsFailed[i], buttonCode: 1 };
-                broadcastHandler.fireInfoBroadcastToPlayer(msgsPlayer[broadcastForAddChipsFailed[i]]);
+                this.broadcastHandler.fireInfoBroadcastToPlayer(msgsPlayer[broadcastForAddChipsFailed[i]]);
             }
 
-            let table = await imdb.getTable(params.channelId)
+            let table = await this.imdb.getTable(params.channelId)
             if (table.players.length > 0) {
                 async.eachSeries(table.players, function (player, ecb) {
                     if (table.isCTEnabledTable) {
@@ -282,7 +291,7 @@ export class ActionHandlerService {
                         if (player.callTimeGameMissed === table.ctEnabledBufferHand + 1 && player.playerScore > 0) {
                             console.log('firePlayerSettings', player.callTimeGameMissed, table.ctEnabledBufferHand, table.ctEnabledBufferTime);
                             setTimeout(() => {
-                                broadcastHandler.playerCallTimerEnds({
+                                this.broadcastHandler.playerCallTimerEnds({
                                     channel: params.channel,
                                     channelId: params.channelId,
                                     playerId: player.playerId,
@@ -333,7 +342,7 @@ export class ActionHandlerService {
                                         callTimeGameMissed: 0,
                                         isCallTimeOver: false
                                     }
-                                    imdb.updateIsCallTimeOver(query, function (err, result) {
+                                    this.imdb.updateIsCallTimeOver(query, function (err, result) {
                                         //imdb.playerStateUpdateOnDisconnections(channelId,playerId,state,previousState, function (err, res)
                                         if (err) {
                                             console.log("couldn't update ****************************************", err);
@@ -361,10 +370,10 @@ export class ActionHandlerService {
             // if ()
             setTimeout(function () {
                 params.channel.isGameOverActionHandler = false;
-                startGameHandler.startGame({ session: params.session, channelId: params.channelId, channel: params.channel, eventName: stateOfX.startGameEvent.gameOver });
+                this.startGameHandler.startGame({ session: params.session, channelId: params.channelId, channel: params.channel, eventName: stateOfX.startGameEvent.gameOver });
             }, dc); // if rabbit possible will give time for cards else set it to 2500 for button time
 
-            channelTimerHandler.tableIdleTimer({ channelId: params.channelId, channel: params.channel, session: params.session });
+            this.channelTimerHandler.tableIdleTimer({ channelId: params.channelId, channel: params.channel, session: params.session });
 
         }
     }
@@ -390,7 +399,7 @@ export class ActionHandlerService {
         });
 
         console.info('Broadcasting megapoints:', JSON.stringify(broadcastData));
-        await broadcastHandler.pushMegaPoints({ channel: params.channel, data: broadcastData });
+        await this.broadcastHandler.pushMegaPoints({ channel: params.channel, data: broadcastData });
     }
 
     getLevelName(levelId: number, levels: any[]): string {
@@ -458,7 +467,7 @@ export class ActionHandlerService {
     async updateObserverRecord(playerId: any, channelId: any) {
         console.info("Going to update isSit in actionHandler");
         try {
-            const result = await imdb.updateIsSit({ playerId, channelId });
+            const result = await this.imdb.updateIsSit({ playerId, channelId });
             if (result) {
                 console.info("Update observer record success");
             } else {
@@ -476,8 +485,8 @@ export class ActionHandlerService {
         if (params.response.success) {
             params.response.channel = params.channel;
 
-            channelTimerHandler.killReserveSeatReferennce({ playerId: params.request.playerId, channel: params.channel });
-            channelTimerHandler.killKickToLobbyTimer({ playerId: params.request.playerId, channel: params.channel });
+            this.channelTimerHandler.killReserveSeatReferennce({ playerId: params.request.playerId, channel: params.channel });
+            this.channelTimerHandler.killKickToLobbyTimer({ playerId: params.request.playerId, channel: params.channel });
 
             if (params.response.previousState === stateOfX.playerState.reserved) {
                 await this.updateObserverRecord(params.request.playerId, params.channelId);
@@ -527,13 +536,13 @@ export class ActionHandlerService {
             this.broadcastHandler.firePlayerCoinBroadcast(params.response);
 
             setTimeout(() => {
-                startGameHandler.startGame({
+                this.startGameHandler.startGame({
                     session: params.session,
                     channelId: params.channelId,
                     channel: params.channel,
                     eventName: stateOfX.startGameEvent.addChips,
                 });
-            }, parseInt(systemConfig.startGameAfterStartEvent) * 1000);
+            }, Number(systemConfig.startGameAfterStartEvent) * 1000);
 
             this.broadcastHandler.firePlayerStateBroadcast({
                 channel: params.channel,
@@ -560,7 +569,7 @@ export class ActionHandlerService {
                     this.sessionExport(params.session),
                     () => {
                         setTimeout(() => {
-                            broadcastHandler.fireInfoBroadcastToPlayer({
+                            this.broadcastHandler.fireInfoBroadcastToPlayer({
                                 playerId: params.request.playerId,
                                 buttonCode: 1,
                                 channelId: params.channelId,

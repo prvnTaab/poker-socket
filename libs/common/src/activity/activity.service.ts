@@ -6,7 +6,7 @@ import _ from "underscore";
 import async from "async";
 import stateOfX from '../stateOfX.sevice.js';
 import { systemConfig } from 'shared/common';
-import { PokerDatebaseService } from '../datebase/pokerdatebase.service.js';
+import { PokerDatebaseService } from '../datebase/pokerdatabase.service.js';
 import { convertToJson } from 'shared/common';
 
 // const logDB = require("./model/logDbQuery.js");

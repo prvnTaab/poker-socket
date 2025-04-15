@@ -12,13 +12,12 @@ import { DbRemoteService } from '../database/dbRemote.service';
 
 
 export class GateHandler {
+    
     constructor(private db : PokerDatebaseService,
         private activity :ActivityService,
         private serverDownManager : ServerDownManagerService,
         private dbRemote : DbRemoteService
-    ){
-
-    }
+    ){ }
 
 
     async getConnector(msg: any, session: any, next: (err: any, data?: any) => void): Promise<void> {
@@ -38,7 +37,7 @@ export class GateHandler {
             const connectors = self.app.getServersByType('connector');
             const activityParams: any = { 
                 data: {},
-                rawInput: msg 
+                rawInput: msg
             };
             const activityCategory = stateOfX.profile.category.profile;
             const activitySubCategory = stateOfX.profile.subCategory.login;

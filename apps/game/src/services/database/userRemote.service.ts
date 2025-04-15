@@ -2,15 +2,15 @@ import { Injectable } from "@nestjs/common";
 import async from 'async';
 import lodash from 'lodash';
 import { stateOfX } from "shared/common";
-import { PokerDatebaseService } from "shared/common/datebase/pokerdatebase.service";
+import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 
 
 @Injectable()
 export class UserRemoteService {
     
-    constructor(private db: PokerDatebaseService){
-
-    }
+    constructor(
+        private db: PokerDatabaseService
+    ){}
 
 
 // update player win, lose stats

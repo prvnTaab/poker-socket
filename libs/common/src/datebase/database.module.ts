@@ -1,9 +1,8 @@
 import { Module } from '@nestjs/common';
-import { PokerDatebaseService } from './pokerdatebase.service';
-import { DatebaseController } from './datebase.controller';
+import { PokerDatabaseService } from './pokerdatabase.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ImdbDatebaseService } from './Imdbdatebase.service copy';
+import { ImdbDatabaseService } from './Imdbdatabase.service';
 
 @Module({
   imports:[
@@ -16,8 +15,8 @@ import { ImdbDatebaseService } from './Imdbdatebase.service copy';
     MongooseModule.forRoot(process.env.DB, {connectionName: 'db'}),
     
 ],
-  controllers: [DatebaseController],
-  providers: [PokerDatebaseService, ImdbDatebaseService],
-  exports:[PokerDatebaseService, ImdbDatebaseService]
+  controllers: [],
+  providers: [PokerDatabaseService, ImdbDatabaseService],
+  exports:[PokerDatabaseService, ImdbDatabaseService]
 })
-export class DatebaseModule {}
+export class DatabaseModule {}

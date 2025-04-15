@@ -3,7 +3,7 @@ import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 
 @Injectable()
-export class ImdbDatebaseService {
+export class ImdbDatabaseService {
   constructor(@InjectConnection('inMemoryDb') private inMemoryDb: Connection) {}
 
   /*----------------- Table Operations START ---------------------*/
@@ -900,4 +900,28 @@ export class ImdbDatebaseService {
       throw err;
     }
   }
+
+
+  async updateTableAndModify(a1:any,a2:any,a3:any,a4:any) {
+
+    try {
+      
+
+      const result = await this.inMemoryDb.collection("tables").findAndModify(
+        a1,
+        a2,
+        a3,
+        a4
+    );
+
+    return result;
+
+
+    } catch (error) {
+      throw error;
+    }
+
+  }
+
+
 }

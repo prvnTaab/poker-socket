@@ -7,8 +7,8 @@ import { Injectable } from '@nestjs/common';
 * @Last Modified by:   sushiljainam
 * @Last Modified time: 2018-04-20 21:25:14
 */
-import { PokerDatebaseService } from '../datebase/pokerdatebase.service';
-import { ImdbDatebaseService } from '../datebase/Imdbdatebase.service copy';
+import { PokerDatebaseService } from '../datebase/pokerdatabase.service';
+import { ImdbDatebaseService } from '../datebase/Imdbdatabase.service';
 import { systemConfig } from '..';
 import * as async from "async";
 

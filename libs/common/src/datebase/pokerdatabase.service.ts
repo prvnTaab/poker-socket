@@ -5,7 +5,7 @@ import stateOfX from '../stateOfX.sevice';
 import systemConfig from '../systemConfig.json';
 
 @Injectable()
-export class PokerDatebaseService {
+export class PokerDatabaseService {
   constructor(@InjectConnection('db') private db: Connection) {}
 
   async updateSubUsedCount(query: any, updateKeys: any): Promise<any> {

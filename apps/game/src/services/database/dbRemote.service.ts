@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 
 
-import { PokerDatebaseService } from "shared/common/datebase/pokerdatebase.service.js";
-import { ImdbDatebaseService } from "shared/common/datebase/Imdbdatebase.service copy.js";
+import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service.js";
+import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service.js";
 import _ from "underscore";
 import _ld from "lodash";
 import async from 'async';
@@ -19,8 +19,8 @@ shortid.characters('QWERTYUIOPASDFGHJKLZXCVBNM012345');
 
 @Injectable()
 export class DbRemoteService {
-    constructor(private db : PokerDatebaseService,
-        private imdb : ImdbDatebaseService,
+    constructor(private db : PokerDatabaseService,
+        private imdb : ImdbDatabaseService,
         private userRemote : UserRemoteService
     ){
     }
