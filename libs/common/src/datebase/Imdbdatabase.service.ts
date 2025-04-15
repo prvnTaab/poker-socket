@@ -3,7 +3,7 @@ import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 
 @Injectable()
-export class ImdbDatebaseService {
+export class ImdbDatabaseService {
   constructor(@InjectConnection('inMemoryDb') private inMemoryDb: Connection) {}
 
   /*----------------- Table Operations START ---------------------*/

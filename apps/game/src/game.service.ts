@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
-import { PokerDatebaseService } from 'shared/common/datebase/pokerdatebase.service';
+import { PokerDatabaseService } from 'shared/common/datebase/pokerdatabase.service';
 
 @Injectable()
 export class GameService {
   constructor(
     @InjectConnection('db') private dbConnection: Connection,
-    private db :PokerDatebaseService
+    private db :PokerDatabaseService
   ) { }
 
   

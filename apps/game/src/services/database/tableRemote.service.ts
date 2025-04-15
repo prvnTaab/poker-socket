@@ -8,14 +8,14 @@ import { stateOfX , systemConfig, popupTextManager} from "shared/common";
 // import lockTable from "./lockTable";
 import { ResponseHandlerService } from "./responseHandler.service";
 import { validateKeySets } from "shared/common/utils/activity";
-import { PokerDatebaseService } from "shared/common/datebase/pokerdatebase.service";
-import { ImdbDatebaseService } from "shared/common/datebase/Imdbdatebase.service copy";
+import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
 
 @Injectable()
 export class TableRemoteService {
     
-    constructor(private db: PokerDatebaseService,
-        private imdb : ImdbDatebaseService,
+    constructor(private db: PokerDatabaseService,
+        private imdb : ImdbDatabaseService,
         private responseHandler : ResponseHandlerService
     ){
 
