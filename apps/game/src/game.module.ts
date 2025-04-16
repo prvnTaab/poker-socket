@@ -10,7 +10,9 @@ import { DbRemoteService } from './services/database/dbRemote.service';
 import { UserRemoteService } from './services/database/userRemote.service';
 import { ResponseHandlerService } from './services/database/responseHandler.service';
 import { DisconnectionHandler } from './services/connector/disconnectionHandler';
-import { JoinChannelHandler } from './services/connector/joinChannelHandler';
+import { JoinChannelHandler } from './services/room/joinChannelHandler';
+import { ActionLoggerService } from './services/room/actionLogger.service';
+import { JoinRequestUtilService } from './services/room/joinRequestUtil.service';
 
 @Module({
   imports: [
@@ -22,7 +24,9 @@ import { JoinChannelHandler } from './services/connector/joinChannelHandler';
   controllers: [GameController],
   providers: [GameService, GameGateway, RedisService, DbRemoteService, UserRemoteService, ResponseHandlerService,
     DisconnectionHandler,
-    JoinChannelHandler
+    JoinChannelHandler,
+    ActionLoggerService,
+    JoinRequestUtilService
 
   ],
   exports:[RedisService, DbRemoteService, UserRemoteService, ResponseHandlerService]
