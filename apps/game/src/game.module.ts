@@ -13,6 +13,7 @@ import { DisconnectionHandler } from './services/connector/disconnectionHandler'
 import { JoinChannelHandler } from './services/room/joinChannelHandler';
 import { ActionLoggerService } from './services/room/actionLogger.service';
 import { JoinRequestUtilService } from './services/room/joinRequestUtil.service';
+import { CommonHandlerService } from './services/room/commonHandler.service';
 
 @Module({
   imports: [
@@ -26,7 +27,8 @@ import { JoinRequestUtilService } from './services/room/joinRequestUtil.service'
     DisconnectionHandler,
     JoinChannelHandler,
     ActionLoggerService,
-    JoinRequestUtilService
+    JoinRequestUtilService,
+    CommonHandlerService
 
   ],
   exports:[RedisService, DbRemoteService, UserRemoteService, ResponseHandlerService]
