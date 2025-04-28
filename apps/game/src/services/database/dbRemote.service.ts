@@ -9,19 +9,21 @@ import async from 'async';
 import { v4 as uuid } from "uuid";
 import { stateOfX, systemConfig , popupTextManager, convertIntToDecimal, encrypt, decrypt, sendMailWithHtml} from "shared/common";
 import { UserRemoteService } from "./userRemote.service";
+import { ResponseHandlerService } from "./responseHandler.service";
 
-import responseHandler from './responseHandler';
-import shortid from 'shortid32';
-import wallet from '../../walletQuery';
+// import shortid from 'shortid32';
+import { walletQueryService } from "../../utils/walletQuery.service";
 import { validateKeySets } from "shared/common/utils/activity";
-shortid.characters('QWERTYUIOPASDFGHJKLZXCVBNM012345');
+// shortid.characters('QWERTYUIOPASDFGHJKLZXCVBNM012345');
 
 
 @Injectable()
 export class DbRemoteService {
     constructor(private db : PokerDatebaseService,
         private imdb : ImdbDatebaseService,
-        private userRemote : UserRemoteService
+        private userRemote : UserRemoteService,
+        private responseHandler : ResponseHandlerService, 
+        private wallet : walletQueryService
     ){
     }
 
@@ -587,7 +589,7 @@ export class DbRemoteService {
         }
       };
 
-      const walletResponse = await wallet.sendWalletBroadCast(dataForWallet);
+      const walletResponse = await this.wallet.sendWalletBroadCast(dataForWallet);
       if (!walletResponse?.success) {
         return { success: false, isRetry: false, isDisplay: false, channelId: "", info: popupTextManager.dbQyeryInfo.DB_ERROR_UPDATE_FAILED_USER };
       }
@@ -864,7 +866,7 @@ export class DbRemoteService {
           return { success: false, isRetry: false, isDisplay: true, channelId: (params.channelId || ""), info: popupTextManager.dbQyeryInfo.DBGETTABLE_GETTABLEVIEW_TABLEREMOTE };
         }
       }
-      return responseHandler.setTableViewKeys({ table, channelId: params.channelId, playerId: params.playerId });
+      return this.responseHandler.setTableViewKeys({ table, channelId: params.channelId, playerId: params.playerId });
     } catch (err) {
       return { success: false, isRetry: false, isDisplay: true, channelId: (params.channelId || ""), info: popupTextManager.dbQyeryInfo.DBGETTABLE_GETTABLEVIEW_TABLEREMOTE };
     }
