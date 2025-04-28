@@ -25,6 +25,7 @@
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.12",
     "@nestjs/mapped-types": "*",
+    "@nestjs/microservices": "^11.0.17",
     "@nestjs/mongoose": "^11.0.3",
     "@nestjs/platform-express": "^11.0.12",
     "@nestjs/platform-socket.io": "^11.0.12",

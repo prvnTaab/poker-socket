@@ -1,16 +1,12 @@
 import { Injectable } from "@nestjs/common";
-import async from 'async';
-import lodash from 'lodash';
-import { stateOfX } from "shared/common";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { PokerDatebaseService } from "shared/common/datebase/pokerdatebase.service";
 
 
 @Injectable()
 export class UserRemoteService {
-    
-    constructor(
-        private db: PokerDatabaseService
-    ){}
+    constructor(private db: PokerDatebaseService){
+
+    }
 
 
 // update player win, lose stats
@@ -313,7 +309,7 @@ async rabbitData (data: any) {
 
 async BonusData (data: any) {
     try {
-        return await this.db.searchBonusData({ playerId: data.player });
+        // return await this.db.searchBonusData({ playerId: data.player });
     } catch (err) {
         return [];
     }

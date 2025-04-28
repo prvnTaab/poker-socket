@@ -36,10 +36,20 @@ import { SitHereHandlerService } from './services/room/sitHereHandler.service';
 import { TournamentActionHandlerService } from './services/room/tournamentActionHandler.service';
 import { DynamicTableHandlerService } from './services/room/dynamicTableHandler.service';
 import { HandleTipDealerService } from './services/room/handleTipDealer.service';
+import { walletQueryService } from './utils/walletQuery.service';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 
 @Module({
   imports: [
-    DatabaseModule
+    DatabaseModule,
+
+    ClientsModule.register([
+      {
+        name: 'POKER_WALLET',
+        transport: Transport.TCP,
+        options: { host: 'localhost', port: Number(4005) },
+      },
+    ]),
     // ConfigModule.forRoot({isGlobal: true}),
     // MongooseModule.forRoot(process.env.IMDB, {connectionName: 'inMemoryDb'}),
     // MongooseModule.forRoot(process.env.DB, {connectionName: 'db'}),
@@ -73,9 +83,10 @@ import { HandleTipDealerService } from './services/room/handleTipDealer.service'
     SitHereHandlerService,
     TournamentActionHandlerService,
     DynamicTableHandlerService,
-    HandleTipDealerService
+    HandleTipDealerService,
+    walletQueryService
 
   ],
-  exports:[RedisService, DbRemoteService, UserRemoteService, ResponseHandlerService]
+  exports:[RedisService, DbRemoteService, UserRemoteService, ResponseHandlerService, walletQueryService]
 })
 export class GameModule {}
