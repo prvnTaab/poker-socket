@@ -38,6 +38,12 @@ import { DynamicTableHandlerService } from './services/room/dynamicTableHandler.
 import { HandleTipDealerService } from './services/room/handleTipDealer.service';
 import { walletQueryService } from './utils/walletQuery.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { AddonManagementService } from './services/database/addonManagement.service';
+import { AdjustActiveIndexService } from './services/database/adjustActiveIndex.service';
+import { HandleGameStartCaseService } from './services/database/handleGameStartCase.service';
+import { LockTableService } from './services/database/lockTable.service';
+import { SetMoveService } from './services/database/setMove.service';
+import { AdminManagerRemoteService } from './services/database/adminManagerRemote.service';
 
 @Module({
   imports: [
@@ -55,7 +61,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
     // MongooseModule.forRoot(process.env.DB, {connectionName: 'db'}),
   ],
   controllers: [GameController],
-  providers: [GameService, GameGateway, RedisService, DbRemoteService, UserRemoteService, ResponseHandlerService,
+  providers: [GameService, GameGateway, RedisService, UserRemoteService, ResponseHandlerService,
     DisconnectionHandler,
     JoinChannelHandler,
     ActionLoggerService,
@@ -84,7 +90,18 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
     TournamentActionHandlerService,
     DynamicTableHandlerService,
     HandleTipDealerService,
-    walletQueryService
+    walletQueryService,
+
+    // DATABASE SERVICES START
+    AddonManagementService,
+    AdjustActiveIndexService,
+    DbRemoteService,
+    HandleGameStartCaseService,
+    LockTableService,
+    SetMoveService,
+    AdminManagerRemoteService
+    // DATABASE SERVICES END
+
 
   ],
   exports:[RedisService, DbRemoteService, UserRemoteService, ResponseHandlerService, walletQueryService]

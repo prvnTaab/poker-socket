@@ -7,7 +7,7 @@ import async from "async";
 import { validateKeySets } from "shared/common/utils/activity";
 
 @Injectable()
-export class ResponseHandlerService {
+export class SetMoveService {
     
     constructor(){
 

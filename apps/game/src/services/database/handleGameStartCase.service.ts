@@ -9,7 +9,7 @@ import { stateOfX, popupTextManager } from "shared/common";
 import tableManager from "./tableManager";
 
 @Injectable()
-export class ResponseHandlerService {
+export class HandleGameStartCaseService {
     
     constructor(){
 
