@@ -44,6 +44,12 @@ import { HandleGameStartCaseService } from './services/database/handleGameStartC
 import { LockTableService } from './services/database/lockTable.service';
 import { SetMoveService } from './services/database/setMove.service';
 import { AdminManagerRemoteService } from './services/database/adminManagerRemote.service';
+import { AutoRebuyRemoteService } from './services/database/autoRebuyRemote.service';
+import { CalculateChannelDetailsService } from './services/database/calculateChannelDetails.service';
+import { BreakManagementService } from './services/database/breakManagement.service';
+import { BlindUpdateService } from './services/database/blindUpdate.service';
+import { AutoSitRemoteService } from './services/database/autoSitRemote.service';
+import { CalculateRanksService } from './services/database/calculateRanks.service';
 
 @Module({
   imports: [
@@ -99,7 +105,13 @@ import { AdminManagerRemoteService } from './services/database/adminManagerRemot
     HandleGameStartCaseService,
     LockTableService,
     SetMoveService,
-    AdminManagerRemoteService
+    AdminManagerRemoteService,
+    AutoRebuyRemoteService,
+    AutoSitRemoteService,
+    BlindUpdateService,
+    BreakManagementService,
+    CalculateChannelDetailsService,
+    CalculateRanksService
     // DATABASE SERVICES END
 
 
