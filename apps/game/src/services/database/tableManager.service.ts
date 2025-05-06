@@ -18,7 +18,7 @@ import { validateKeySets } from "shared/common/utils/activity";
 
 
 @Injectable()
-export class TableRemoteService {
+export class TableManagerService {
 
     constructor(private imdb : ImdbDatebaseService,
        private db : PokerDatebaseService,
