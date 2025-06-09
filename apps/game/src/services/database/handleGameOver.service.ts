@@ -17,6 +17,8 @@ import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.servi
 @Injectable()
 export class HandleGameOverService {
 
+    private dbMessages = popupTextManager.dbQyeryInfo;
+
     constructor(
         private readonly db: PokerDatabaseService,
         private readonly imdb: ImdbDatabaseService,
@@ -30,33 +32,33 @@ export class HandleGameOverService {
     // New
     async getAllChannels(params: any): Promise<any> {
         params.tournamentId = params.channelId.replace(/-\d+$/, '');
-      
+
         try {
-          const channels = await this.imdb.getAllTableByTournamentId({ tournamentId: params.tournamentId });
-      
-          if (!channels) {
-            throw {
-              success: false,
-              info: dbMessages.IMDB_GETALLTABLEBYTOURNAMENTID__FAILED_PLAYERSHUFFLING,
-              isRetry: false,
-              isDisplay: false,
-              channelId: "",
-            };
-          }
-      
-          params.channels = _.filter(channels, (channel) => channel.players.length > 0);
-          return params;
+            const channels = await this.imdb.getAllTableByTournamentId({ tournamentId: params.tournamentId });
+
+            if (!channels) {
+                throw {
+                    success: false,
+                    info: this.dbMessages.IMDB_GETALLTABLEBYTOURNAMENTID__FAILED_PLAYERSHUFFLING,
+                    isRetry: false,
+                    isDisplay: false,
+                    channelId: "",
+                };
+            }
+
+            params.channels = _.filter(channels, (channel) => channel.players.length > 0);
+            return params;
         } catch (err) {
-          throw {
-            success: false,
-            info: dbMessages.IMDB_GETALLTABLEBYTOURNAMENTID__FAILED_PLAYERSHUFFLING,
-            isRetry: false,
-            isDisplay: false,
-            channelId: "",
-          };
+            throw {
+                success: false,
+                info: this.dbMessages.IMDB_GETALLTABLEBYTOURNAMENTID__FAILED_PLAYERSHUFFLING,
+                isRetry: false,
+                isDisplay: false,
+                channelId: "",
+            };
         }
-      }
-      
+    }
+
 
     // Old
     // const getAllChannels = function (params, cb) {
@@ -79,33 +81,33 @@ export class HandleGameOverService {
     //this function is to check whether the current time is suitable for break or not according to the breakLevel 
     // New
     async isEligibleForHadInHand(params: any): Promise<any> {
-    
+
         try {
-        const res = await this.db.getPrizeRule(params.tournamentId);
-    
-        const prizeNumber = res?.prize?.length || 0;
-        let allPlayingPlayers = 0;
-    
-        for (const channel of params.channels) {
-            allPlayingPlayers += channel.players.length;
-            if (channel.breakLevel) {
-            params.breakLevel = channel.breakLevel;
+            const res = await this.db.getPrizeRule(params.tournamentId);
+
+            const prizeNumber = res?.prize?.length || 0;
+            let allPlayingPlayers = 0;
+
+            for (const channel of params.channels) {
+                allPlayingPlayers += channel.players.length;
+                if (channel.breakLevel) {
+                    params.breakLevel = channel.breakLevel;
+                }
             }
-        }
-    
-        if (allPlayingPlayers <= (prizeNumber + systemConfig.bufferHadToHad)) {
-            // Eligible for hand-to-hand
-            return params;
-        } else {
-            // Not eligible
-            return { success: true, info: "not eligible for hand in hand" };
-        }
+
+            if (allPlayingPlayers <= (prizeNumber + systemConfig.bufferHadToHad)) {
+                // Eligible for hand-to-hand
+                return params;
+            } else {
+                // Not eligible
+                return { success: true, info: "not eligible for hand in hand" };
+            }
         } catch (err) {
-        console.log("Error fetching prize rule", err);
-        return { success: true, info: "prize rule not found" };
+            console.log("Error fetching prize rule", err);
+            return { success: true, info: "prize rule not found" };
         }
     };
-    
+
 
     // Old
     // const isEligibleForHadInHand = function (params, cb) {
@@ -159,48 +161,48 @@ export class HandleGameOverService {
         let runningChannels = 0;
         let onBreakChannels = 0;
         params.allChannels = _.pluck(params.channels, "channelId");
-    
+
         for (const channel of params.channels) {
-        if (channel.players.length > 1) {
-            runningChannels++;
+            if (channel.players.length > 1) {
+                runningChannels++;
+            }
+            if (channel.isOnBreak) {
+                onBreakChannels++;
+            }
         }
-        if (channel.isOnBreak) {
-            onBreakChannels++;
-        }
-        }
-    
+
         // Check if all channels are on break
         if (
-        params.eventName === stateOfX.startGameEvent.handAfterBreak ||
-        runningChannels + onBreakChannels <= 1
+            params.eventName === stateOfX.startGameEvent.handAfterBreak ||
+            runningChannels + onBreakChannels <= 1
         ) {
-        return { success: true, info: "Not eligible for hand in hand" };
+            return { success: true, info: "Not eligible for hand in hand" };
         } else if (runningChannels === onBreakChannels + 1) {
-        params.shouldStartNow = true;
-        params.gameResumeTime = Date.now() + 5000;
-        return params;
-        } else {
-        params.shouldStartNow = false;
-        params.isEligibleForHadToHad = true;
-        try {
-            await this.imdb.updateSeats(params.channelId, {
-            isOnBreak: true,
-            state: stateOfX.gameState.idle,
-            onBreakTill: -1,
-            });
+            params.shouldStartNow = true;
+            params.gameResumeTime = Date.now() + 5000;
             return params;
-        } catch (err) {
-            return {
-            success: false,
-            isRetry: false,
-            isDisplay: false,
-            channelId: params.channelId || "",
-            info: popupTextManager.dbQyeryInfo.DB_ERROR_UPDATE_KEY,
-            };
-        }
+        } else {
+            params.shouldStartNow = false;
+            params.isEligibleForHadToHad = true;
+            try {
+                await this.imdb.updateSeats(params.channelId, {
+                    isOnBreak: true,
+                    state: stateOfX.gameState.idle,
+                    onBreakTill: -1,
+                });
+                return params;
+            } catch (err) {
+                return {
+                    success: false,
+                    isRetry: false,
+                    isDisplay: false,
+                    channelId: params.channelId || "",
+                    info: popupTextManager.dbQyeryInfo.DB_ERROR_UPDATE_KEY,
+                };
+            }
         }
     };
-    
+
     // Old
     // const isTimeToStartBreakTimer = function (params, cb) {
     //     let runningChannels = 0;
@@ -245,20 +247,20 @@ export class HandleGameOverService {
     // New
     async updateBreakTimer(params: any): Promise<any> {
         try {
-        await this.imdb.updateAllTable(
-            { 'tournamentRules.tournamentId': params.tournamentId.toString() },
-            {
-            isBreakTimerStart: true,
-            breakEndsAt: params.gameResumeTime,
-            timerStarted: Date.now(),
-            }
-        );
-        return params;
+            await this.imdb.updateAllTable(
+                { 'tournamentRules.tournamentId': params.tournamentId.toString() },
+                {
+                    isBreakTimerStart: true,
+                    breakEndsAt: params.gameResumeTime,
+                    timerStarted: Date.now(),
+                }
+            );
+            return params;
         } catch (err) {
-        return { success: false, info: 'Error in updating break timer in db' };
+            return { success: false, info: 'Error in updating break timer in db' };
         }
     };
-    
+
 
     // Old
     // const updateBreakTimer = function (params, cb) {
@@ -280,21 +282,21 @@ export class HandleGameOverService {
     async process(params: any): Promise<any> {
         try {
 
-        // Sequentially execute the functions
-        await this.getAllChannels(params);
-        await this.isEligibleForHadInHand(params);
-        await this.isTimeToStartBreakTimer(params);
-        await this.updateBreakTimer(params);
+            // Sequentially execute the functions
+            await this.getAllChannels(params);
+            await this.isEligibleForHadInHand(params);
+            await this.isTimeToStartBreakTimer(params);
+            await this.updateBreakTimer(params);
 
-        // If all functions succeed, return success
-        return { ...params, success: true };
+            // If all functions succeed, return success
+            return { ...params, success: true };
         } catch (err) {
-        // If any function throws an error, return the error
-        console.log("errr in handInHandManagement", err);
-        return err;
+            // If any function throws an error, return the error
+            console.log("errr in handInHandManagement", err);
+            return err;
         }
     }
-    
+
 
     // Old
     // handInHandManagement.process = function (params, cb) {

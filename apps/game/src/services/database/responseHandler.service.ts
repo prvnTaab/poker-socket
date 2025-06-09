@@ -2,18 +2,18 @@ import { Injectable } from "@nestjs/common";
 import { stateOfX, systemConfig } from "shared/common";
 import _ from 'underscore';
 import _ld from 'lodash';
-import async from "async";
 import { convertIntToDecimal as convert } from "shared/common";
-import tableManager from "./tableManager";
+import { TableManagerService } from "./tableManager.service";
+
 
 
 
 @Injectable()
 export class ResponseHandlerService {
     
-    constructor(){
-
-    }
+    constructor(
+        private readonly tableManager:TableManagerService
+    ){}
 
     // Generate response for any action performed
     setActionKeys = async function(params: any) {

@@ -50,10 +50,19 @@ import { BreakManagementService } from './services/database/breakManagement.serv
 import { BlindUpdateService } from './services/database/blindUpdate.service';
 import { AutoSitRemoteService } from './services/database/autoSitRemote.service';
 import { CalculateRanksService } from './services/database/calculateRanks.service';
+import { PostslitService } from './services/database/potsplit.service';
+import { UtilsModule } from './utils/utils.module';
+import { PrecheckRemoteService } from './services/database/precheckRemote.service';
+import { QuickSeatService } from './services/database/quickSeat.service';
+import { SatelliteTournamentService } from './services/database/satelliteTournament.service';
+import { RequestRemoteService } from './services/database/requestRemote.service';
+import { RewardRakeService } from './services/database/rewardRake.service';
+import { SetTableConfigService } from './services/database/setTableConfig.service';
 
 @Module({
   imports: [
     DatabaseModule,
+    UtilsModule,
 
     ClientsModule.register([
       {
@@ -111,7 +120,14 @@ import { CalculateRanksService } from './services/database/calculateRanks.servic
     BlindUpdateService,
     BreakManagementService,
     CalculateChannelDetailsService,
-    CalculateRanksService
+    CalculateRanksService,
+    PostslitService,
+    PrecheckRemoteService,
+    QuickSeatService,
+    RequestRemoteService,
+    RewardRakeService,
+    SatelliteTournamentService,
+    SetTableConfigService
     // DATABASE SERVICES END
 
 
