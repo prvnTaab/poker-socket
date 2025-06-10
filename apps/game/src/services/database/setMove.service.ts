@@ -2,16 +2,16 @@ import { Injectable } from "@nestjs/common";
 import _ld from "lodash";
 import _ from 'underscore';
 import { stateOfX, popupTextManager, convertIntToDecimal } from "shared/common";
-import tableManager from "./tableManager";
 import async from "async";
 import { validateKeySets } from "shared/common/utils/activity";
+import { TableManagerService } from "./tableManager.service";
 
 @Injectable()
 export class SetMoveService {
     
-    constructor(){
-
-    }
+    constructor(
+      private readonly tableManager:TableManagerService
+    ){}
 
 
   // Return call amount for current turn player
@@ -132,7 +132,7 @@ export class SetMoveService {
       return;
     }
 
-    if (tableManager.maxRaise(table) >= player.chips) {
+    if (this.tableManager.maxRaise(table) >= player.chips) {
       player.moves.push(stateOfX.moveValue.allin);
     }
 
@@ -196,7 +196,7 @@ export class SetMoveService {
       console.log(stateOfX.serverLogType.info, 'Max bet of round placed by ALLIN player, consider as active');
     }
 
-    if ((activePlayers + disconnectedPlayers) === 1 && tableManager.isPlayerWithMove(params)) {
+    if ((activePlayers + disconnectedPlayers) === 1 && this.tableManager.isPlayerWithMove(params)) {
       this.removeCommonCases(table, player, playingPlayers, stateOfX.moveValue.raise);
       this.removeCommonCases(table, player, playingPlayers, stateOfX.moveValue.allin);
     } else {
