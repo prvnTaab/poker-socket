@@ -6,6 +6,7 @@ import { TableManagerService } from "./tableManager.service";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import { stateOfX, popupTextManager, systemConfig } from "shared/common";
 import { validateKeySets } from "shared/common/utils/activity";
+import { ActivityService } from "shared/common/activity/activity.service";
 
 
 @Injectable()
@@ -16,7 +17,8 @@ export class SetTableConfigService {
         private readonly adjustIndex: AdjustActiveIndexService,
         private readonly tableManager: TableManagerService,
         private readonly tableConfigManager: TableManagerService,
-        private readonly db: PokerDatabaseService
+        private readonly db: PokerDatabaseService,
+        private readonly activity: ActivityService,
     ) { }
 
 
@@ -1249,163 +1251,182 @@ export class SetTableConfigService {
     // ### Increment blind missed played count for player
     // > If the previous player from big blind is on break (sitout) only
     // New
+    async incrementBlindMissedPlayed(params: any): Promise<any> {
 
-    // Old
-    var incrementBlindMissedPlayed = function (params, cb) {
-        // console.log('incrementBlindMissedPlayed', params.table);
-        serverLog(stateOfX.serverLogType.info, 'in setTableConfig incrementBlindMissedPlayed');
-        keyValidator.validateKeySets("Request", "database", "incrementBlindMissedPlayed", params, function (validated) {
-            if (validated.success) {
-                serverLog(stateOfX.serverLogType.info, 'Players while incrementing bigblind missed for sitout players - ' + JSON.stringify(params.table.players));
-                serverLog(stateOfX.serverLogType.info, 'Current BB index - ' + params.table.bigBlindIndex);
-                serverLog(stateOfX.serverLogType.info, 'Current BB seat index - ' + params.table.bigBlindSeatIndex);
-                serverLog(stateOfX.serverLogType.info, 'Current BB Player - ' + JSON.stringify(params.table.players[params.table.bigBlindIndex]));
+        const validated = await validateKeySets("Request", "database", "incrementBlindMissedPlayed", params);
 
-                serverLog(stateOfX.serverLogType.info, 'Players to check: ' + JSON.stringify(_.pluck(params.table.players, 'playerName')));
+        if (!validated.success) {
+            throw {
+                success: false,
+                isRetry: false,
+                isDisplay: false,
+                channelId: (params.channelId || ""),
+                info: popupTextManager.falseMessages.INCREMENTBLINDMISSED_FAIL_SETTABLECONFIG + JSON.stringify(validated),
+                errorId: "falseMessages.INCREMENTBLINDMISSED_FAIL_SETTABLECONFIG"
+            };
+        }
 
-                // var previousToBigBlindIndex = tableManager.getPreviousOccupiedSeatIndex({seatIndex: params.table.bigBlindSeatIndex, table: params.table});
-                // serverLog(stateOfX.serverLogType.info, 'Seat Index to previous BB player - ' + previousToBigBlindIndex);
-                // var indexOfPreBBINPlayers = _ld.findIndex(params.table.players, {seatIndex: parseInt(previousToBigBlindIndex)});
+        let index = params.table.bigBlindIndex - 1 < 0
+            ? params.table.players.length - 1
+            : params.table.bigBlindIndex - 1;
 
-                // Get all sitout indexes from BB to previous PLAYING player
-                // and increment BB missed for all these players
-                var index = params.table.bigBlindIndex - 1 < 0 ? params.table.players.length - 1 : params.table.bigBlindIndex - 1;
-                var players = {};
-                for (var i = 0; i < params.table.players.length; i++) {
-                    var player = params.table.players[index];
-                    serverLog(stateOfX.serverLogType.info, 'Processing player to increment BB missed: ' + JSON.stringify(player.playerName));
-                    serverLog(stateOfX.serverLogType.info, player.playerName + ' state for incrementing BB missed: ' + player.state);
-                    if (player.state === stateOfX.playerState.onBreak && !(params.table.isCTEnabledTable && player.playerScore > 0
-                        && (
-                            (player.playerCallTimer.status === false && player.callTimeGameMissed <= params.table.ctEnabledBufferHand)
-                            || (player.playerCallTimer.status === true
-                                && !(player.playerCallTimer.isCallTimeOver)
-                            )
-                        )
-                    )) {
-                        serverLog(stateOfX.serverLogType.info, player.playerName + ' previous BB missed value: ' + player.bigBlindMissed);
-                        player.bigBlindMissed = player.bigBlindMissed + 1;
-                        serverLog(stateOfX.serverLogType.info, player.playerName + ' updated BB missed value: ' + player.bigBlindMissed);
-                    } else if (player.state === stateOfX.playerState.playing) { // only stop WHEN last player is PLAYING
-                        serverLog(stateOfX.serverLogType.info, 'Stopping BB increment check!');
-                        break;
-                    }
-                    index--;
-                    if (index < 0) {
-                        index = params.table.players.length - 1;
-                    }
-                }
+        for (let i = 0; i < params.table.players.length; i++) {
+            const player = params.table.players[index];
 
-                // if(indexOfPreBBINPlayers >= 0) {
-                //   serverLog(stateOfX.serverLogType.info, 'Previous to BB, player - ' + JSON.stringify(params.table.players[indexOfPreBBINPlayers]));
+            const isCTExempt = params.table.isCTEnabledTable &&
+                player.playerScore > 0 &&
+                (
+                    (!player.playerCallTimer.status && player.callTimeGameMissed <= params.table.ctEnabledBufferHand) ||
+                    (player.playerCallTimer.status && !player.playerCallTimer.isCallTimeOver)
+                );
 
-                //   // serverLog(stateOfX.serverLogType.info, 'Response from getting previous seat index - ' + JSON.stringify(getPrePlayerBySeatIndexResponse));
-                //   if(params.table.players[indexOfPreBBINPlayers].state === stateOfX.playerState.onBreak) {
-                //     serverLog(stateOfX.serverLogType.info, 'Player at index previous to BB is ' + params.table.players[indexOfPreBBINPlayers].state + ', incrementing BB missed.');
-                //     params.table.players[indexOfPreBBINPlayers].bigBlindMissed = parseInt(params.table.players[indexOfPreBBINPlayers].bigBlindMissed) + 1;
-                //   } else {
-                //     serverLog(stateOfX.serverLogType.info, 'Player at index previous to BB is ' + params.table.players[indexOfPreBBINPlayers].state + ', resetting BB missed to 0.');
-                //     params.table.players[indexOfPreBBINPlayers].bigBlindMissed = 0;
-                //   }
-                //   serverLog(stateOfX.serverLogType.info, 'Total Big Blind missed for player - ' + params.table.players[indexOfPreBBINPlayers].playerName + ' - ' + params.table.players[indexOfPreBBINPlayers].bigBlindMissed);
-                // } else {
-                //   serverLog(stateOfX.serverLogType.info, 'Invalid indexes to process BB missed player !' );
-                // }
-                cb(null, params);
-
-            } else {
-                cb({ success: false, isRetry: false, isDisplay: false, channelId: (params.channelId || ""), info: popupTextManager.falseMessages.INCREMENTBLINDMISSED_FAIL_SETTABLECONFIG + JSON.stringify(validated), errorId: "falseMessages.INCREMENTBLINDMISSED_FAIL_SETTABLECONFIG" });
-                //cb({success: false, channelId: params.channelId, info: "Increment big blind count fail ! - " + JSON.stringify(validated)});
+            if (player.state === stateOfX.playerState.onBreak && !isCTExempt) {
+                player.bigBlindMissed += 1;
+            } else if (player.state === stateOfX.playerState.playing) {
+                break;
             }
-        });
+
+            index--;
+            if (index < 0) {
+                index = params.table.players.length - 1;
+            }
+        }
+
+        // Note: This is still commented logic as in original
+        /*
+        const previousToBigBlindIndex = tableManager.getPreviousOccupiedSeatIndex({ seatIndex: params.table.bigBlindSeatIndex, table: params.table });
+        serverLog(stateOfX.serverLogType.info, 'Seat Index to previous BB player - ' + previousToBigBlindIndex);
+        const indexOfPreBBINPlayers = _ld.findIndex(params.table.players, { seatIndex: parseInt(previousToBigBlindIndex) });
+    
+        if (indexOfPreBBINPlayers >= 0) {
+            const previousPlayer = params.table.players[indexOfPreBBINPlayers];
+            serverLog(stateOfX.serverLogType.info, 'Previous to BB, player - ' + JSON.stringify(previousPlayer));
+    
+            if (previousPlayer.state === stateOfX.playerState.onBreak) {
+                serverLog(stateOfX.serverLogType.info, 'Player at index previous to BB is ' + previousPlayer.state + ', incrementing BB missed.');
+                previousPlayer.bigBlindMissed = parseInt(previousPlayer.bigBlindMissed) + 1;
+            } else {
+                serverLog(stateOfX.serverLogType.info, 'Player at index previous to BB is ' + previousPlayer.state + ', resetting BB missed to 0.');
+                previousPlayer.bigBlindMissed = 0;
+            }
+    
+            serverLog(stateOfX.serverLogType.info, 'Total Big Blind missed for player - ' + previousPlayer.playerName + ' - ' + previousPlayer.bigBlindMissed);
+        } else {
+            serverLog(stateOfX.serverLogType.info, 'Invalid indexes to process BB missed player!');
+        }
+        */
+
+        return params;
     }
     /*================================  END  ============================*/
 
 
-// initialize params as false or -1
-var initializeParams = function (params, cb) {
-    serverLog(stateOfX.serverLogType.info, 'in setTableConfig initializeParams');
-    params.data = {};
-    params.data.activePlayers = [];
-    params.data.delaerFound = false;
-    params.data.currentDealerSeatIndex = -1;
-    params.data.dealerOrSmallBlindLeft = false;
-    params.data.smallBlindLeft = false;
-    params.data.dealerLeft = false;
-    params.data.sameDealerSmallBlind = false;
-    cb(null, params);
-}
-var addPlayingPlayers = function (params, cb) {
-    if (params.table.onStartPlayers.length > 0) {
-        var onStartPlayers = params.table.onStartPlayers;
-        var player;
-        async.eachSeries(onStartPlayers, function (onStartPlayer, ecb) {
-            player = _.where(params.table.players, { playerId: onStartPlayer });
-            tableManager.getSavedPlayerFromIMDB(player, function (getData) {
+    /*================================  START  ============================*/
+    // initialize params as false or -1
+    async initializeParams(params: any): Promise<any> {
+
+        params.data = {};
+        params.data.activePlayers = [];
+        params.data.delaerFound = false;
+        params.data.currentDealerSeatIndex = -1;
+        params.data.dealerOrSmallBlindLeft = false;
+        params.data.smallBlindLeft = false;
+        params.data.dealerLeft = false;
+        params.data.sameDealerSmallBlind = false;
+
+        return params;
+    }
+
+    /*================================  END  ============================*/
+
+    /*================================  START  ============================*/
+    async addPlayingPlayers(params: any): Promise<any> {
+        if (params.table.onStartPlayers.length > 0) {
+            const onStartPlayers = params.table.onStartPlayers;
+
+            for (const onStartPlayer of onStartPlayers) {
+                const player = _.where(params.table.players, { playerId: onStartPlayer });
+                const getData = await this.tableManager.getSavedPlayerFromIMDB(player);
+
                 if (getData.prevData == null) {
-                    tableManager.savePlayerInIMDB(player, function (param, cb) {
-                        ecb();
-                    })
-                } else {
-                    ecb();
+                    await this.tableManager.savePlayerInIMDB(player);
                 }
-            })
-
-        }, function (err) {
-            cb(null, params);
-        })
-    }
-
-}
-var removeNonPlayingPlayers = function (params, cb) {
-    if (params.table.prevDealerseatIndex > 0) {
-        tableManager.removeEmptyPlayers(params, function (removedPlayers) {
-            cb(null, params);
-        })
-    } else {
-        cb(null, params);
-    }
-}
-// set dealer, sb, bb, opening player, current turn player
-setTableConfig.setConfig = function (params, cb) {
-    async.waterfall([
-
-        async.apply(initializeParams, params),
-        updateTableEntitiesOnGameStart,
-        // createBasicHandTab,
-        createBasicSummary,
-        adjustActiveIndexes,
-        addPlayingPlayers,
-        setDealerDetails,
-        setSmallBlindDetails,
-        setBigBlindDetails,
-        // setNexBigBlindDetails,
-        incrementBlindMissedPlayed,
-        incrementRoundMissedPlayed,
-        setStraddlePlayer,
-        setFirstPlayerDetails,
-        setCurrentPlayer,
-        validateTableAttribToStartGame,
-        removeNonPlayingPlayers
-
-    ], function (err, response) {
-        if (err) {
-            serverLog(stateOfX.serverLogType.info, 'Error while setting table config - ' + JSON.stringify(err));
-            activity.info(err, stateOfX.profile.category.game, stateOfX.game.subCategory.info, stateOfX.logType.error);
-            activity.info(err, stateOfX.profile.category.gamePlay, stateOfX.gamePlay.subCategory.info, stateOfX.logType.error);
-            cb(err);
-        } else {
-            serverLog(stateOfX.serverLogType.info, 'Dealer table-players index - ' + params.table.dealerIndex + ' and seat index - ' + params.table.dealerSeatIndex);
-            serverLog(stateOfX.serverLogType.info, 'SB table-players index - ' + params.table.smallBlindIndex + ' and seat index - ' + params.table.smallBlindSeatIndex);
-            serverLog(stateOfX.serverLogType.info, 'BB table-players index - ' + params.table.bigBlindIndex + ' and seat index - ' + params.table.bigBlindSeatIndex);
-            serverLog(stateOfX.serverLogType.info, 'Next Dealer -1 and ' + params.table.nextDealerSeatIndex);
-            serverLog(stateOfX.serverLogType.info, 'Next SB -1 and ' + params.table.nextSmallBlindSeatIndex);
-            activity.info(params, stateOfX.profile.category.game, stateOfX.game.subCategory.info, stateOfX.logType.info);
-            activity.info(params, stateOfX.profile.category.gamePlay, stateOfX.gamePlay.subCategory.info, stateOfX.logType.info);
-            cb({ success: true, table: params.table, data: params.data });
+            }
         }
-    });
-}
+
+        return params;
+    }
+
+    /*================================  END  ============================*/
+
+    /*================================  START  ============================*/
+    async removeNonPlayingPlayers(params: any): Promise<any> {
+        if (params.table.prevDealerseatIndex > 0) {
+            await this.tableManager.removeEmptyPlayers(params);
+        }
+        return params;
+    }
+
+    /*================================  END  ============================*/
+
+
+    /*================================  START  ============================*/
+    // Set current player and turn time start at
+    // who will get turn now (on game start)
+    async setCurrentPlayer (params: any): Promise<any> {
+
+        const validated = await validateKeySets("Request", "database", "setCurrentPlayer", params);
+        if (validated.success) {
+            if (params.table.straddleIndex >= 0) {
+                params.table.currentMoveIndex = params.table.players[params.table.straddleIndex].nextActiveIndex;
+            } else {
+                params.table.currentMoveIndex = params.table.players[params.table.bigBlindIndex].nextActiveIndex;
+            }
+            params.table.turnTimeStartAt = Number(new Date());
+            return params;
+        } else {
+            throw validated;
+        }
+    };
+
+    /*================================  END  ============================*/
+
+
+
+    /*================================  START  ============================*/
+    // set dealer, sb, bb, opening player, current turn player
+    async setConfig(params: any): Promise < any > {
+    try {
+        params = await this.initializeParams(params);
+        params = await this.updateTableEntitiesOnGameStart(params);
+        // params = await createBasicHandTab(params); // uncomment if needed
+        params = await this.createBasicSummary(params);
+        params = await this.adjustActiveIndexes(params);
+        params = await this.addPlayingPlayers(params);
+        params = await this.setDealerDetails(params);
+        params = await this.setSmallBlindDetails(params);
+        params = await this.setBigBlindDetails(params);
+        // params = await setNexBigBlindDetails(params); // uncomment if needed
+        params = await this.incrementBlindMissedPlayed(params);
+        params = await this.incrementRoundMissedPlayed(params);
+        params = await this.setStraddlePlayer(params);
+        params = await this.setFirstPlayerDetails(params);
+        params = await this.setCurrentPlayer(params);
+        params = await this.validateTableAttribToStartGame(params);
+        params = await this.removeNonPlayingPlayers(params);
+
+        this.activity.info(params, stateOfX.profile.category.game, stateOfX.game.subCategory.info, stateOfX.logType.info);
+        this.activity.info(params, stateOfX.profile.category.gamePlay, stateOfX.gamePlay.subCategory.info, stateOfX.logType.info);
+
+        return { success: true, table: params.table, data: params.data };
+    } catch(err) {
+        this.activity.info(err, stateOfX.profile.category.game, stateOfX.game.subCategory.info, stateOfX.logType.error);
+        this.activity.info(err, stateOfX.profile.category.gamePlay, stateOfX.gamePlay.subCategory.info, stateOfX.logType.error);
+        throw err;
+    }
+};
+
+    /*================================  END  ============================*/
 
 
 

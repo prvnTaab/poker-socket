@@ -22,7 +22,6 @@ import { StartTournamentHandlerService } from './services/room/startTournamentHa
 import { TournamentJoinHandlerService } from './services/room/tournamentJoinHandler.service';
 import { AutoSitHandlerService } from './services/room/autoSitHandler.service';
 import { CalculateDynamicBountyHandlerService } from './services/room/calculateDynamicBountyHandler.service';
-import { AdminActionsHandlerService } from './services/room/adminActionsHandler.service';
 import { DisconnectedPlayersHandlerService } from './services/room/disconnectedPlayersHandler.service';
 import { IdlePlayersHandlerService } from './services/room/idlePlayersHandler.service';
 import { LateRegistrationHandlerService } from './services/room/lateRegistrationHandler.service';
@@ -50,7 +49,7 @@ import { BreakManagementService } from './services/database/breakManagement.serv
 import { BlindUpdateService } from './services/database/blindUpdate.service';
 import { AutoSitRemoteService } from './services/database/autoSitRemote.service';
 import { CalculateRanksService } from './services/database/calculateRanks.service';
-import { PostslitService } from './services/database/potsplit.service';
+import { PostsplitService } from './services/database/potsplit.service';
 import { UtilsModule } from './utils/utils.module';
 import { PrecheckRemoteService } from './services/database/precheckRemote.service';
 import { QuickSeatService } from './services/database/quickSeat.service';
@@ -58,6 +57,14 @@ import { SatelliteTournamentService } from './services/database/satelliteTournam
 import { RequestRemoteService } from './services/database/requestRemote.service';
 import { RewardRakeService } from './services/database/rewardRake.service';
 import { SetTableConfigService } from './services/database/setTableConfig.service';
+import { SimilarTableService } from './services/database/similarTable.service';
+import { TableConfigManagerService } from './services/database/tableConfigManager.service';
+import { TimeBankRemoteService } from './services/database/timeBankRemote.service';
+import { TipRemoteService } from './services/database/tipRemote.service';
+import { TournamentService } from './services/database/tournament.service';
+import { TournamentLeaveService } from './services/database/tournamentLeave.service';
+import { TournamentRegistrationService } from './services/database/tournamentRegistration.service';
+import { TourStartRemoteService } from './services/database/tourStartRemote.service';
 
 @Module({
   imports: [
@@ -91,7 +98,7 @@ import { SetTableConfigService } from './services/database/setTableConfig.servic
     TournamentJoinHandlerService,
     AutoSitHandlerService,
     CalculateDynamicBountyHandlerService,
-    AdminActionsHandlerService,
+    TournamentActionHandlerService,
     DisconnectedPlayersHandlerService,
     IdlePlayersHandlerService,
     LateRegistrationHandlerService,
@@ -121,13 +128,21 @@ import { SetTableConfigService } from './services/database/setTableConfig.servic
     BreakManagementService,
     CalculateChannelDetailsService,
     CalculateRanksService,
-    PostslitService,
+    PostsplitService,
     PrecheckRemoteService,
     QuickSeatService,
     RequestRemoteService,
     RewardRakeService,
     SatelliteTournamentService,
-    SetTableConfigService
+    SetTableConfigService,
+    SimilarTableService,
+    TableConfigManagerService,
+    TimeBankRemoteService,
+    TipRemoteService,
+    TournamentService,
+    TournamentLeaveService,
+    TournamentRegistrationService,
+    TourStartRemoteService
     // DATABASE SERVICES END
 
 

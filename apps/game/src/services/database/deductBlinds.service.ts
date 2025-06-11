@@ -7,6 +7,7 @@ import { ResponseHandlerService } from "./responseHandler.service";
 import { ActivityService } from "shared/common/activity/activity.service";
 
 import { systemConfig } from "shared/common";
+import { TableManagerService } from "./tableManager.service";
 
 
 

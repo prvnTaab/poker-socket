@@ -8,7 +8,7 @@ import { validateKeySets } from "shared/common/utils/activity";
 
 
 @Injectable()
-export class PostslitService {
+export class PostsplitService {
 
     constructor(
         private readonly utilsService: UtilsService
