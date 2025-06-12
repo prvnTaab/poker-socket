@@ -1,10 +1,10 @@
 import { Injectable } from "@nestjs/common";
-import { PokerDatebaseService } from "shared/common/datebase/pokerdatebase.service";
+import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 
 
 @Injectable()
 export class UserRemoteService {
-    constructor(private db: PokerDatebaseService){
+    constructor(private db: PokerDatabaseService){
 
     }
 

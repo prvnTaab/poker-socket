@@ -65,6 +65,17 @@ import { TournamentService } from './services/database/tournament.service';
 import { TournamentLeaveService } from './services/database/tournamentLeave.service';
 import { TournamentRegistrationService } from './services/database/tournamentRegistration.service';
 import { TourStartRemoteService } from './services/database/tourStartRemote.service';
+import { ValidateGameStartService } from './services/database/validateGameStart.service';
+import { VideoGameRemoteService } from './services/database/videoGameRemote.service';
+import { VideoRemoteService } from './services/database/videoRemote.service';
+import { WinnerRemoteService } from './services/database/winnerRemote.service';
+import { DecideWinnerService } from './services/database/utils/decideWinner.service';
+import { DeductRakeService } from './services/database/utils/deductRake.service';
+import { DeductRakefromTableService } from './services/database/utils/deductRakefromTable.service';
+import { PrizeDistributionService } from './services/database/utils/prizeDistribution.service';
+import { RoundOverService } from './services/database/utils/roundOver.service';
+import { SummaryGeneratorService } from './services/database/utils/summaryGenerator.service';
+import { EntryHandlerService } from './services/connector/entryHandler.service';
 
 @Module({
   imports: [
@@ -142,9 +153,23 @@ import { TourStartRemoteService } from './services/database/tourStartRemote.serv
     TournamentService,
     TournamentLeaveService,
     TournamentRegistrationService,
-    TourStartRemoteService
+    TourStartRemoteService,
+    ValidateGameStartService,
+    VideoGameRemoteService,
+    VideoRemoteService,
+    WinnerRemoteService,
+    DecideWinnerService,
+    DeductRakeService,
+    DeductRakefromTableService,
+    PrizeDistributionService,
+    RoundOverService,
+    SummaryGeneratorService,
     // DATABASE SERVICES END
 
+
+    // Connector
+    EntryHandlerService
+    // Connector
 
   ],
   exports:[RedisService, DbRemoteService, UserRemoteService, ResponseHandlerService, walletQueryService]

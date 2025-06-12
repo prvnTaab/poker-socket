@@ -4,7 +4,7 @@ import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.servi
 import stateOfX from "shared/common/stateOfX.sevice";
 
 
-
+let pomelo:any;
 
 
 

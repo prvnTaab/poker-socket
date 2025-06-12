@@ -7,10 +7,10 @@ import { Injectable } from '@nestjs/common';
 * @Last Modified by:   sushiljainam
 * @Last Modified time: 2018-04-20 21:25:14
 */
-import { PokerDatebaseService } from '../datebase/pokerdatabase.service';
-import { ImdbDatebaseService } from '../datebase/Imdbdatabase.service';
 import { systemConfig } from '..';
 import * as async from "async";
+import { PokerDatabaseService } from '../datebase/pokerdatabase.service';
+import { ImdbDatabaseService } from '../datebase/Imdbdatabase.service';
 
 const confServerDown :any = systemConfig.serverDown || {};
 
@@ -22,8 +22,8 @@ const confServerDown :any = systemConfig.serverDown || {};
 @Injectable()
 export class ServerDownManagerService {
 
-constructor(private adminDb: PokerDatebaseService,
-    private imdb :ImdbDatebaseService
+constructor(private adminDb: PokerDatabaseService,
+    private imdb :ImdbDatabaseService
 ){
 
 }
