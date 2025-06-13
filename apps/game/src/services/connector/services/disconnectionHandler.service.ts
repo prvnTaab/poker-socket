@@ -11,7 +11,7 @@ let pomelo:any;
 
 
 @Injectable()
-export class DisconnectionHandler {
+export class DisconnectionHandlerService {
 
     constructor(
         private db: PokerDatabaseService,

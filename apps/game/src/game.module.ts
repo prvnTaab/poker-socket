@@ -9,7 +9,6 @@ import { GameController } from './game.controller';
 import { DbRemoteService } from './services/database/dbRemote.service';
 import { UserRemoteService } from './services/database/userRemote.service';
 import { ResponseHandlerService } from './services/database/responseHandler.service';
-import { DisconnectionHandler } from './services/connector/disconnectionHandler';
 import { JoinChannelHandler } from './services/room/joinChannelHandler';
 import { ActionLoggerService } from './services/room/actionLogger.service';
 import { JoinRequestUtilService } from './services/room/joinRequestUtil.service';
@@ -75,12 +74,13 @@ import { DeductRakefromTableService } from './services/database/utils/deductRake
 import { PrizeDistributionService } from './services/database/utils/prizeDistribution.service';
 import { RoundOverService } from './services/database/utils/roundOver.service';
 import { SummaryGeneratorService } from './services/database/utils/summaryGenerator.service';
-import { EntryHandlerService } from './services/connector/entryHandler.service';
+import { ConnectorModule } from './services/connector/connector.module';
 
 @Module({
   imports: [
     DatabaseModule,
     UtilsModule,
+    ConnectorModule,
 
     ClientsModule.register([
       {
@@ -94,8 +94,12 @@ import { EntryHandlerService } from './services/connector/entryHandler.service';
     // MongooseModule.forRoot(process.env.DB, {connectionName: 'db'}),
   ],
   controllers: [GameController],
-  providers: [GameService, GameGateway, RedisService, UserRemoteService, ResponseHandlerService,
-    DisconnectionHandler,
+  providers: [
+    GameService, 
+    GameGateway, 
+    RedisService, 
+    UserRemoteService, 
+    ResponseHandlerService,
     JoinChannelHandler,
     ActionLoggerService,
     JoinRequestUtilService,
@@ -165,11 +169,6 @@ import { EntryHandlerService } from './services/connector/entryHandler.service';
     RoundOverService,
     SummaryGeneratorService,
     // DATABASE SERVICES END
-
-
-    // Connector
-    EntryHandlerService
-    // Connector
 
   ],
   exports:[RedisService, DbRemoteService, UserRemoteService, ResponseHandlerService, walletQueryService]
