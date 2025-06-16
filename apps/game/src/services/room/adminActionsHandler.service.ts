@@ -2,7 +2,7 @@
 
 import { Injectable } from '@nestjs/common';
 
-import { ChannelService } from 'path-to-your-socket-io-wrapper'; // Replace with actual wrapper service
+// import { ChannelService } from 'path-to-your-socket-io-wrapper'; // Replace with actual wrapper service
 import { BroadcastHandlerService } from './broadcastHandler.service';
 
 const successResponse = { success: true };
@@ -11,7 +11,7 @@ const failureResponse = { success: false, info: 'The table is not in running sta
 @Injectable()
 export class AdminBroadcastService {
   constructor(
-    private readonly channelService: ChannelService, // Abstracted Socket.IO channel service
+    private readonly channelService: any, // Abstracted Socket.IO channel service
     private readonly broadcastHandler: BroadcastHandlerService,
   ) {}
 

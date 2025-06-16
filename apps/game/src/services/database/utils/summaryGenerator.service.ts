@@ -544,8 +544,8 @@ export class SummaryGeneratorService {
         if (params.data.winners && params.data.winners.length) {
             const validWinners = _.filter(params.data.winners, w => !w.isRefund);
             if (validWinners.length > 0) {
-                params = refundText(params);
-                params = winnerText(params);
+                params = this.refundText(params);
+                params = this.winnerText(params);
             }
         }
         return params;

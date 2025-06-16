@@ -7,13 +7,13 @@ import _ from "underscore";
 import _ld from "lodash";
 import async from 'async';
 import { v4 as uuid } from "uuid";
-import { stateOfX, systemConfig , popupTextManager, convertIntToDecimal, encrypt, decrypt, sendMailWithHtml} from "shared/common";
+import { stateOfX, systemConfig , popupTextManager} from "shared/common";
 import { UserRemoteService } from "./userRemote.service";
 import { ResponseHandlerService } from "./responseHandler.service";
 
 // import shortid from 'shortid32';
-import { walletQueryService } from "../../utils/walletQuery.service";
 import { validateKeySets } from "shared/common/utils/activity";
+import { WalletQueryService } from "../../utils/walletQuery.service";
 // shortid.characters('QWERTYUIOPASDFGHJKLZXCVBNM012345');
 
 
@@ -23,7 +23,7 @@ export class DbRemoteService {
         private imdb : ImdbDatabaseService,
         private userRemote : UserRemoteService,
         private responseHandler : ResponseHandlerService, 
-        private wallet : walletQueryService
+        private wallet : WalletQueryService
     ){
     }
 

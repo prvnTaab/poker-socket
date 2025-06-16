@@ -3,6 +3,7 @@ import { stateOfX } from 'shared/common';
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import { validateKeySets } from "shared/common/utils/activity";
+import { EntryHandlerService } from "../connector/services/entryHandler.service";
 
 
 
@@ -23,6 +24,7 @@ export class SessionHandlerService {
     constructor(
         private db: PokerDatabaseService,
         private imdb: ImdbDatabaseService,
+        private readonly entryHandler:EntryHandlerService
     ) {}
 
 
@@ -41,7 +43,7 @@ export class SessionHandlerService {
                     const session = msg.session;
                     session.bind(msg.playerId);
 
-                    session.on('closed', onUserLeave.bind(null, msg.self.app));
+                    session.on('closed', this.entryHandler.onUserLeave.bind(null, msg.self.app));
         
                     session.set("playerId", msg.playerId);
 

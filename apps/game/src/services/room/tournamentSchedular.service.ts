@@ -6,19 +6,11 @@ import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import { StartTournamentHandlerService } from "./startTournamentHandler.service";
 import { CancelTournamentService } from "./cancelTournament.service";
-import { WalletService } from "apps/wallet/src/wallet.service";
-
-
-
-
-
-
-
-
-createTable = require("../../../../../shared/createTournamentTable.js"),
-    prizeAlgo = require("../../../../../shared/prizeAlgo.js"),
-    profileMgmt = require("../../../../../shared/model/profileMgmt.js"),
-    schedule = require('node-schedule');
+import * as schedule from 'node-schedule';
+import { ProfileMgmtService } from "shared/common/utils/profileMgmt.service";
+import { PrizeAlgoService } from "shared/common/utils/prizeAlgo.service";
+import { WalletQueryService } from "../../utils/walletQuery.service";
+import { CreateTournamentTableService } from "shared/common/utils/createTournamentTable.service";
 
 
 
@@ -31,7 +23,10 @@ export class TournamentSchedularService {
         private readonly broadcastHandler: BroadcastHandlerService,
         private readonly startTournamentHandler: StartTournamentHandlerService,
         private readonly cancelTournament: CancelTournamentService,
-        private readonly wallet: WalletService,
+        private readonly wallet: WalletQueryService,
+        private readonly profileMgmt:ProfileMgmtService,
+        private readonly prizeAlgo:PrizeAlgoService,
+        private readonly createTable: CreateTournamentTableService
 
     ) { }
 
@@ -813,125 +808,68 @@ export class TournamentSchedularService {
      * function to  countPlayingPlayers
      */
     // New
-    const countPlayingPlayers = async function (params: any): Promise<void> {
-        try {
-            const channels = await this.imdb.getAllTableByTournamentId({ tournamentId: params.room.tournamentId });
+    // async countPlayingPlayers(params: any): Promise<any> {
+    //     try {
+    //         const channels = await this.imdb.getAllTableByTournamentId({ tournamentId: params.room.tournamentId });
     
-            let playingPlayers = 0;
-            let activeChannelId: string | undefined;
-            let activePlayerId: string | undefined;
+    //         let playingPlayers = 0;
+    //         let activeChannelId: string | undefined;
+    //         let activePlayerId: string | undefined;
     
-            for (const channel of channels) {
-                console.log(stateOfX.serverLogType.info, 'channel is - ' + JSON.stringify(channel));
-                for (const player of channel.players) {
-                    if (player.state === stateOfX.playerState.playing || player.state === stateOfX.playerState.waiting) {
-                        playingPlayers++;
-                        activeChannelId = channel.channelId;
-                        activePlayerId = player.playerId;
-                    }
-                }
-            }
-    
-            console.log(stateOfX.serverLogType.info, `playing player and channelId is ${playingPlayers} ${activeChannelId}`);
-    
-            if (playingPlayers === 1 && activePlayerId && activeChannelId) {
-                const addChipsResponse = await profileMgmt.addChips({
-                    playerId: activePlayerId,
-                    chips: params.prize.prize[0].prizeMoney,
-                    isRealMoney: params.room.isRealMoney
-                });
-    
-                if (addChipsResponse.success) {
-                    const channelObj = params.globalThis.get('channelService').getChannel(activeChannelId, false);
-                    const self: any = {
-                        app: params.globalThis
-                    };
-                    self.app.rpcInvoke = params.globalThis.rpcInvoke;
-                    self.app.rpc = params.globalThis.rpc;
-    
-                    console.log(stateOfX.serverLogType.info, 'self is ', self);
-    
-                    await this.sendPlayerEliminationBroadcast({
-                        self: self,
-                        playerId: activePlayerId,
-                        tournamentId: params.room.tournamentId,
-                        channelId: activeChannelId,
-                        chipsWon: params.prize.prize[0].prizeMoney
-                    });
-    
-                    await this.startGameHandler.startGame({
-                        self: self,
-                        session: "session",
-                        channelId: activeChannelId,
-                        channel: channelObj,
-                        eventName: stateOfX.startGameEvent.tournament
-                    });
-                } else {
-                    console.log(stateOfX.serverLogType.info, 'Add Chips failed');
-                }
-            } else {
-                console.log(stateOfX.serverLogType.info, 'no need to start game again, more than one player left on channel');
-            }
-    
-        } catch (err) {
-            console.log(stateOfX.serverLogType.info, "Error in getting tournament users in countPlayingPlayers");
-        }
-    };
-    
-
-    // Old
-    // const countPlayingPlayers = function (params) {
-    //     imdb.getAllTableByTournamentId({ tournamentId: params.room.tournamentId }, function (err, channels) {
-    //         console.log(stateOfX.serverLogType.info, 'all channels is in in memory is - ' + JSON.stringify(channels));
-    //         if (err) {
-    //             console.log(stateOfX.serverLogType.info, "Erro in getting tournament users in broadcastForRebueryStatus");
-    //         } else {
-    //             let playingPlayers = 0, activeChannelId, activePlayerId;
-    //             async.each(channels, function (channel, callback) {
-    //                 console.log(stateOfX.serverLogType.info, 'channel is - ' + JSON.stringify(channel));
-    //                 for (let i = 0; i < channel.players.length; i++) {
-    //                     if (channel.players[i].state === stateOfX.playerState.playing || channel.players[i].state === stateOfX.playerState.waiting) {
-    //                         playingPlayers++;
-    //                         activeChannelId = channel.channelId;
-    //                         activePlayerId = channel.players[i].playerId;
-    //                     }
+    //         for (const channel of channels) {
+    //             console.log(stateOfX.serverLogType.info, 'channel is - ' + JSON.stringify(channel));
+    //             for (const player of channel.players) {
+    //                 if (player.state === stateOfX.playerState.playing || player.state === stateOfX.playerState.waiting) {
+    //                     playingPlayers++;
+    //                     activeChannelId = channel.channelId;
+    //                     activePlayerId = player.playerId;
     //                 }
-    //                 callback();
-    //             }, function (err) {
-    //                 if (err) {
-    //                     console.log(stateOfX.serverLogType.info, 'Error in sending rebuy status broadcast');
-    //                 } else {
-    //                     console.log(stateOfX.serverLogType.info, "playing player and channelId is" + playingPlayers + " " + activeChannelId);
-    //                     if (playingPlayers === 1) {
-    //                         profileMgmt.addChips({ playerId: activePlayerId, chips: params.prize.prize[0].prizeMoney, isRealMoney: params.room.isRealMoney }, function (addChipsResponse) {
-    //                             if (addChipsResponse.success) {
-    //                                 const channelObj = params.globalThis.get('channelService').getChannel(activeChannelId, false);
-    //                                 let self = {};
-    //                                 self.app = params.globalThis;
-    //                                 self.app.rpcInvoke = params.globalThis.rpcInvoke;
-    //                                 self.app.rpc = params.globalThis.rpc; // pushing rpc in to app;
-    //                                 console.log(stateOfX.serverLogType.info, 'self is ', self);
-    //                                 sendPlayerEliminationBroadcast({
-    //                                     self: self,
-    //                                     playerId: activePlayerId,
-    //                                     tournamentId: params.room.tournamentId,
-    //                                     channelId: activeChannelId,
-    //                                     chipsWon: params.prize.prize[0].prizeMoney,
-    //                                 }, function () {
-    //                                     startGameHandler.startGame({ self: self, session: "session", channelId: activeChannelId, channel: channelObj, eventName: stateOfX.startGameEvent.tournament });
-    //                                 })
-    //                             } else {
-    //                                 console.log(stateOfX.serverLogType.info, 'Add Chips failed');
-    //                             }
-    //                         })
-    //                     } else {
-    //                         console.log(stateOfX.serverLogType.info, 'no need to start game again more than one player left on channel');
-    //                     }
-    //                 }
-    //             })
+    //             }
     //         }
-    //     })
-    // }
+    
+    //         console.log(stateOfX.serverLogType.info, `playing player and channelId is ${playingPlayers} ${activeChannelId}`);
+    
+    //         if (playingPlayers === 1 && activePlayerId && activeChannelId) {
+    //             const addChipsResponse = await this.profileMgmt.addChips({
+    //                 playerId: activePlayerId,
+    //                 chips: params.prize.prize[0].prizeMoney,
+    //                 isRealMoney: params.room.isRealMoney
+    //             });
+    
+    //             if (addChipsResponse.success) {
+    //                 const channelObj = params.globalThis.get('channelService').getChannel(activeChannelId, false);
+    //                 const self: any = {
+    //                     app: params.globalThis
+    //                 };
+    //                 self.app.rpcInvoke = params.globalThis.rpcInvoke;
+    //                 self.app.rpc = params.globalThis.rpc;
+    
+    //                 await this.sendPlayerEliminationBroadcast({
+    //                     self: self,
+    //                     playerId: activePlayerId,
+    //                     tournamentId: params.room.tournamentId,
+    //                     channelId: activeChannelId,
+    //                     chipsWon: params.prize.prize[0].prizeMoney
+    //                 });
+    
+    //                 await this.startGameHandler.startGame({
+    //                     self: self,
+    //                     session: "session",
+    //                     channelId: activeChannelId,
+    //                     channel: channelObj,
+    //                     eventName: stateOfX.startGameEvent.tournament
+    //                 });
+    //             } else {
+    //                 console.log(stateOfX.serverLogType.info, 'Add Chips failed');
+    //             }
+    //         } else {
+    //             console.log(stateOfX.serverLogType.info, 'no need to start game again, more than one player left on channel');
+    //         }
+    
+    //     } catch (err) {
+    //         console.log(stateOfX.serverLogType.info, "Error in getting tournament users in countPlayingPlayers");
+    //     }
+    // };
     /*================================  END  ===================================*/
 
 
@@ -1206,7 +1144,7 @@ export class TournamentSchedularService {
         };
     
         try {
-            const validatedParams = await this.tournamentSchedular.validateTournamentStart(params);
+            const validatedParams = await this.validateTournamentStart(params);
             const tableCreatedParams = await this.createTableForNormalTournament(validatedParams);
             const processedPrizeParams = await this.processPrizeRuleAndRanks(tableCreatedParams);
             const finalResult = await this.startTournamentProcess(processedPrizeParams);

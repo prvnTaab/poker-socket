@@ -3,7 +3,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable()
-export class walletQueryService {
+export class WalletQueryService {
   constructor(@Inject('WALLET_SERVICE') private wallet: ClientProxy,
     ) { }
 

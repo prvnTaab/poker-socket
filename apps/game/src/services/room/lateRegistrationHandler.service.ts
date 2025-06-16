@@ -6,19 +6,11 @@ import { StartGameHandlerService } from "./startGameHandler.service";
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import { TournamentJoinHandlerService } from "./tournamentJoinHandler.service";
+import { CreateTournamentTableService } from "shared/common/utils/createTournamentTable.service";
 
 
 
-
-
-
-
-
-
-
-  createtable = require("../../../../../shared/createTournamentTable.js"),
-
-  declare const pomelo:any;
+declare const pomelo: any;
 
 @Injectable()
 export class LateRegistrationHandlerService {
@@ -27,12 +19,12 @@ export class LateRegistrationHandlerService {
 
         private db: PokerDatabaseService,
         private imdb: ImdbDatabaseService,
-        private broadcastHandler:BroadcastHandlerService,
-        private startGameHandler:StartGameHandlerService,
-        private tournamentJoinHandler:TournamentJoinHandlerService,
-        private createtable:CreatetableService,
+        private broadcastHandler: BroadcastHandlerService,
+        private startGameHandler: StartGameHandlerService,
+        private tournamentJoinHandler: TournamentJoinHandlerService,
+        private createtable: CreateTournamentTableService,
 
-    ) {}
+    ) { }
 
 
 
@@ -41,30 +33,30 @@ export class LateRegistrationHandlerService {
 
 
     // New
-    const isChannelAvailable = async function (params: any): Promise<void> {
+    async isChannelAvailable (params: any): Promise<void> {
         try {
             // Assuming imdb.getAllTableByTournamentId is an async function now
             let channels = await this.imdb.getAllTableByTournamentId({ tournamentId: params.tournamentId });
-    
+
             if (!channels || channels.length < 1) {
                 // Handle error case similar to the callback scenario
                 throw new Error(popupTextManager.dbQyeryInfo.DBGETALLTABLEBYTOURNAMENTIDFAIL_LATEREGISTRATIONHANDLER);
             }
-    
+
             let maxPlayerOnTable = channels[0].maxPlayers;
             let playingPlayers = 0;
-    
+
             // Counting the number of playing players
             for (let i = 0; i < channels.length; i++) {
                 playingPlayers += channels[i].players.length;
             }
-    
+
             params.playingPlayers = playingPlayers;
             params.runningTables = channels.length;
-    
+
             // Filter channels to find those with available space
             channels = channels.filter((channel) => channel.players.length < maxPlayerOnTable);
-    
+
             if (channels.length > 0) {
                 params.isChannelAvailable = true;
                 params.availableChannelId = channels[0].channelId;
@@ -80,8 +72,8 @@ export class LateRegistrationHandlerService {
             params.errorInfo = err.message || "An error occurred while checking channel availability.";
         }
     }
-    
-    
+
+
 
     // Old
     // const isChannelAvailable = function (params, cb) {
@@ -109,14 +101,14 @@ export class LateRegistrationHandlerService {
     //     })
     //   }
     /*================================  END  =========================*/
-  
+
 
     /*================================  START  =========================*/
 
     // New
     preparePlayer(channel: any, player: any): any {
         const freeIndex = (_.difference(_.range(1, channel.maxPlayers + 1), _.pluck(channel.players, "seatIndex")))[0];
-    
+
         return {
             playerId: player.playerId,
             channelId: channel.channelId,
@@ -200,97 +192,97 @@ export class LateRegistrationHandlerService {
             autoBuyInFlag: false
         }
     }
-    
-    
+
+
 
     // Old
-//   const preparePlayer = function (channel, player) {
-//     let freeIndex = (_.difference(_.range(1, channel.maxPlayers + 1), _.pluck(channel.players, "seatIndex")))[0];
-//     return {
-//       playerId: player.playerId,
-//       channelId: channel.channelId,
-//       bounty: channel.tournamentRules && channel.tournamentRules.bountyFees ? channel.tournamentRules.bountyFees : 0,
-//       playerName: player.playerName || player.userName,
-//       networkIp: player.networkIp,
-//       active: false,
-//       chips: parseInt(channel.noOfChipsAtGameStart),
-//       lastRealChipBonus: 0,
-//       lastRealChip: 0,
-//       currentRCBstack: 0,
-//       totalRCB: 0,
-//       totalRC: 0,
-//       seatIndex: freeIndex,
-//       imageAvtar: player.imageAvtar || "",
-//       cards: [],
-//       moves: [],
-//       preCheck: -1,
-//       bestHands: "",
-//       state: stateOfX.playerState.waiting,
-//       lastBet: 0,
-//       lastMove: null,
-//       totalRoundBet: 0,
-//       totalGameBet: 0,
-//       lastRoundPlayed: "",
-//       isMuckHand: false,
-//       preActiveIndex: -1,
-//       nextActiveIndex: -1,
-//       isDisconnected: false,
-//       bigBlindMissed: 0,
-//       isAutoReBuy: false,
-//       autoReBuyAmount: 0,
-//       isRunItTwice: false,
-//       isPlayed: false,
-//       sitoutNextHand: false,
-//       sitoutNextBigBlind: false,
-//       autoSitout: false,
-//       isSkipped: false,
-//       sitoutGameMissed: 0,
-//       roundMissed: 0,
-//       disconnectedMissed: 0,
-//       hasPlayedOnceOnTabl: false,
-//       isForceBlindEnable: false,
-//       isWaitingPlayer: true,
-//       isStraddleOpted: false,
-//       onGameStartBuyIn: parseInt(channel.onGameStartBuyIn),
-//       onSitBuyIn: parseInt(channel.onSitBuyIn),
-//       roundId: null,
-//       totalGames: 0,
-//       systemFoldedCount: 0,
-//       timeBankSec: systemConfig.timebank.initialSec,
-//       isJoinedOnce: false,
-//       isAutoReBuyEnabled: false,
-//       isAutoAddOnEnabled: false,
-//       isCurrentRoundPlayer: false,
-//       isActionBySystem: false,
-//       activityRecord: {
-//         seatReservedAt: !!player.state && player.state === stateOfX.playerState.reserved ? new Date() : null,
-//         lastMovePlayerAt: null,
-//         disconnectedAt: null,
-//         lastActivityAction: "",
-//         lastActivityTime: Number(new Date())
-//       },
-//       tournamentData: {
-//         userName: player.userName,
-//         isTournamentSitout: false,
-//         isTimeBankUsed: false,
-//         timeBankStartedAt: null,
-//         totalTimeBank: channel.timeBankRuleData && channel.timeBankRuleData[0] && channel.timeBankRuleData[0].blindLevel == 1 ? channel.timeBankRuleData[0].duration : 0,
-//         timeBankLeft: channel.timeBankRuleData && channel.timeBankRuleData[0] && channel.timeBankRuleData[0].blindLevel == 1 ? channel.timeBankRuleData[0].duration : 0,
-//         timeAddedAtBlindLevel: channel.timeBankRuleData && channel.timeBankRuleData[0] && channel.timeBankRuleData[0].blindLevel == 1 ? channel.timeBankRuleData[0].blindLevel : 0,
-//       },
-//       playerCallTimer: {
-//         playerId: null,
-//         timer: 0,
-//         status: false,
-//         createdAt: null,
-//         isCallTimeOver: false
-//       },
-//       isForceBlindVisible: false,
-//       autoBuyInFlag: false
-//     }
-//   }
+    //   const preparePlayer = function (channel, player) {
+    //     let freeIndex = (_.difference(_.range(1, channel.maxPlayers + 1), _.pluck(channel.players, "seatIndex")))[0];
+    //     return {
+    //       playerId: player.playerId,
+    //       channelId: channel.channelId,
+    //       bounty: channel.tournamentRules && channel.tournamentRules.bountyFees ? channel.tournamentRules.bountyFees : 0,
+    //       playerName: player.playerName || player.userName,
+    //       networkIp: player.networkIp,
+    //       active: false,
+    //       chips: parseInt(channel.noOfChipsAtGameStart),
+    //       lastRealChipBonus: 0,
+    //       lastRealChip: 0,
+    //       currentRCBstack: 0,
+    //       totalRCB: 0,
+    //       totalRC: 0,
+    //       seatIndex: freeIndex,
+    //       imageAvtar: player.imageAvtar || "",
+    //       cards: [],
+    //       moves: [],
+    //       preCheck: -1,
+    //       bestHands: "",
+    //       state: stateOfX.playerState.waiting,
+    //       lastBet: 0,
+    //       lastMove: null,
+    //       totalRoundBet: 0,
+    //       totalGameBet: 0,
+    //       lastRoundPlayed: "",
+    //       isMuckHand: false,
+    //       preActiveIndex: -1,
+    //       nextActiveIndex: -1,
+    //       isDisconnected: false,
+    //       bigBlindMissed: 0,
+    //       isAutoReBuy: false,
+    //       autoReBuyAmount: 0,
+    //       isRunItTwice: false,
+    //       isPlayed: false,
+    //       sitoutNextHand: false,
+    //       sitoutNextBigBlind: false,
+    //       autoSitout: false,
+    //       isSkipped: false,
+    //       sitoutGameMissed: 0,
+    //       roundMissed: 0,
+    //       disconnectedMissed: 0,
+    //       hasPlayedOnceOnTabl: false,
+    //       isForceBlindEnable: false,
+    //       isWaitingPlayer: true,
+    //       isStraddleOpted: false,
+    //       onGameStartBuyIn: parseInt(channel.onGameStartBuyIn),
+    //       onSitBuyIn: parseInt(channel.onSitBuyIn),
+    //       roundId: null,
+    //       totalGames: 0,
+    //       systemFoldedCount: 0,
+    //       timeBankSec: systemConfig.timebank.initialSec,
+    //       isJoinedOnce: false,
+    //       isAutoReBuyEnabled: false,
+    //       isAutoAddOnEnabled: false,
+    //       isCurrentRoundPlayer: false,
+    //       isActionBySystem: false,
+    //       activityRecord: {
+    //         seatReservedAt: !!player.state && player.state === stateOfX.playerState.reserved ? new Date() : null,
+    //         lastMovePlayerAt: null,
+    //         disconnectedAt: null,
+    //         lastActivityAction: "",
+    //         lastActivityTime: Number(new Date())
+    //       },
+    //       tournamentData: {
+    //         userName: player.userName,
+    //         isTournamentSitout: false,
+    //         isTimeBankUsed: false,
+    //         timeBankStartedAt: null,
+    //         totalTimeBank: channel.timeBankRuleData && channel.timeBankRuleData[0] && channel.timeBankRuleData[0].blindLevel == 1 ? channel.timeBankRuleData[0].duration : 0,
+    //         timeBankLeft: channel.timeBankRuleData && channel.timeBankRuleData[0] && channel.timeBankRuleData[0].blindLevel == 1 ? channel.timeBankRuleData[0].duration : 0,
+    //         timeAddedAtBlindLevel: channel.timeBankRuleData && channel.timeBankRuleData[0] && channel.timeBankRuleData[0].blindLevel == 1 ? channel.timeBankRuleData[0].blindLevel : 0,
+    //       },
+    //       playerCallTimer: {
+    //         playerId: null,
+    //         timer: 0,
+    //         status: false,
+    //         createdAt: null,
+    //         isCallTimeOver: false
+    //       },
+    //       isForceBlindVisible: false,
+    //       autoBuyInFlag: false
+    //     }
+    //   }
     /*================================  END  =========================*/
-  
+
 
     /*================================  START  =========================*/
 
@@ -302,9 +294,9 @@ export class LateRegistrationHandlerService {
                 let updatedPlayer: any[] = [];
                 params.player = this.preparePlayer(params.availableChannel, player);
                 updatedPlayer.push(params.player);
-    
+
                 const result = await this.imdb.pushPlayersInTable(updatedPlayer, params.availableChannelId);
-    
+
                 return params; // Return params with updated player
             } catch (err) {
                 return { success: false, isRetry: false, isDisplay: true, channelId: "", info: popupTextManager.dbQyeryInfo.DBFINDUSERFAIL_LATEREGISTRATIONHANDLER };
@@ -312,14 +304,14 @@ export class LateRegistrationHandlerService {
         } else {
             try {
                 const response = await this.createtable.createTableByTournamentId({ tournamentId: params.tournamentId, runningTables: params.runningTables });
-    
+
                 if (response.success) {
                     let channelId = response.table.channelId;
                     let channel = pomelo.app.get('channelService').getChannel(channelId, false);
                     if (!channel) {
                         channel = pomelo.app.get('channelService').getChannel(channelId, true);
                     }
-    
+
                     const createTableResponse = await this.tournamentJoinHandler.createChannel({
                         self: pomelo,
                         session: params.session,
@@ -329,18 +321,18 @@ export class LateRegistrationHandlerService {
                         tableId: "",
                         playerId: ""
                     });
-    
+
                     if (createTableResponse.success) {
                         params.availableChannelId = createTableResponse.table.channelId;
                         const player = await this.db.findUser({ playerId: params.playerId });
-    
+
                         let updatedPlayer: any[] = [];
                         params.player = this.preparePlayer(createTableResponse.table, player);
                         params.availableChannel = createTableResponse.table;
                         updatedPlayer.push(params.player);
-    
+
                         const result = await this.imdb.pushPlayersInTable(updatedPlayer, params.availableChannelId);
-    
+
                         return params; // Return params with updated player
                     } else {
                         return { success: false, isRetry: false, isDisplay: false, channelId: "", info: popupTextManager.falseMessages.ERRORCREATINGCHANNELFAIL_LATEREGISTRATIONHANDLER };
@@ -353,7 +345,7 @@ export class LateRegistrationHandlerService {
             }
         }
     }
-    
+
 
     // Old
     //   const createChannel = function (params, cb) {
@@ -414,7 +406,7 @@ export class LateRegistrationHandlerService {
     //     }
     //   }
     /*================================  END  =========================*/
-  
+
 
     /*================================  START  =========================*/
 
@@ -429,7 +421,7 @@ export class LateRegistrationHandlerService {
             }
             return result;
         };
-    
+
         const dataToInsert = {
             channelId: params.availableChannelId,
             playerId: params.playerId,
@@ -441,7 +433,7 @@ export class LateRegistrationHandlerService {
             referenceNumber: generateCOTRefrenceId(),
             networkIp: ''
         };
-    
+
         // Use await on the upsert operations
         await this.imdb.upsertPlayerJoin(
             { channelId: dataToInsert.channelId, playerId: dataToInsert.playerId },
@@ -456,10 +448,10 @@ export class LateRegistrationHandlerService {
                 $set: { networkIp: dataToInsert.networkIp, event: 'join' }
             }
         );
-    
+
         await this.imdb.upsertActivity({ channelId: dataToInsert.channelId, playerId: dataToInsert.playerId }, dataToInsert);
     };
-    
+
 
     // Old
     //   const saveActivityRecord = function (params) {
@@ -485,7 +477,7 @@ export class LateRegistrationHandlerService {
     //     imdb.upsertActivity({ channelId: dataToInsert.channelId, playerId: dataToInsert.playerId }, dataToInsert, function (err, result) { })
     //   }
     /*================================  END  =========================*/
-  
+
 
     /*================================  START  =========================*/
 
@@ -501,10 +493,10 @@ export class LateRegistrationHandlerService {
 
 
         params.channel = channel;
-    
+
         // Sending message to user using the broadcast handler
         this.broadcastHandler.sendMessageToUser({
-            self: {}, 
+            self: {},
             playerId: params.playerId,
             msg: {
                 playerId: params.playerId,
@@ -513,14 +505,14 @@ export class LateRegistrationHandlerService {
                 tableDetails: params.availableChannel,
                 forceJoin: true,
                 info: "Tournament has been started!"
-            }, 
+            },
             route: "tournamentGameStart"
         });
-    
+
         // No need for callback as we are using async/await
         return params;
     };
-    
+
 
     // Old
     //   const sendAutoJoinBroadcast = function (params, cb) {
@@ -543,7 +535,7 @@ export class LateRegistrationHandlerService {
     //     cb(null, params);
     //   }
     /*================================  END  =========================*/
-  
+
 
     /*================================  START  =========================*/
 
@@ -556,11 +548,11 @@ export class LateRegistrationHandlerService {
             player: params.player,
             table: params.availableChannel
         });
-    
+
         // No need for callback, just return the params
         return params;
     };
-    
+
 
     // Old
     //   const sendSitBroadcast = function (params, cb) {
@@ -573,27 +565,27 @@ export class LateRegistrationHandlerService {
     //     cb(null, params);
     //   }
     /*================================  END  =========================*/
-  
+
 
     /*================================  START  =========================*/
 
     // New
     async process(params: any, session: any): Promise<any> {
-        
+
         params.isChannelAvailable = false;
         params.availableChannelId = "";
         params.session = session;
-    
+
         try {
             // Use async/await instead of waterfall
             await this.isChannelAvailable(params);
             await this.createChannel(params);
             await this.sendAutoJoinBroadcast(params);
             await this.sendSitBroadcast(params);
-    
+
             // Save activity record
             this.saveActivityRecord(params);
-    
+
             // Check if game can start
             if (params.playersInCurrentChannel < 2) {
                 await this.startGameHandler.startGame({
@@ -604,14 +596,14 @@ export class LateRegistrationHandlerService {
                     eventName: stateOfX.startGameEvent.tournament
                 });
             }
-    
+
             return { success: true, isRetry: false, isDisplay: false, channelId: "", info: popupTextManager.falseMessages.PROCESS_TRUE_LATEREGISTRATIONHANDLER };
         } catch (err) {
             console.log("ssbw6dnwdd777tgw inside err, result", err);
             return err; // Return error directly if any async operation fails
         }
     };
-    
+
 
     // Old
     //   lateRegistrationHandler.process = function (params, session, cb) {

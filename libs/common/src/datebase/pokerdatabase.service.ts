@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import stateOfX from '../stateOfX.sevice';
 import systemConfig from '../systemConfig.json';
+import { ObjectId } from 'mongodb';
+
 
 @Injectable()
 export class PokerDatabaseService {
@@ -3639,4 +3641,16 @@ export class PokerDatabaseService {
       throw err;
     }
   }
+
+    async findBreakRule(id: string): Promise<any> {
+    try {
+      const objectId = new ObjectId(id);
+      const result = await this.db.collection('breakRules').findOne({ _id: objectId });
+      return result;
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to fetch break rule');
+    }
+  }
+
+
 }

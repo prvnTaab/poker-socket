@@ -11,10 +11,8 @@ import { ResponseHandlerService } from "./responseHandler.service";
 import { CommonHandlerService } from "./commonHandler.service";
 import { BroadcastHandlerService } from "./broadcastHandler.service";
 import { TournamentJoinHandlerService } from "./tournamentJoinHandler.service";
-
-
-  sharedModule = require("../../../../../shared/sharedModule"),
-  satelliteTournament = require('../../database/remote/satelliteTournament');
+import { SharedModuleServie } from "shared/common/utils/sharedModule.service";
+import { SatelliteTournamentService } from "../database/satelliteTournament.service";
 
 declare const pomelo: any;
 
@@ -30,7 +28,8 @@ export class StartTournamentHandlerService {
     private readonly responseHandler: ResponseHandlerService,
     private readonly commonHandler: CommonHandlerService,
     private readonly broadcastHandler: BroadcastHandlerService,
-    private readonly satelliteTournament: SatelliteTournamentService
+    private readonly satelliteTournament: SatelliteTournamentService,
+    private readonly sharedModule:SharedModuleServie
   ) { }
 
 

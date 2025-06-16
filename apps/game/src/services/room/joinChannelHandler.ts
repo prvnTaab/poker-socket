@@ -15,6 +15,7 @@ import { CommonHandlerService } from "./commonHandler.service";
 import { ChannelTimerHandlerService } from "./channelTimerHandler.service";
 import { BroadcastHandlerService } from "./broadcastHandler.service";
 import { ResponseHandlerService } from "./responseHandler.service";
+import { validateKeySets } from "shared/common/utils/activity";
 
 
 
@@ -685,7 +686,7 @@ export class JoinChannelHandler {
 
     async validateKeyAndCreateLog(params: any): Promise<any> { // Pending
 
-        const validated: any = await keyValidator.validateKeySets(
+        const validated: any = await validateKeySets(
             "Response",
             "connector",
             "joinChannel",
@@ -694,7 +695,7 @@ export class JoinChannelHandler {
 
         if (validated.success) {
             if (params.channelId) {
-                actionLogger.createEventLog({
+                this.actionLogger.createEventLog({
                     self: {},
                     session: params.session,
                     channel: params.channel,

@@ -274,7 +274,7 @@ export class AutoSitHandlerService {
           
           return params; // Return updated params
         } catch (err) {
-          throw { success: false, isRetry: false, isDisplay: false, channelId: params.channelId || "", info: popupTextManagerFromdb.DB_REMOVETABLESPECTATOR_FAIL };
+          throw { success: false, isRetry: false, isDisplay: false, channelId: params.channelId || "", info: popupTextManager.dbQyeryInfo.DB_REMOVETABLESPECTATOR_FAIL };
         }
       } else {
         throw processAutoSitResponse; // Return the processAutoSitResponse if the player could not sit
@@ -885,7 +885,7 @@ export class AutoSitHandlerService {
   
       return context;
     } catch (err: any) {
-      activity.playerSit(
+      this.activity.playerSit(
         err?.data || params,
         stateOfX.profile.category.game,
         stateOfX.game.subCategory.sit,

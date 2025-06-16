@@ -1,41 +1,43 @@
-import { dispatcher, sendMailWithHtml } from 'shared/common';
+
 import * as _ from 'underscore';
-// import * as keyValidator from '../../../../../shared/keysDictionary';
 import { validateKeySets } from 'shared/common/utils/activity';
-import { PokerDatebaseService } from 'shared/common/datebase/pokerdatebase.service';
 import { ActivityService } from 'shared/common/activity/activity.service';
-// import * as sharedModule from '../../../../../shared/sharedModule';
-import { systemConfig, stateOfX, popupTextManager } from 'shared/common';
+import { systemConfig, stateOfX, popupTextManager, UtilityService } from 'shared/common';
 import { ServerDownManagerService } from 'shared/common/server-down-manager/server-down-manager.service';
 import { DbRemoteService } from '../database/dbRemote.service';
+import { PokerDatabaseService } from 'shared/common/datebase/pokerdatabase.service';
+import { SharedModuleServie } from 'shared/common/utils/sharedModule.service';
 
 
 
 export class GateHandler {
-    
-    constructor(private db : PokerDatebaseService,
-        private activity :ActivityService,
-        private serverDownManager : ServerDownManagerService,
-        private dbRemote : DbRemoteService
-    ){ }
+
+    constructor(
+        private readonly db: PokerDatabaseService,
+        private readonly activity: ActivityService,
+        private readonly serverDownManager: ServerDownManagerService,
+        private readonly dbRemote: DbRemoteService,
+        private readonly utilsService:UtilityService,
+        private readonly sharedModule:SharedModuleServie
+    ) { }
 
 
     async getConnector(msg: any, session: any, next: (err: any, data?: any) => void): Promise<void> {
-        const self = this;
+        const self: any = this;
         try {
             const clientStatus = await this.serverDownManager.checkClientStatus('login', msg, self.app);
-            
+
             if (!clientStatus) {
-                next(null, { 
-                    success: false, 
-                    info: "This installation is corrupted. Please try again.", 
-                    errorType: "5012" 
+                next(null, {
+                    success: false,
+                    info: "This installation is corrupted. Please try again.",
+                    errorType: "5012"
                 });
                 return;
             }
 
             const connectors = self.app.getServersByType('connector');
-            const activityParams: any = { 
+            const activityParams: any = {
                 data: {},
                 rawInput: msg
             };
@@ -43,9 +45,9 @@ export class GateHandler {
             const activitySubCategory = stateOfX.profile.subCategory.login;
 
             const keyValidation = await validateKeySets(
-                "Request", 
-                self.app.serverType, 
-                "getConnector", 
+                "Request",
+                self.app.serverType,
+                "getConnector",
                 msg
             );
 
@@ -59,12 +61,12 @@ export class GateHandler {
 
             const usernamePattern = /^[a-zA-Z0-9_]*$/;
             if (!msg.userName || !usernamePattern.test(msg.userName)) {
-                next(null, { 
-                    success: false, 
-                    isRetry: false, 
-                    isDisplay: false, 
-                    channelId: "", 
-                    info: popupTextManager.falseMessages.GETCONNECTOR_USERNAMEERROR_GATEHANDLER 
+                next(null, {
+                    success: false,
+                    isRetry: false,
+                    isDisplay: false,
+                    channelId: "",
+                    info: popupTextManager.falseMessages.GETCONNECTOR_USERNAMEERROR_GATEHANDLER
                 });
                 return;
             }
@@ -74,39 +76,31 @@ export class GateHandler {
             } else if (msg.loginType.toLowerCase() === 'registration') {
                 await this.handleRegistration(msg, self, connectors, activityParams, activityCategory, activitySubCategory, next);
             } else {
-                next(null, { 
-                    success: false, 
-                    isRetry: false, 
-                    isDisplay: false, 
-                    channelId: "", 
-                    info: popupTextManager.falseMessages.GETCONNECTOR_UNKOWNLOGINTYPEERROR_GATEHANDLER 
+                next(null, {
+                    success: false,
+                    isRetry: false,
+                    isDisplay: false,
+                    channelId: "",
+                    info: popupTextManager.falseMessages.GETCONNECTOR_UNKOWNLOGINTYPEERROR_GATEHANDLER
                 });
             }
         } catch (err) {
-            next(null, { 
-                success: false, 
-                info: err.info || "This installation is corrupted. Please try again.", 
-                errorType: err.errorType || "5012" 
+            next(null, {
+                success: false,
+                info: err.info || "This installation is corrupted. Please try again.",
+                errorType: err.errorType || "5012"
             });
         }
     }
 
-    private async handleLogin(
-        msg: any,
-        self: GateHandler,
-        connectors: any[],
-        activityParams: any,
-        activityCategory: string,
-        activitySubCategory: string,
-        next: (err: any, data?: any) => void
-    ): Promise<void> {
+    private async handleLogin(msg: any, self:any, connectors: any[], activityParams: any, activityCategory: string, activitySubCategory: string, next: any): Promise<any> {
         if (msg.loginMode.toLowerCase() === 'normal') {
             const filterForUser: any = {};
             if (msg.userName) filterForUser.userName = msg.userName;
             if (msg.emailId) filterForUser.emailId = msg.emailId;
             filterForUser.password = msg.password;
 
-            const validateUserResponse = await this.dbRemote.validateUser(self.session, msg);
+            const validateUserResponse = await this.dbRemote.validateUser( msg);
 
             if (!validateUserResponse) {
                 activityParams.comment = "not able to find data from db";
@@ -131,11 +125,11 @@ export class GateHandler {
                     activityParams.comment = "user login successfully";
                     activityParams.rawResponse = { success: true, user: validateUserResponse.user };
                     activityParams.data = validateUserResponse.user;
-                    
+
                     this.activity.logUserActivity(
-                        activityParams, 
-                        activityCategory, 
-                        activitySubCategory, 
+                        activityParams,
+                        activityCategory,
+                        activitySubCategory,
                         stateOfX.profile.activityStatus.completed
                     );
 
@@ -176,7 +170,7 @@ export class GateHandler {
                 next(null, { success: false, isDisplay: false, info: validateUserResponse.info });
             }
         } else if (msg.loginMode.toLowerCase() === 'facebook' || msg.loginMode.toLowerCase() === 'google') {
-            const profile = await this.dbRemote.createProfile(self.session, msg);
+            const profile = await this.dbRemote.createProfile(msg);
 
             if (!profile) {
                 activityParams.comment = "not able to find data from db for socialLogin";
@@ -219,12 +213,12 @@ export class GateHandler {
             activityParams.comment = "unknown loginMode";
             activityParams.rawResponse = { success: false, info: "unknown loginMode" };
             this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
-            next(null, { 
-                success: false, 
-                isRetry: false, 
-                isDisplay: false, 
-                channelId: "", 
-                info: popupTextManager.falseMessages.GETCONNECTOR_UNKNOWNLOGIN_GATEHANDLER 
+            next(null, {
+                success: false,
+                isRetry: false,
+                isDisplay: false,
+                channelId: "",
+                info: popupTextManager.falseMessages.GETCONNECTOR_UNKNOWNLOGIN_GATEHANDLER
             });
         }
     }
@@ -239,61 +233,61 @@ export class GateHandler {
         next: (err: any, data?: any) => void
     ): Promise<void> {
         if (!msg.userName && !msg.emailId || !msg.password) {
-            next(null, { 
-                success: false, 
-                isRetry: false, 
-                isDisplay: false, 
-                channelId: "", 
-                info: popupTextManager.falseMessages.GETCONNECTOR_MINREQFIELDERROR_GATEHANDLER 
+            next(null, {
+                success: false,
+                isRetry: false,
+                isDisplay: false,
+                channelId: "",
+                info: popupTextManager.falseMessages.GETCONNECTOR_MINREQFIELDERROR_GATEHANDLER
             });
             return;
         }
 
         if (!this.validatePassword(msg.password)) {
-            next(null, { 
-                success: false, 
-                isRetry: false, 
-                isDisplay: false, 
-                channelId: "", 
-                info: popupTextManager.falseMessages.GETCONNECTOR_INVALIDPASSWORD_GATEHANDLER 
+            next(null, {
+                success: false,
+                isRetry: false,
+                isDisplay: false,
+                channelId: "",
+                info: popupTextManager.falseMessages.GETCONNECTOR_INVALIDPASSWORD_GATEHANDLER
             });
             return;
         }
 
         if (!this.validateUserName(msg.userName)) {
-            next(null, { 
-                success: false, 
-                isRetry: false, 
-                isDisplay: false, 
-                channelId: "", 
-                info: popupTextManager.falseMessages.GETCONNECTOR_USERNAMEERROR_GATEHANDLER 
+            next(null, {
+                success: false,
+                isRetry: false,
+                isDisplay: false,
+                channelId: "",
+                info: popupTextManager.falseMessages.GETCONNECTOR_USERNAMEERROR_GATEHANDLER
             });
             return;
         }
 
         if (!this.validateEmail(msg.emailId)) {
-            next(null, { 
-                success: false, 
-                isRetry: false, 
-                isDisplay: false, 
-                channelId: "", 
-                info: popupTextManager.falseMessages.GETCONNECTOR_INVALIDEMAIL_GATEHANDLER 
+            next(null, {
+                success: false,
+                isRetry: false,
+                isDisplay: false,
+                channelId: "",
+                info: popupTextManager.falseMessages.GETCONNECTOR_INVALIDEMAIL_GATEHANDLER
             });
             return;
         }
 
-        const createdProfile = await this.dbRemote.createProfile(self.session, msg);
+        const createdProfile = await this.dbRemote.createProfile( msg);
 
         if (!createdProfile) {
             activityParams.comment = "not able to create user in db";
             activityParams.rawResponse = { success: false, info: "not able to create user in db" };
             this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
-            next({ 
-                success: false, 
-                isRetry: false, 
-                isDisplay: false, 
-                channelId: "", 
-                info: popupTextManager.falseMessages.GETCONNECTOR_UNABLETOCREATEUSER_GATEHANDLER 
+            next({
+                success: false,
+                isRetry: false,
+                isDisplay: false,
+                channelId: "",
+                info: popupTextManager.falseMessages.GETCONNECTOR_UNABLETOCREATEUSER_GATEHANDLER
             });
             return;
         }
@@ -311,7 +305,7 @@ export class GateHandler {
                     subject: stateOfX.mailMessages.mail_subjectEmailVerification.toString()
                 };
 
-                let mailSentResponse =  sendMailWithHtml(params);
+                let mailSentResponse = this.sharedModule.sendMailWithHtml(params);
             }
 
             const hostPortData = await this.getHostAndPort({
@@ -344,7 +338,7 @@ export class GateHandler {
                 });
 
                 next(null, {
-                    success: true, 
+                    success: true,
                     serverVersion: systemConfig.serverVersion,
                     user: createdProfile.user,
                     isDecimal: systemConfig.isDecimal,
@@ -362,30 +356,25 @@ export class GateHandler {
             activityParams.comment = createdProfile.info;
             activityParams.rawResponse = { success: false, info: createdProfile.info };
             this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
-            next(null, { 
-                success: false, 
-                info: createdProfile.info, 
-                suggestions: createdProfile.suggestions, 
-                code: 409 
+            next(null, {
+                success: false,
+                info: createdProfile.info,
+                suggestions: createdProfile.suggestions,
+                code: 409
             });
         }
     }
 
-    private async getHostAndPort(params: {
-        self: GateHandler,
-        deviceType: string,
-        connector: any[],
-        playerId: string
-    }): Promise<any> {
-        console.log("in gate-------------", params.playerId);
+    private async getHostAndPort(params: any): Promise<any> {
+        // console.log("in gate-------------", params.playerId);
         if (params.deviceType === "website") {
             return { success: true, host: "", port: 0 };
         }
 
         const validated = await validateKeySets(
-            "Request", 
-            params.self.app.serverType, 
-            "getHostAndPort", 
+            "Request",
+            params.self.app.serverType,
+            "getHostAndPort",
             params
         );
 
@@ -394,10 +383,7 @@ export class GateHandler {
         }
 
         try {
-            const response = await this.dbRemote.findUserSessionInDB(
-                params.self.session, 
-                params.playerId
-            );
+            const response = await this.db.findUserSessionInDB(params);
 
             if (response.success && response.result) {
                 const res = _.findWhere(params.connector, { id: response.result.serverId });
@@ -410,7 +396,8 @@ export class GateHandler {
                 }
             }
 
-            const res = dispatcher(params.playerId, params.connector);
+            const res:any = this.utilsService.dispatcher(params.playerId, params.connector);
+
             await this.dbRemote.insertUserSessionInDB(
                 { playerId: params.playerId, serverId: res.id }
             );

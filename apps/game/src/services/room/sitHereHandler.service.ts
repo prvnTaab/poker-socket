@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import _ from "underscore";
 import _ld from "lodash";
-import { systemConfig, stateOfX, popupTextManager } from 'shared/common';
+import { systemConfig, stateOfX, popupTextManager, UtilityService } from 'shared/common';
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import { ActionLoggerService } from "./actionLogger.service";
@@ -13,17 +13,9 @@ import { JoinRequestUtilService } from "./joinRequestUtil.service";
 import { WalletService } from "apps/wallet/src/wallet.service";
 import { validateKeySets } from "shared/common/utils/activity";
 import { DynamicTableHandlerService } from "./dynamicTableHandler.service";
-
-
-
-
-
-
-
-profileMgmt = require("../../../../../shared/model/profileMgmt.js"),
-    // activity = require("../../../../../shared/activity"),
-
-    convert = require("../../database/remote/convertingIntToDecimal");
+import { ActivityService } from "shared/common/activity/activity.service";
+import { ProfileMgmtService } from "shared/common/utils/profileMgmt.service";
+import { WalletQueryService } from "../../utils/walletQuery.service";
 
 
 declare const pomelo: any;
@@ -42,8 +34,11 @@ export class SitHereHandlerService {
         private readonly commonHandler: CommonHandlerService,
         private readonly channelTimerHandler: ChannelTimerHandlerService,
         private readonly joinRequestUtil: JoinRequestUtilService,
-        private readonly wallet: WalletService,
-        private readonly dynamicTable:DynamicTableHandlerService
+        private readonly dynamicTable:DynamicTableHandlerService,
+        private readonly activity:ActivityService,
+        private readonly utilsService:UtilityService,
+        private readonly profileMgmt:ProfileMgmtService,
+        private readonly wallet:WalletQueryService
 
     ) { }
 
@@ -734,7 +729,7 @@ async updatePlayerScore(params: any): Promise<any> {
             data: {
                 playerId: params.playerId,
                 isRealMoney: getTableAttribResponse.value,
-                chips: convert.convert(params.chips),
+                chips: this.utilsService.convertIntToDecimal(params.chips),
                 channelId: params.channelId,
                 tableName: params.channel.channelName,
                 referenceNumber: params.referenceNumber,
@@ -889,11 +884,11 @@ async updatePlayerScore(params: any): Promise<any> {
         if (res) {
             return params;
         } else {
-            return { success: false, channelId: (params.channelId || ""), info: popupTextManagerFromdb.DB_REMOVEANTIBANKING_FAIL, isRetry: false, isDisplay: false };
+            return { success: false, channelId: (params.channelId || ""), info: popupTextManager.dbQyeryInfo.DB_REMOVEANTIBANKING_FAIL, isRetry: false, isDisplay: false };
         }
         } catch (err) {
         console.log(stateOfX.serverLogType.error, 'Error during anti banking removal: ' + JSON.stringify(err));
-        return { success: false, channelId: (params.channelId || ""), info: popupTextManagerFromdb.DB_REMOVEANTIBANKING_FAIL, isRetry: false, isDisplay: false };
+        return { success: false, channelId: (params.channelId || ""), info: popupTextManager.dbQyeryInfo.DB_REMOVEANTIBANKING_FAIL, isRetry: false, isDisplay: false };
         }
     };
     
@@ -1242,7 +1237,7 @@ async setPlayerAutoBuyIn(params: any): Promise<void> {
     // Check if seat is not already occupied success
 
     // New
-    async validateResponse(params: { channelId: string; response: any }): Promise<void> {
+    async validateResponse(params: { channelId: string; response: any }): Promise<any> {
         params.response = { success: true, channelId: params.channelId };
 
         try {

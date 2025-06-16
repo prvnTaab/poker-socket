@@ -5,7 +5,7 @@ import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.servi
 import { ActionHandlerService } from "./actionHandler.service";
 import { BroadcastHandlerService } from "./broadcastHandler.service";
 import { ChannelTimerHandlerService } from "./channelTimerHandler.service";
-import { WalletService } from "apps/wallet/src/wallet.service";
+import { WalletQueryService } from "../../utils/walletQuery.service";
 
 
 
@@ -24,7 +24,7 @@ export class RevertLockedHandlerService  {
         private actionHandler:ActionHandlerService,
         private broadcastHandler:BroadcastHandlerService,
         private channelTimerHandler:ChannelTimerHandlerService,
-        private wallet: WalletService
+        private wallet: WalletQueryService
     ) {}
 
 
@@ -716,7 +716,7 @@ export class RevertLockedHandlerService  {
 
 		// Handle players' leave
 		for (const item of params.table.players) {
-			await this.actionHandler.handleLeave({
+			await this.actionHandler.handleLeaveEvents({
 				self: params, session: {}, channel: params.channel,
 				channelId: params.channelId,
 				response: {
@@ -736,7 +736,7 @@ export class RevertLockedHandlerService  {
 
 		// Handle members' leave
 		for (const item of params.channel.getMembers()) {
-			await this.actionHandler.handleLeave({
+			await this.actionHandler.handleLeaveEvents({
 				self: params, session: {}, channel: params.channel,
 				channelId: params.channelId,
 				response: {

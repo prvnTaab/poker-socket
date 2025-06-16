@@ -5,9 +5,8 @@ import { Injectable } from '@nestjs/common';
 import _ from "underscore";
 import async from "async";
 import stateOfX from '../stateOfX.sevice.js';
-import { systemConfig } from 'shared/common';
-import { PokerDatebaseService } from '../datebase/pokerdatabase.service.js';
-import { convertToJson } from 'shared/common';
+import { systemConfig, UtilityService } from 'shared/common';
+import { PokerDatabaseService } from '../datebase/pokerdatabase.service.js';
 
 // const logDB = require("./model/logDbQuery.js");
 
@@ -23,14 +22,15 @@ import { convertToJson } from 'shared/common';
 @Injectable()
 export class ActivityService {
 
-  constructor(private db:PokerDatebaseService){
-
-  }
+  constructor(
+    private readonly db:PokerDatabaseService,
+    private readonly utilityService:UtilityService
+  ){ }
 
 
   async insertInDb (activityObject: any) {
   try {
-    activityObject = convertToJson(activityObject);
+    activityObject = this.utilityService.convertToJson(activityObject);
     const activity = await this.db.createUserActivity(activityObject);
     if (!activity) {
       console.log("error in creating activities in db");
@@ -145,7 +145,7 @@ async insertPlayerStats (rounds: any[]) {
 
 async insertInDbGame (activityObject: any) {
   try {
-    activityObject = convertToJson(activityObject);
+    activityObject = this.utilityService.convertToJson(activityObject);
     const activity = await this.db.createUserActivityGame(activityObject);
     
     if (!activity) {

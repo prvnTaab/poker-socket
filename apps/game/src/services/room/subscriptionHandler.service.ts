@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import { BroadcastHandlerService } from "./broadcastHandler.service";
-import { WalletService } from '../../walletQuery';
+import { WalletQueryService } from "../../utils/walletQuery.service";
 
 
 
@@ -13,7 +13,7 @@ export class SubscriptionHandlerService {
         private readonly db: PokerDatabaseService,
         private readonly imdb: ImdbDatabaseService,
         private readonly broadcastHandler: BroadcastHandlerService,
-        private readonly wallet: WalletService,
+        private readonly wallet: WalletQueryService,
     ) {}
 
 

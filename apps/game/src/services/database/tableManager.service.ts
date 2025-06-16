@@ -7,9 +7,7 @@ import _ld from "lodash";
 import _ from "underscore";
 import async from "async";
 import { stateOfX, systemConfig, popupTextManager } from "shared/common";
-import winnerMgmt from "../../../../../shared/winnerAlgo/entry";
 import { ActivityService } from "shared/common/activity/activity.service";
-import { convertIntToDecimal } from "shared/common";
 import { validateKeySets } from "shared/common/utils/activity";
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
@@ -21,8 +19,8 @@ export class TableManagerService {
   constructor(
     private readonly imdb: ImdbDatabaseService,
     private readonly db: PokerDatabaseService,
-    private readonly activity: ActivityService) {
-  }
+    private readonly activity: ActivityService
+  ) { }
 
 
   async calculatePlayerScore(player: any) {
@@ -2006,6 +2004,75 @@ export class TableManagerService {
       return false;
     } else {
       return params.table.password !== params.data.password;
+    }
+  }
+
+  async isRunItTwice(params: any, contributors: string[]): Promise<any> {
+    // Do not check run it twice in case of tournament table
+    if (params.table.channelType === stateOfX.gameType.tournament) {
+      return false;
+    }
+
+    if (params.table.boardCard[0].length === 5) {
+      return false;
+    }
+
+    let playerToDecideRIT: any[] = [];
+    const tempPlayers = [...contributors];
+
+    for (const playerId of tempPlayers) {
+      const playerIndexOnTable = _ld.findIndex(params.table.players, { playerId });
+      if (playerId && playerIndexOnTable >= 0) {
+        playerToDecideRIT.push(params.table.players[playerIndexOnTable]);
+      }
+    }
+
+    const playingPlayers = playerToDecideRIT.filter((p: any) =>
+      params.table.onStartPlayers.includes(p.playerId)
+    );
+
+    const onBreakPlayers = _ld.where(playerToDecideRIT, { state: stateOfX.playerState.onBreak });
+    const foldedPlayers = _ld.where(playerToDecideRIT, {
+      state: stateOfX.playerState.playing,
+      lastMove: stateOfX.move.fold,
+    });
+    const foldedPlayersOnDisconnected = _ld.where(playerToDecideRIT, {
+      state: stateOfX.playerState.disconnected,
+      lastMove: stateOfX.move.fold,
+    });
+    let allInPlayers = _ld.where(playerToDecideRIT, {
+      state: stateOfX.playerState.playing,
+      lastMove: stateOfX.move.allin,
+    });
+    const allInPlayersDisconnected = _ld.where(playerToDecideRIT, {
+      state: stateOfX.playerState.disconnected,
+      lastMove: stateOfX.move.allin,
+    });
+
+    let activePlayers = _ld.difference(playingPlayers, foldedPlayers);
+    if (allInPlayersDisconnected) {
+      allInPlayers = _ld.difference(activePlayers, allInPlayersDisconnected);
+    }
+    if (foldedPlayersOnDisconnected) {
+      activePlayers = _ld.difference(activePlayers, foldedPlayersOnDisconnected);
+    }
+    activePlayers = _ld.difference(activePlayers, onBreakPlayers);
+
+    const runItTwiceEnabled = _ld.where(activePlayers, { isRunItTwice: true });
+
+    if (
+      activePlayers.length > 1 &&
+      allInPlayers.length > 0 &&
+      allInPlayers.length + 1 >= activePlayers.length
+    ) {
+      if (runItTwiceEnabled.length >= activePlayers.length) {
+        params.table.isRunItTwiceApplied = true;
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
     }
   }
 

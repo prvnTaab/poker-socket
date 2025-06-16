@@ -548,7 +548,7 @@ export class JoinRequestUtilService {
             throw {
                 success: false,
                 channelId: params.channelId || "",
-                info: popupTextManagerFromdb.DB_REMOVEANTIBANKING_FAIL,
+                info: popupTextManager.dbQyeryInfo.DB_REMOVEANTIBANKING_FAIL,
                 isRetry: false,
                 isDisplay: false,
             };
@@ -608,7 +608,7 @@ export class JoinRequestUtilService {
             throw {
               success: false,
               channelId: params.channelId || '',
-              info: popupTextManagerFromdb.DB_REMOVEANTIBANKING_FAIL,
+              info: popupTextManager.dbQyeryInfo.DB_REMOVEANTIBANKING_FAIL,
               isRetry: false,
               isDisplay: false,
             };
@@ -621,7 +621,7 @@ export class JoinRequestUtilService {
           return {
             success: false,
             channelId: params.channelId || '',
-            info: popupTextManagerFromdb.DB_REMOVEANTIBANKING_FAIL,
+            info: popupTextManager.dbQyeryInfo.DB_REMOVEANTIBANKING_FAIL,
             isRetry: false,
             isDisplay: false,
           };

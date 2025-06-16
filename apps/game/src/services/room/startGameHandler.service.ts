@@ -13,9 +13,11 @@ import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service
 import { ChannelTimerHandlerService } from "./channelTimerHandler.service";
 import { BroadcastHandlerService } from "./broadcastHandler.service"
 
- calculateRanks = require("../../database/remote/calculateRanks.js");
-
 import { ActionLoggerService } from "./actionLogger.service";
+import { CalculateRanksService } from "../database/calculateRanks.service";
+import { TournamentActionHandlerService } from "./tournamentActionHandler.service";
+import { StartTournamentHandlerService } from "./startTournamentHandler.service";
+import { DynamicRanksService } from "../database/dynamicRanks.service";
 
 declare const pomelo: any;
 
@@ -33,7 +35,8 @@ export class StartGameHandlerService {
         private readonly broadcastHandler: BroadcastHandlerService,
         private readonly tournamentActionHandler: TournamentActionHandlerService,
         private readonly actionLogger: ActionLoggerService,
-        private readonly calculateRanks:CalculateRanksService
+        private readonly calculateRanks:CalculateRanksService,
+        private readonly dynamicRanks:DynamicRanksService
 
     ) { }
 
@@ -2195,7 +2198,7 @@ export class StartGameHandlerService {
             return {
                 success: false,
                 channelId: "", // params.channelId not available here
-                info: infoMessage.GETPLAYINGPLAYERS_HANDLEGAMEOVER,
+                info: popupTextManager.dbQyeryInfo.GETPLAYINGPLAYERS_HANDLEGAMEOVER,
                 isRetry: false,
                 isDisplay: true
             };

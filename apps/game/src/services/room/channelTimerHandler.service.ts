@@ -10,22 +10,22 @@ import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service
 import { BroadcastHandlerService } from "./broadcastHandler.service";
 import { SubscriptionHandlerService } from "./subscriptionHandler.service";
 import { validateKeySets } from "shared/common/utils/activity";
+import * as schedule from 'node-schedule';
 
-const pomelo: any; // In this place we have add socket.io
 
-schedule = require('node-schedule');
+declare const pomelo: any; // In this place we have add socket.io
 
 @Injectable()
 export class ChannelTimerHandlerService {
 
     private configMsg = popupTextManager.falseMessages;
-    private dbConfigMsg = popupTextManager.dbQyeryInfo;
 
     constructor(
         private readonly db: PokerDatabaseService,
         private readonly imdb: ImdbDatabaseService,
         private readonly broadcastHandler: BroadcastHandlerService,
         private readonly subscriptionHandler: SubscriptionHandlerService,
+        private readonly channelTimerHandler:ChannelTimerHandlerService
     ) { }
 
 
@@ -3008,7 +3008,7 @@ export class ChannelTimerHandlerService {
 
         const scheduleTime = new Date(currentTime.getTime() + Number(systemConfig.vacantReserveSeatTime) * 1000);
 
-        params.channel.reserveSeatTimeReference[params.playerId] = this.schedule.scheduleJob(scheduleTime, async function () {
+        params.channel.reserveSeatTimeReference[params.playerId] = schedule.scheduleJob(scheduleTime, async function () {
 
             // Pomelo Connection
             const forwardResponse = await pomelo.app.sysrpc['room'].msgRemote.forwardMessage(
@@ -3128,7 +3128,7 @@ export class ChannelTimerHandlerService {
             }
         }
 
-        params.channel.kickPlayerToLobby[params.playerId] = this.schedule.scheduleJob(scheduleTime, async () => {
+        params.channel.kickPlayerToLobby[params.playerId] = schedule.scheduleJob(scheduleTime, async () => {
             try {
 
                 // Pomelo Connection

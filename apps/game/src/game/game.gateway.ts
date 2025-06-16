@@ -30,7 +30,7 @@ export class GameGateway
   @SubscribeMessage('login')
   handleLogin(@MessageBody() playerId: string, @ConnectedSocket() client: Socket) {
     this.users.set(playerId, client);
-    client.join('allPlayers');
+    client.join('allPlayers');  
     this.server.to('allPlayers').emit('playerLoggedIn', { playerId });
   }
 

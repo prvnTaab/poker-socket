@@ -9,6 +9,11 @@ import stateOfX from "shared/common/stateOfX.sevice";
 import { UtilsService } from "../../utils/utils.service";
 import { validateKeySets } from "shared/common/utils/activity";
 import { systemConfig } from "shared/common";
+import { VideoRemoteService } from "./videoRemote.service";
+import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { RandyService } from "shared/common/utils/cards/randy.service";
+import { ShortDeckService } from "shared/common/utils/cards/shortDeck.service";
+import { DeckService } from "shared/common/utils/cards/deck.service";
 
 
 
@@ -22,11 +27,15 @@ export class ValidateGameStartService  {
 
 
     constructor(
+      private readonly db:PokerDatabaseService,
         private readonly imdb:ImdbDatabaseService,
         private readonly videoRemote:VideoRemoteService,
         private readonly tableManager:TableManagerService,
         private readonly tableConfigManager:TableConfigManagerService,
-        private readonly utilsService:UtilsService
+        private readonly utilsService:UtilsService,
+        private readonly randy:RandyService,
+        private readonly cardAlgoShortDeck:ShortDeckService,
+        private readonly cardAlgo:DeckService
     ) {}
 
 
@@ -341,11 +350,11 @@ async shuffleDeck(params: any): Promise<any> {
   if (params.table.channelVariation === stateOfX.channelVariation.shortdeck) {
     params.table.deck = this.cardAlgoShortDeck.getCards();
   } else {
-    params.table.deck = cardAlgo.getCards();
+    params.table.deck = this.cardAlgo.getCards();
   }
 
-  params.table.deck = randy.shuffle(params.table.deck);
-  params.table.deck = randy.shuffle(params.table.deck);
+  params.table.deck = this.randy.shuffle(params.table.deck);
+  params.table.deck = this.randy.shuffle(params.table.deck);
 
   return params;
 }
@@ -355,7 +364,7 @@ async shuffleDeck(params: any): Promise<any> {
 async inserRoundId(params: any): Promise<any> {
   params.table.raiseBy = '';
   params.table.lastHandRoundId = params.table.roundId;
-  params.table.roundId = uuid.v4();
+  params.table.roundId = uuid();
   params.table.gameStartTime = Number(new Date());
   params.table.roundNumber = '';
 

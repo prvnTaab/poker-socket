@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./apps/poker-socket/test/jest-e2e.json"
   },
   "dependencies": {
+    "@nestjs/axios": "^4.0.0",
     "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.0.12",
     "@nestjs/config": "^4.0.2",
@@ -31,12 +32,15 @@
     "@nestjs/platform-socket.io": "^11.0.12",
     "@nestjs/schedule": "^6.0.0",
     "@nestjs/websockets": "^11.0.12",
+    "@sendgrid/mail": "^8.1.5",
     "cache-manager": "^6.4.1",
     "crc": "^4.3.2",
     "ioredis": "^5.6.0",
     "mongoose": "^8.13.1",
     "node-fetch": "^3.3.2",
     "node-schedule": "^2.1.1",
+    "poker-odds-calc": "^0.0.14",
+    "prng-well1024a": "^2.0.0",
     "redis": "^4.7.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
