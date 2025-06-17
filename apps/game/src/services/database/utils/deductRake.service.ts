@@ -146,7 +146,7 @@ async calculateRakeValues(params: any): Promise<any> {
   }
 
   params.rakeFromTable = (params.rakePercent * params.potAmount) / 100;
-  params.rakeFromTable = await this.roundOffInt(params.rakeFromTable);
+  params.rakeFromTable = await this.utilsService.convertIntToDecimal(params.rakeFromTable);
 
   return params;
 };
@@ -181,7 +181,7 @@ async calculateRakeValuesSingleWinner(params: any): Promise<any> {
 
   params.potAmount -= (maxCont - secondMaxCont);
   params.rakeFromTable = (params.rakePercent * params.potAmount) / 100;
-  params.rakeFromTable = await this.roundOffInt(params.rakeFromTable);
+  params.rakeFromTable = await this.utilsService.convertIntToDecimal(params.rakeFromTable);
 
   return params;
 };
@@ -253,7 +253,7 @@ async setEachPotRake(params: any): Promise<any> {
       if (params.table.isRunItTwiceApplied || params.data.decisionParams[i].winners.length <= 1) {
         decisionParam.rake = params.rakeFromTable * Math.min((decisionParam.amount / params.potAmount), 1);
         decisionParam.rake = decisionParam.rake || 0;
-        decisionParam.rake = await this.roundOffInt(decisionParam.rake);
+        decisionParam.rake = await this.utilsService.convertIntToDecimal(decisionParam.rake);
       } else {
         decisionParam.rake = 0;
       }
@@ -279,14 +279,14 @@ async setEachPotRake(params: any): Promise<any> {
       }
     }
 
-    const roundOffWinAmount = await this.roundOffInt(winningAmount);
+    const roundOffWinAmount = await this.utilsService.convertIntToDecimal(winningAmount);
 
     if (params.table.channelVariation !== stateOfX.channelVariation.omahahilo || !decisionParam.winners.winnerHigh) {
       decisionParam.winners = await this.assignWinningAmount(decisionParam.winners, roundOffWinAmount);
       params.data.decisionParams[i] = decisionParam;
     } else {
-      const roundOffWinAmountHigh = await this.roundOffInt(winningAmountHigh);
-      const roundOffWinAmountLow = await this.roundOffInt(winningAmountLow);
+      const roundOffWinAmountHigh = await this.utilsService.convertIntToDecimal(winningAmountHigh);
+      const roundOffWinAmountLow = await this.utilsService.convertIntToDecimal(winningAmountLow);
 
       decisionParam.winners.winnerHigh = await this.assignWinningAmount(decisionParam.winners.winnerHigh, roundOffWinAmountHigh);
       decisionParam.winners.winnerLo = await this.assignWinningAmount(decisionParam.winners.winnerLo, roundOffWinAmountLow);
@@ -325,7 +325,7 @@ async handleRakeRoundOff(params: any): Promise<any> {
             winamt += singleWinner.winningAmount;
         }
 
-        const roundedWinamt = await this.roundOffInt(winamt);
+        const roundedWinamt = await this.utilsService.convertIntToDecimal(winamt);
         sumOfRoundedWinAmt += roundedWinamt;
 
         const diff = roundedWinamt - winamt;

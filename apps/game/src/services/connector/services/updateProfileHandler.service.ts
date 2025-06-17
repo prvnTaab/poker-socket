@@ -6,6 +6,7 @@ import { BroadcastHandlerService } from "./broadcastHandler.service";
 import popupTextManager from "shared/common/popupTextManager";
 import { validateKeySets } from "shared/common/utils/activity";
 import { stateOfX } from "shared/common";
+import { PasswordencrytpdecryptService } from "shared/common/utils/passwordencrytpdecrypt.service";
 
 
 
@@ -19,7 +20,7 @@ export class UpdateProfileHandlerService {
         private readonly db: PokerDatabaseService,
         private readonly activity: ActivityService,
         private readonly broadcastHandler: BroadcastHandlerService,
-        private readonly encryptDecrypt: EncryptDecryptService
+        private readonly encryptDecrypt: PasswordencrytpdecryptService
     ) { }
 
 

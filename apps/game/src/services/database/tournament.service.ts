@@ -7,6 +7,8 @@ import popupTextManager from "shared/common/popupTextManager";
 import { stateOfX } from "shared/common";
 import { validateKeySets } from "shared/common/utils/activity";
 import { ObjectId } from 'mongodb';
+import { TournamentRegistrationService } from "./tournamentRegistration.service";
+import { SatelliteTournamentService } from "./satelliteTournament.service";
 
 
 
@@ -26,7 +28,7 @@ export class TournamentService {
     constructor(
         private readonly db: PokerDatabaseService,
         private readonly imdb: ImdbDatabaseService,
-        private readonly tournamentReg: TournamentRegService,
+        private readonly tournamentReg: TournamentRegistrationService,
         private readonly satelliteTournament: SatelliteTournamentService,
         private readonly channelDetails: CalculateChannelDetailsService
     ) { }

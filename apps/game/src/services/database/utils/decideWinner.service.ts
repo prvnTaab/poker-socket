@@ -6,12 +6,8 @@ import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.servi
 
 import { TableManagerService } from "../tableManager.service";
 import stateOfX from "shared/common/stateOfX.sevice";
-
-
-
-
-
-    // winnerMgmt   = require('../../../../../../shared/winnerAlgo/entry'),
+import { DeductRakeService } from "./deductRake.service";
+import { EntryService } from "shared/common/utils/winner-algo/entry.service";
 
 
 @Injectable()
@@ -22,7 +18,8 @@ export class DecideWinnerService {
         private readonly activity:ActivityService,
         private readonly db:PokerDatabaseService,
         private readonly tableManager:TableManagerService,
-        private readonly deductRake:DeductRakeService
+        private readonly deductRake:DeductRakeService,
+        private readonly winnerMgmt:EntryService
     ) {}
 
 
@@ -272,18 +269,18 @@ getWinnerRaking(params: any): Promise<any> {
 
   switch (params.table.channelVariation) {
     case stateOfX.channelVariation.holdem:
-      params.data.winnerRanking = winnerMgmt.findWinner(normalBoardInputs);
+      params.data.winnerRanking = this.winnerMgmt.findWinner(normalBoardInputs);
       break;
     case stateOfX.channelVariation.shortdeck:
-      params.data.winnerRanking = winnerMgmt.findWinnerShortDeck(normalBoardInputs);
+      params.data.winnerRanking = this.winnerMgmt.findWinnerShortDeck(normalBoardInputs);
       break;
     case stateOfX.channelVariation.omaha:
     case stateOfX.channelVariation.FiveCardOmaha:
     case stateOfX.channelVariation.SixCardOmaha:
-      params.data.winnerRanking = winnerMgmt.findWinnerOmaha(normalBoardInputs);
+      params.data.winnerRanking = this.winnerMgmt.findWinnerOmaha(normalBoardInputs);
       break;
     case stateOfX.channelVariation.omahahilo:
-      params.data.winnerRanking = winnerMgmt.findWinnerOmahaHiLo(normalBoardInputs);
+      params.data.winnerRanking = this.winnerMgmt.findWinnerOmahaHiLo(normalBoardInputs);
       break;
     default:
       break;
@@ -295,18 +292,18 @@ getWinnerRaking(params: any): Promise<any> {
 
     switch (params.table.channelVariation) {
       case stateOfX.channelVariation.holdem:
-        params.data.ritWinnerRanking = winnerMgmt.findWinner(ritBoardInputs);
+        params.data.ritWinnerRanking = this.winnerMgmt.findWinner(ritBoardInputs);
         break;
       case stateOfX.channelVariation.shortdeck:
-        params.data.ritWinnerRanking = winnerMgmt.findWinnerShortDeck(ritBoardInputs);
+        params.data.ritWinnerRanking = this.winnerMgmt.findWinnerShortDeck(ritBoardInputs);
         break;
       case stateOfX.channelVariation.omaha:
       case stateOfX.channelVariation.FiveCardOmaha:
       case stateOfX.channelVariation.SixCardOmaha:
-        params.data.ritWinnerRanking = winnerMgmt.findWinnerOmaha(ritBoardInputs);
+        params.data.ritWinnerRanking = this.winnerMgmt.findWinnerOmaha(ritBoardInputs);
         break;
       case stateOfX.channelVariation.omahahilo:
-        params.data.ritWinnerRanking = winnerMgmt.findWinnerOmahaHiLo(ritBoardInputs);
+        params.data.ritWinnerRanking = this.winnerMgmt.findWinnerOmahaHiLo(ritBoardInputs);
         break;
       default:
         break;

@@ -3,9 +3,7 @@ import _ from 'underscore';
 import { stateOfX, popupTextManager } from "shared/common";
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
-
-wallet = require("../../walletQuery");
-
+import { WalletQueryService } from "../../utils/walletQuery.service";
 
 
 
@@ -23,7 +21,7 @@ export class ManageBountyService {
     constructor(
         private readonly db: PokerDatabaseService,
         private readonly imdb: ImdbDatabaseService,
-        private readonly wallet: WalletService
+        private readonly wallet: WalletQueryService
     ) { }
 
 

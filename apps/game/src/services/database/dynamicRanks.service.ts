@@ -804,7 +804,7 @@ export class DynamicRanksService {
  * @param  {string}                     gameVersionCount 
  */
 // New
-async getRegisteredTournamentUsers(tournamentId: any) {
+async getRegisteredTournamentUsers(tournamentId: any,) {
 
     let params = {
         tournamentId: tournamentId,

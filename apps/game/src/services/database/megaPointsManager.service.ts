@@ -34,8 +34,8 @@ export class MegaPointsManagerService {
 
     constructor(
         private readonly db: PokerDatabaseService,
-        private readonly imdb: ImdbDatabaseService,
-        private readonly wallet: WalletService,
+        // private readonly imdb: ImdbDatabaseService,
+        // private readonly wallet: WalletService,
         private readonly userRemote: UserRemoteService,
 
     ) { }

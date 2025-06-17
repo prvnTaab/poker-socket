@@ -10,19 +10,11 @@ import { HandleGameOverService } from "./handleGameOver.service";
 import { ResponseHandlerService } from "./responseHandler.service";
 import { TableManagerService } from "./tableManager.service";
 import { validateKeySets } from "shared/common/utils/activity";
-
-
-
-
-
-
-
-
-
-// activity = require("../../../../../shared/activity"),
-//     roundOver = require("./utils/roundOver"),
-//     testSummary = require("./utils/summaryGenerator"),
-
+import { ActivityService } from "shared/common/activity/activity.service";
+import { PostsplitService } from "./potsplit.service";
+import { RoundOverService } from "./utils/roundOver.service";
+import { SummaryGeneratorService } from "./utils/summaryGenerator.service";
+import { UtilsService } from "../../utils/utils.service";
 
 
 
@@ -37,22 +29,17 @@ import { validateKeySets } from "shared/common/utils/activity";
             private readonly imdb: ImdbDatabaseService,
             private readonly setMove: SetMoveService,
             private readonly adjustIndex: AdjustActiveIndexService,
-            private readonly potsplit: PotsplitService,
+            private readonly potsplit: PostsplitService,
             private readonly handleGameOver: HandleGameOverService,
             private readonly responseHandler: ResponseHandlerService,
-            private readonly tableManager: TableManagerService
+            private readonly tableManager: TableManagerService,
+            private readonly activity: ActivityService,
+            private readonly roundOver: RoundOverService,
+            private readonly testSummary:SummaryGeneratorService,
+            private readonly utilsService:UtilsService,
+
 
         ) { }
-
-
-        convert(input: any): any {
-            if (systemConfig.isDecimal === true) {
-                return parseFloat(parseFloat(input.toString()).toFixed(2));
-            } else {
-                return Math.round(input);
-            }
-        };
-
 
 
         /*============================  START  =================================*/
@@ -169,8 +156,8 @@ import { validateKeySets } from "shared/common/utils/activity";
                 params.table.players[params.data.index].activityRecord.lastActivityTime = Number(new Date());
 
                 if (
-                    this.convert(params.data.amount) ===
-                    this.convert(
+                    this.utilsService.convertIntToDecimal(params.data.amount) ===
+                    this.utilsService.convertIntToDecimal(
                         params.table.players[params.data.index].chips +
                         params.table.players[params.data.index].totalRoundBet
                     )
@@ -181,16 +168,16 @@ import { validateKeySets } from "shared/common/utils/activity";
                 params.data.roundOver = false;
                 params.data.isGameOver = params.table.state === stateOfX.gameState.gameOver;
                 params.data.chips = 0;
-                params.data.amount = this.convert(params.data.amount);
-                params.data.originAmount = this.convert(params.data.amount);
-                params.data.considerAmount = this.convert(params.data.amount);
+                params.data.amount = this.utilsService.convertIntToDecimal(params.data.amount);
+                params.data.originAmount = this.utilsService.convertIntToDecimal(params.data.amount);
+                params.data.considerAmount = this.utilsService.convertIntToDecimal(params.data.amount);
 
                 if (
                     params.data.action === stateOfX.move.raise ||
                     params.data.action === stateOfX.move.bet ||
                     params.data.action === stateOfX.move.allin
                 ) {
-                    params.data.considerAmount = this.convert(
+                    params.data.considerAmount =this.utilsService.convertIntToDecimal(
                         params.data.amount - params.table.players[params.data.index].totalRoundBet
                     );
                 }
@@ -410,7 +397,7 @@ import { validateKeySets } from "shared/common/utils/activity";
         // New
         validateMoveAndAmount(params: any): any {
             // Do not process if amount less than 0
-            if (this.convert(params.data.amount) < 0) {
+            if (this.utilsService.convertIntToDecimal(params.data.amount) < 0) {
                 return {
                     success: false,
                     isRetry: false,
@@ -436,7 +423,7 @@ import { validateKeySets } from "shared/common/utils/activity";
             // Validate moves and amount for which amount should not be 0
             const movesWithAmount = [stateOfX.move.bet, stateOfX.move.raise];
 
-            if (movesWithAmount.indexOf(params.data.action) >= 0 && this.convert(params.data.amount) === 0) {
+            if (movesWithAmount.indexOf(params.data.action) >= 0 && this.utilsService.convertIntToDecimal(params.data.amount) === 0) {
                 return {
                     success: false,
                     isRetry: false,
@@ -447,7 +434,7 @@ import { validateKeySets } from "shared/common/utils/activity";
             }
 
             // Validate if placed amount is higher than player's on-table amount
-            if (this.convert(params.data.considerAmount) > this.convert(params.table.players[params.data.index].chips)) {
+            if (this.utilsService.convertIntToDecimal(params.data.considerAmount) > this.utilsService.convertIntToDecimal(params.table.players[params.data.index].chips)) {
                 return {
                     success: false,
                     isRetry: false,
@@ -509,15 +496,15 @@ import { validateKeySets } from "shared/common/utils/activity";
                             params.table.currentMoveIndex !== params.table.bigBlindIndex) {
                             // TODO: Handle case when blinds ALLIN in first round and 3rd player call amount should be max of (bigBlind, maxBet)
                         }
-                        params.data.amount = this.convert(params.table.roundMaxBet - params.table.roundBets[params.data.index]);
-                        params.data.considerAmount = this.convert(params.data.amount);
+                        params.data.amount = this.utilsService.convertIntToDecimal(params.table.roundMaxBet - params.table.roundBets[params.data.index]);
+                        params.data.considerAmount = this.utilsService.convertIntToDecimal(params.data.amount);
                         return params;
                     }
 
                     // If move is ALLIN then amount and consider amount will be equal to player's on-table chips amount
                     if (params.data.action === stateOfX.move.allin) {
-                        params.data.amount = this.convert(params.table.players[params.data.index].chips);
-                        params.data.considerAmount = this.convert(params.data.amount);
+                        params.data.amount = this.utilsService.convertIntToDecimal(params.table.players[params.data.index].chips);
+                        params.data.considerAmount = this.utilsService.convertIntToDecimal(params.data.amount);
                         return params;
                     }
 
@@ -611,7 +598,7 @@ import { validateKeySets } from "shared/common/utils/activity";
 
             const isGameProgressResponse = await this.isGameProgress(params);
             if (isGameProgressResponse.success && !isGameProgressResponse.isGameOver) {
-                if (this.convert(params.table.players[params.data.index].chips) >= this.convert(params.data.considerAmount)) {
+                if (this.utilsService.convertIntToDecimal(params.table.players[params.data.index].chips) >= this.utilsService.convertIntToDecimal(params.data.considerAmount)) {
                     return params;
                 } else {
                     return {
@@ -728,8 +715,8 @@ import { validateKeySets } from "shared/common/utils/activity";
                 // In case of BET or RAISE
                 if (params.data.action === stateOfX.move.bet || params.data.action === stateOfX.move.raise) {
                     if (
-                        this.convert(params.data.amount) ===
-                        this.convert(params.table.players[params.data.index].chips + (params.table.players[params.data.index].totalRoundBet || 0))
+                        this.utilsService.convertIntToDecimal(params.data.amount) ===
+                        this.utilsService.convertIntToDecimal(params.table.players[params.data.index].chips + (params.table.players[params.data.index].totalRoundBet || 0))
                     ) {
                         console.log(stateOfX.serverLogType.info, 'Player move set to ALLIN by bet, raise');
                         params.data.action = stateOfX.move.allin;
@@ -737,7 +724,7 @@ import { validateKeySets } from "shared/common/utils/activity";
                         console.log(stateOfX.serverLogType.info, 'ALLIN not set as player has enough amount to play! by bet, raise');
                     }
                 } else if (params.data.action === stateOfX.move.call) {
-                    if (this.convert(params.data.amount) === this.convert(params.table.players[params.data.index].chips)) {
+                    if (this.utilsService.convertIntToDecimal(params.data.amount) === this.utilsService.convertIntToDecimal(params.table.players[params.data.index].chips)) {
                         console.log(stateOfX.serverLogType.info, 'Player move set to ALLIN by call');
                         params.data.action = stateOfX.move.allin;
                     } else {
@@ -797,11 +784,11 @@ import { validateKeySets } from "shared/common/utils/activity";
                 const player = params.table.players.find((p: any) => p.playerId === params.data.playerId);
                 if (player) {
                     if (player.active) {
-                        player.chips = this.convert(player.chips - params.data.considerAmount);
-                        player.totalRoundBet = this.convert(player.totalRoundBet + params.data.considerAmount);
-                        player.totalGameBet = this.convert(player.totalGameBet + params.data.considerAmount);
-                        params.data.chips = this.convert(player.chips);
-                        player.lastBet = this.convert(params.data.amount);
+                        player.chips = this.utilsService.convertIntToDecimal(player.chips - params.data.considerAmount);
+                        player.totalRoundBet = this.utilsService.convertIntToDecimal(player.totalRoundBet + params.data.considerAmount);
+                        player.totalGameBet = this.utilsService.convertIntToDecimal(player.totalGameBet + params.data.considerAmount);
+                        params.data.chips = this.utilsService.convertIntToDecimal(player.chips);
+                        player.lastBet = this.utilsService.convertIntToDecimal(params.data.amount);
                         player.precheckValue = stateOfX.playerPrecheckValue.NONE;
                         player.lastMove = params.data.action;
                         player.isPlayed = true;
@@ -927,7 +914,7 @@ import { validateKeySets } from "shared/common/utils/activity";
         // New
         async summaryOnFold(params: any): Promise<any> {
             if (params.data.action === stateOfX.move.fold) {
-                testSummary.onFold(params);
+                this.testSummary.onFold(params);
             }
             return params;
         }
@@ -949,12 +936,12 @@ import { validateKeySets } from "shared/common/utils/activity";
         async setRoundBets(params: any): Promise<any> {
 
             // Update the player's round bet by adding the considerAmount
-            params.table.roundBets[params.data.index] = this.convert(
+            params.table.roundBets[params.data.index] = this.utilsService.convertIntToDecimal(
                 params.table.roundBets[params.data.index] + params.data.considerAmount
             );
 
             // Store the last maximum bet before updating
-            params.data.roundLastMaxBet = this.convert(params.table.roundMaxBet);
+            params.data.roundLastMaxBet = this.utilsService.convertIntToDecimal(params.table.roundMaxBet);
 
             // Update the round's maximum bet to the highest bet among all players
             params.table.roundMaxBet = _.max(params.table.roundBets);
@@ -1026,13 +1013,13 @@ import { validateKeySets } from "shared/common/utils/activity";
 
             if (contributorIndex >= 0) {
 
-                params.table.contributors[contributorIndex].amount = this.convert(params.table.contributors[contributorIndex].amount + params.data.considerAmount);
-                params.table.contributors[contributorIndex].tempAmount = this.convert(params.table.contributors[contributorIndex].amount);
+                params.table.contributors[contributorIndex].amount = this.utilsService.convertIntToDecimal(params.table.contributors[contributorIndex].amount + params.data.considerAmount);
+                params.table.contributors[contributorIndex].tempAmount = this.utilsService.convertIntToDecimal(params.table.contributors[contributorIndex].amount);
             } else {
                 params.table.contributors.push({
                     playerId: params.data.playerId,
-                    amount: this.convert(params.data.amount),
-                    tempAmount: this.convert(params.data.amount)
+                    amount: this.utilsService.convertIntToDecimal(params.data.amount),
+                    tempAmount: this.utilsService.convertIntToDecimal(params.data.amount)
                 });
             }
 
@@ -1076,13 +1063,13 @@ import { validateKeySets } from "shared/common/utils/activity";
 
             if (contributorIndex >= 0) {
 
-                params.table.roundContributors[contributorIndex].amount = this.convert(params.table.roundContributors[contributorIndex].amount + params.data.considerAmount);
-                params.table.roundContributors[contributorIndex].tempAmount = this.convert(params.table.roundContributors[contributorIndex].amount);
+                params.table.roundContributors[contributorIndex].amount = this.utilsService.convertIntToDecimal(params.table.roundContributors[contributorIndex].amount + params.data.considerAmount);
+                params.table.roundContributors[contributorIndex].tempAmount = this.utilsService.convertIntToDecimal(params.table.roundContributors[contributorIndex].amount);
             } else {
                 params.table.roundContributors.push({
                     playerId: params.data.playerId,
-                    amount: this.convert(params.data.amount),
-                    tempAmount: this.convert(params.data.amount)
+                    amount: this.utilsService.convertIntToDecimal(params.data.amount),
+                    tempAmount: this.utilsService.convertIntToDecimal(params.data.amount)
                 });
             }
 
@@ -1177,8 +1164,8 @@ import { validateKeySets } from "shared/common/utils/activity";
 
             // Check if under raise occur
             if (params.data.action === stateOfX.move.allin) {
-                let expectedRaiseDiff = this.convert(params.data.amount - params.table.lastRaiseAmount);
-                let allinAmountLessThanMinRaise = this.convert(params.data.amount) < this.convert(params.table.minRaiseAmount - (params.table.players[params.data.index].totalRoundBet || 0));
+                let expectedRaiseDiff = this.utilsService.convertIntToDecimal(params.data.amount - params.table.lastRaiseAmount);
+                let allinAmountLessThanMinRaise = this.utilsService.convertIntToDecimal(params.data.amount) < this.utilsService.convertIntToDecimal(params.table.minRaiseAmount - (params.table.players[params.data.index].totalRoundBet || 0));
 
                 if (!params.table.isBettingRoundLocked) {
                     let IwasLastToAct = true;
@@ -1216,10 +1203,10 @@ import { validateKeySets } from "shared/common/utils/activity";
 
             // Set raise values
             if (params.data.action === stateOfX.move.raise || params.data.action === stateOfX.move.bet || params.data.action === stateOfX.move.allin) {
-                if ((this.convert(params.data.originAmount - params.table.lastRaiseAmount)) >= this.convert(params.table.raiseDifference) && this.convert(params.data.originAmount) >= convert.convert(params.table.lastRaiseAmount)) {
-                    params.table.raiseDifference = this.convert(params.data.originAmount - params.table.lastRaiseAmount);
-                    params.table.considerRaiseToMax = this.convert(params.table.raiseDifference);
-                    params.table.lastRaiseAmount = this.convert(params.data.originAmount);
+                if ((this.utilsService.convertIntToDecimal(params.data.originAmount - params.table.lastRaiseAmount)) >= this.utilsService.convertIntToDecimal(params.table.raiseDifference) && this.utilsService.convertIntToDecimal(params.data.originAmount) >= this.utilsService.convertIntToDecimal(params.table.lastRaiseAmount)) {
+                    params.table.raiseDifference = this.utilsService.convertIntToDecimal(params.data.originAmount - params.table.lastRaiseAmount);
+                    params.table.considerRaiseToMax = this.utilsService.convertIntToDecimal(params.table.raiseDifference);
+                    params.table.lastRaiseAmount = this.utilsService.convertIntToDecimal(params.data.originAmount);
                     params.table.raiseBy = params.data.playerId;
                 } else {
                     console.log(stateOfX.serverLogType.info, "Not updating raise difference and last raise on table value!");
@@ -1231,81 +1218,6 @@ import { validateKeySets } from "shared/common/utils/activity";
             return params;
         }
 
-
-        // Old
-        // var checkUnderRaise = function (params, cb) {
-        //     serverLog(stateOfX.serverLogType.info, "Table Min Raise: " + params.table.minRaiseAmount);
-        //     serverLog(stateOfX.serverLogType.info, "Previous Raise difference: " + params.table.raiseDifference);
-        //     serverLog(stateOfX.serverLogType.info, "Previous RAISE amount: " + params.table.lastRaiseAmount);
-        //     serverLog(stateOfX.serverLogType.info, "Current " + params.data.action + " amount: " + params.data.amount);
-        //     serverLog(stateOfX.serverLogType.info, "Expected Raise difference: " + (convert.convert(params.data.amount) - params.table.lastRaiseAmount));
-
-        //     // Check if under raise occur
-        //     if (params.data.action === stateOfX.move.allin) {
-        //         var expectedRaiseDiff = convert.convert(params.data.amount - params.table.lastRaiseAmount);
-        //         var allinAmountLessThanMinRaise = convert.convert(params.data.amount) < convert.convert(params.table.minRaiseAmount - (params.table.players[params.data.index].totalRoundBet || 0));
-        //         serverLog(stateOfX.serverLogType.info, "Expected Raise difference: " + expectedRaiseDiff);
-
-
-        //         if (!params.table.isBettingRoundLocked) {
-        //             var IwasLastToAct = true;
-        //             for (var i = 0; i < params.table.players.length; i++) {
-        //                 var player = params.table.players[i];
-        //                 serverLog(stateOfX.serverLogType.info, "other player " + i + " - " + JSON.stringify(player));
-        //                 if (player.playerId != params.data.playerId && params.table.onStartPlayers.indexOf(params.table.players[i].playerId) >= 0 && params.table.players[i].roundId == params.table.roundId) {
-        //                     // playing players except me!
-        //                     if (player.state === stateOfX.playerState.playing || player.state === stateOfX.playerState.disconnected) {
-        //                         if (player.active) {
-        //                             if (!player.isPlayed) {
-        //                                 IwasLastToAct = false;
-        //                                 serverLog(stateOfX.serverLogType.info, "Current player was not last to act. 1")
-        //                                 break;
-        //                             } else {
-        //                                 if (params.data.roundLastMaxBet != player.totalRoundBet) {
-        //                                     if (player.lastMove !== stateOfX.move.allin) {
-        //                                         IwasLastToAct = false;
-        //                                         serverLog(stateOfX.serverLogType.info, "Current player was not last to act. 2")
-        //                                         break;
-        //                                     }
-        //                                 }
-        //                             }
-        //                         }
-        //                     }
-        //                 }
-        //             }
-        //             // if(IwasLastToAct && expectedRaiseDiff < parseInt(params.table.raiseDifference/2)) {
-        //             if (IwasLastToAct && allinAmountLessThanMinRaise) {
-        //                 serverLog(stateOfX.serverLogType.info, "Raise difference is less than half of previous raise, under raise applicable!");
-        //                 params.table.isBettingRoundLocked = true;
-        //             } else {
-        //                 serverLog(stateOfX.serverLogType.info, "The raise difference is greater than half of previous raise diff, under raise is not applicable.");
-        //             }
-        //         } else {
-        //             serverLog(stateOfX.serverLogType.info, "The betting round has been already locked!");
-        //         }
-        //     }
-
-        //     // Set raise values
-        //     if (params.data.action === stateOfX.move.raise || params.data.action === stateOfX.move.bet || params.data.action === stateOfX.move.allin) {
-        //         serverLog(stateOfX.serverLogType.info, "Old values - " + params.data.amount + "," + params.table.lastRaiseAmount + "," + params.table.raiseDifference + "," + params.table.considerRaiseToMax);
-        //         if ((convert.convert(params.data.originAmount - params.table.lastRaiseAmount)) >= convert.convert(params.table.raiseDifference) && convert.convert(params.data.originAmount) >= convert.convert(params.table.lastRaiseAmount)) {
-        //             serverLog(stateOfX.serverLogType.info, "Updating raise difference and last raise on table value!" + params.table.players[params.data.index].totalRoundBet);
-        //             params.table.raiseDifference = convert.convert(params.data.originAmount - params.table.lastRaiseAmount);
-        //             params.table.considerRaiseToMax = convert.convert(params.table.raiseDifference);
-        //             params.table.lastRaiseAmount = convert.convert(params.data.originAmount);
-        //             params.table.raiseBy = params.data.playerId;
-        //             serverLog(stateOfX.serverLogType.info, "New values - " + params.data.amount + "," + params.table.lastRaiseAmount + "," + params.table.raiseDifference + "," + params.table.considerRaiseToMax);
-        //         } else {
-        //             serverLog(stateOfX.serverLogType.info, "Not updating raise difference and last raise on table value!");
-        //         }
-        //         serverLog(stateOfX.serverLogType.info, "Updated Raise difference: " + params.table.raiseDifference);
-        //         serverLog(stateOfX.serverLogType.info, "Updated raise amount: " + params.table.lastRaiseAmount);
-        //     } else {
-        //         serverLog(stateOfX.serverLogType.info, "Not updating raise difference and last raise on table bacause of " + params.data.action + " move!");
-        //     }
-
-        //     cb(null, params);
-        // }
         /*============================  END  =================================*/
 
 
@@ -1343,34 +1255,6 @@ import { validateKeySets } from "shared/common/utils/activity";
             }
         }
 
-
-        // Old
-        // var updateTable = function (params, cb) {
-        //     console.log('updateTable contributors begin', params.table.contributors.length);
-        //     serverLog(stateOfX.serverLogType.info, 'In moveRemote function updateTable');
-        //     isGameProgress(params, function (isGameProgressResponse) {
-        //         if (isGameProgressResponse.success && !isGameProgressResponse.isGameOver) {
-        //             async.waterfall([
-        //                 async.apply(setRoundBets, params),
-        //                 setAllInOccured,
-        //                 setTotalContributors,
-        //                 setRoundContributors,
-        //                 addAmountToPot,
-        //                 checkUnderRaise
-        //             ], function (err, response) {
-        //                 if (err && !response) {
-        //                     cb({ success: false, channelId: (params.channelId || ""), info: popupTextManager.ASYNCWATERFALL_ISGAMEPROGRESS_UPDATETABLE_MOVEREMOTE, isRetry: false, isDisplay: true })
-        //                     //cb({success: false, channelId: params.channelId, info: "Updating table for this move failed!"})
-        //                 } else {
-        //                     console.log('updateTable contributors end', params.table.contributors.length);
-        //                     cb(null, params)
-        //                 }
-        //             });
-        //         } else {
-        //             cb(isGameProgressResponse);
-        //         }
-        //     });
-        // };
         /*============================  END  =================================*/
 
 
@@ -1390,17 +1274,6 @@ import { validateKeySets } from "shared/common/utils/activity";
             return params;
         }
 
-
-        // Old
-        // var validateGameOver = function (params, cb) {
-        //     serverLog(stateOfX.serverLogType.info, 'In moveRemote function validateGameOver');
-        //     // Game should over if no player left with move
-        //     if (tableManager.isPlayerWithMove(params) === false) {
-        //         serverLog(stateOfX.serverLogType.info, 'There are no players with move left into the game, Game Over!')
-        //         params.table.state = stateOfX.gameState.gameOver;
-        //     }
-        //     cb(null, params);
-        // }
         /*============================  END  =================================*/
 
 
@@ -1425,29 +1298,6 @@ import { validateKeySets } from "shared/common/utils/activity";
             }
         }
 
-
-        // Old
-        // var isRoundOver = function (params, cb) {
-        //     serverLog(stateOfX.serverLogType.info, 'In moveRemote function isRoundOver');
-        //     // serverLog(stateOfX.serverLogType.info, 'Checking round over condition.')
-        //     isGameProgress(params, function (isGameProgressResponse) {
-        //         console.log('isRoundOver', isGameProgressResponse);
-        //         if (isGameProgressResponse.success && !isGameProgressResponse.isGameOver) {
-        //             roundOver.processRoundOver(params, function (processRoundOverResponse) {
-        //                 console.log('not reacheble', processRoundOverResponse, processRoundOverResponse.isGameOver);
-        //                 if (processRoundOverResponse.success && !processRoundOverResponse.isGameOver) {
-        //                     console.log('not reacheble if');
-        //                     cb(null, processRoundOverResponse.params);
-        //                 } else {
-        //                     console.log('not reacheble else');
-        //                     cb(processRoundOverResponse);
-        //                 }
-        //             });
-        //         } else {
-        //             cb(isGameProgressResponse);
-        //         }
-        //     });
-        // };
         /*============================  END  =================================*/
 
 
@@ -1478,7 +1328,7 @@ import { validateKeySets } from "shared/common/utils/activity";
                             isDisplay: true
                         };
                     } else {
-                        params.table.maxRaiseAmount = this.convert(this.tableManager.maxRaise(params.table));
+                        params.table.maxRaiseAmount = this.utilsService.convertIntToDecimal(this.tableManager.maxRaise(params.table));
                         return params;
                     }
                 } else {
@@ -1490,8 +1340,6 @@ import { validateKeySets } from "shared/common/utils/activity";
             }
         }
 
-
-        // Old
         // var setNextPlayer = function (params, cb) {
         //     serverLog(stateOfX.serverLogType.info, 'In moveRemote function setNextPlayer');
         //     isGameProgress(params, function (isGameProgressResponse) {
@@ -1549,8 +1397,6 @@ import { validateKeySets } from "shared/common/utils/activity";
                 throw error;
             }
         }
-
-        // Old
         // var setfirstActiveIndex = function (params, cb) {
         //     serverLog(stateOfX.serverLogType.info, 'In moveRemote function setfirstActiveIndex');
         //     isGameProgress(params, function (isGameProgressResponse) {
@@ -1597,23 +1443,6 @@ import { validateKeySets } from "shared/common/utils/activity";
             }
         }
 
-        // Old
-        // var getMoves = function (params, cb) {
-        //     serverLog(stateOfX.serverLogType.info, 'In moveRemote function getMoves');
-        //     isGameProgress(params, function (isGameProgressResponse) {
-        //         if (isGameProgressResponse.success && !isGameProgressResponse.isGameOver) {
-        //             setMove.getMove(params, function (getMoveResponse) {
-        //                 if (getMoveResponse.success) {
-        //                     cb(null, getMoveResponse.params);
-        //                 } else {
-        //                     cb(getMoveResponse);
-        //                 }
-        //             });
-        //         } else {
-        //             cb(isGameProgressResponse);
-        //         }
-        //     });
-        // };
         /*============================  END  =================================*/
 
 
@@ -1631,20 +1460,6 @@ import { validateKeySets } from "shared/common/utils/activity";
                 return params;
             }
         }
-
-
-        // Old
-        // var adjustActiveIndexes = function (params, cb) {
-        //     serverLog(stateOfX.serverLogType.info, 'In moveRemote function adjustActiveIndexes');
-        //     if (params.data.action === stateOfX.move.fold || params.data.action === stateOfX.move.allin) {
-        //         adjustIndex.perform(params, function (performResponse) {
-        //             serverLog(stateOfX.serverLogType.info, 'Updated active indexes response: ' + JSON.stringify(performResponse));
-        //             cb(null, performResponse.params);
-        //         });
-        //     } else {
-        //         cb(null, params);
-        //     }
-        // };
         /*============================  END  =================================*/
 
 
@@ -1661,18 +1476,6 @@ import { validateKeySets } from "shared/common/utils/activity";
             }
         }
 
-
-        // Old
-        // var decidePlayerPrechecks = function (params, cb) {
-        //     setMove.assignPrechecks(params, function (assignPrechecksResponse) {
-        //         if (assignPrechecksResponse.success) {
-        //             params = assignPrechecksResponse.params;
-        //             cb(null, params);
-        //         } else {
-        //             cb(assignPrechecksResponse)
-        //         }
-        //     });
-        // }
         /*============================  END  =================================*/
 
 
@@ -1701,31 +1504,6 @@ import { validateKeySets } from "shared/common/utils/activity";
             }
         }
 
-
-        // Old
-        // var createTurnResponse = function (params, cb) {
-        //     serverLog(stateOfX.serverLogType.info, 'In moveRemote function createTurnResponse');
-        //     isGameProgress(params, function (isGameProgressResponse) {
-        //         if (isGameProgressResponse.success && !isGameProgressResponse.isGameOver) {
-
-        //             // Set current time for player turn starts at
-        //             params.table.turnTimeStartAt = Number(new Date());
-
-        //             params.data.success = true;
-        //             params.data.isGameOver = false;
-        //             params.data.winners = isGameProgressResponse.winners;
-        //             params.data.rakeDeducted = isGameProgressResponse.rakeDeducted;
-        //             params.data.cardsToShow = isGameProgressResponse.cardsToShow;
-
-        //             responseHandler.setActionKeys(params, function (setActionKeysResponse) {
-        //                 cb(null, setActionKeysResponse);
-        //             });
-
-        //         } else {
-        //             cb(isGameProgressResponse);
-        //         }
-        //     });
-        // };
         /*============================  END  =================================*/
 
 
@@ -1750,25 +1528,6 @@ import { validateKeySets } from "shared/common/utils/activity";
         }
 
 
-    // Old
-    // var setMinMaxRaiseAmount = function (params, cb) {
-    //     serverLog(stateOfX.serverLogType.info, 'In moveRemote function setMinMaxRaiseAmount');
-    //     // if(params.table.currentMoveIndex === -1) {
-    //     //   cb({success: false, isRetry: false, isDisplay: true, channelId: (params.channelId || ""),info: popupTextManager.NOCURRENTPLAYERONMAXRAISE});
-    //     //   return false;
-    //     // }
-    //     isGameProgress(params, function (isGameProgressResponse) {
-    //         if (isGameProgressResponse.success && !isGameProgressResponse.isGameOver) {
-    //             params.table.maxRaiseAmount = tableManager.maxRaise(params.table);
-    //             serverLog(stateOfX.serverLogType.info, 'Updated max raise value - ' + params.table.maxRaiseAmount);
-    //             params.table.minRaiseAmount = tableManager.minRaise(params);
-    //             serverLog(stateOfX.serverLogType.info, 'Updated min raise value - ' + params.table.minRaiseAmount);
-    //             cb(null, params);
-    //         } else {
-    //             cb(isGameProgressResponse);
-    //         }
-    //     });
-    // }
     /*============================  END  =================================*/
 
 
@@ -1802,16 +1561,16 @@ import { validateKeySets } from "shared/common/utils/activity";
                 params = await this.adjustActiveIndexes(params);
                 params = await this.createTurnResponse(params);
 
-                activity.makeMove(params, stateOfX.profile.category.game, stateOfX.game.subCategory.move, params, stateOfX.logType.success);
-                activity.makeMove(params, stateOfX.profile.category.gamePlay, stateOfX.gamePlay.subCategory.move, params, stateOfX.logType.success);
+                this.activity.makeMove(params, stateOfX.profile.category.game, stateOfX.game.subCategory.move, params, stateOfX.logType.success);
+                this.activity.makeMove(params, stateOfX.profile.category.gamePlay, stateOfX.gamePlay.subCategory.move, params, stateOfX.logType.success);
 
                 return { success: true, table: params.table, data: params.data };
             } catch (err: any) {
                 if (err && err.data && err.data.success) {
                     return { success: true, table: params.table, data: params.data };
                 } else {
-                    activity.makeMove(params, stateOfX.profile.category.game, stateOfX.game.subCategory.move, err, stateOfX.logType.error);
-                    activity.makeMove(params, stateOfX.profile.category.gamePlay, stateOfX.gamePlay.subCategory.move, err, stateOfX.logType.error);
+                    this.activity.makeMove(params, stateOfX.profile.category.game, stateOfX.game.subCategory.move, err, stateOfX.logType.error);
+                    this.activity.makeMove(params, stateOfX.profile.category.gamePlay, stateOfX.gamePlay.subCategory.move, err, stateOfX.logType.error);
                     return err;
                 }
             }

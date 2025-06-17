@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import _ld from "lodash";
 import _ from 'underscore';
 import { stateOfX, popupTextManager } from "shared/common";
-import TableManagerService from "./tableManager";
+import { TableManagerService } from "./tableManager.service";
 
 
 

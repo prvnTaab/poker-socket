@@ -4,7 +4,7 @@ import { Connection } from 'mongoose';
 
 @Injectable()
 export class ImdbDatabaseService {
-  constructor(@InjectConnection('inMemoryDb') private inMemoryDb: Connection) {}
+  constructor(@InjectConnection('inMemoryDb') private inMemoryDb: Connection) { }
 
   /*----------------- Table Operations START ---------------------*/
 
@@ -901,20 +901,41 @@ export class ImdbDatabaseService {
     }
   }
 
-
-  async updateTableAndModify(a1:any,a2:any,a3:any,a4:any) {
+  async updateTableData(channelId, tableValue) {
 
     try {
-      
+      let result = await this.inMemoryDb.collection("tables").findAndModify(
+        { channelId: channelId },
+        [],
+        { $set: tableValue },
+        { upsert: false, new: true }
+      );
+
+      return result;
+    } catch (error) {
+      throw error
+    }
+
+
+
+
+
+  }
+
+
+  async updateTableAndModify(a1: any, a2: any, a3: any, a4: any) {
+
+    try {
+
 
       const result = await this.inMemoryDb.collection("tables").findAndModify(
         a1,
         a2,
         a3,
         a4
-    );
+      );
 
-    return result;
+      return result;
 
 
     } catch (error) {
@@ -922,6 +943,81 @@ export class ImdbDatabaseService {
     }
 
   }
+
+  async updateTableImdb(query, table) {
+
+    let result = await this.inMemoryDb.collection("tables").findAndModify(
+      {
+        channelId: query.channelId,
+        isOperationOn: true,
+        actionName: query.actionName
+      },
+      [],
+      { $set: table },
+      { upsert: false, new: true }
+    )
+
+    return result;
+
+
+  }
+
+  async updateTableImdb2(query) {
+
+    let result = await this.inMemoryDb.collection("tables").findAndModify(
+      {
+        channelId: query.channelId,
+        isOperationOn: true,
+        actionName: query.actionName
+      },
+      [],
+      {
+        $set: {
+          isOperationOn: false,
+          operationEndTime: new Date()
+        },
+        $inc: { _v: 1 }
+      },
+      { upsert: false, new: true }
+    )
+
+    return result;
+
+
+  }
+
+  async findTable(query) {
+
+    let result = await this.inMemoryDb.collection("tables").findOne(query);
+
+    return result;
+
+  }
+
+  async updateTableImdb3(query) {
+
+    let result = await this.inMemoryDb.collection("tables").findAndModify(
+      {
+        channelId: query.channelId.toString(),
+        isOperationOn: false
+      },
+      [],
+      {
+        $set: {
+          isOperationOn: true,
+          actionName: query.actionName,
+          operationStartTime: new Date()
+        },
+        $inc: { _v: 1 }
+      },
+      { upsert: false, new: true }
+    )
+
+    return result;
+
+
+  }
+
 
 
 }

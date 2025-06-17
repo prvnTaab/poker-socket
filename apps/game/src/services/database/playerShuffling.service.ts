@@ -1,11 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import _ld from "lodash";
 import _ from 'underscore';
-import { stateOfX, popupTextManager } from "shared/common";
+import { stateOfX, popupTextManager, UtilityService } from "shared/common";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
 import { TableManagerService } from "./tableManager.service";
 import { DynamicRanksService } from "./dynamicRanks.service";
+import { CustomLibraryService } from "shared/common/utils/custumLibrary.service";
 
 
 
@@ -32,6 +33,8 @@ export class PlayerShufflingService {
         private readonly imdb: ImdbDatabaseService,
         private readonly tableManager: TableManagerService,
         private readonly dynamicRanks: DynamicRanksService,
+        private readonly utilsService: UtilityService,
+        private readonly lib: CustomLibraryService,
     ) { }
 
 
@@ -456,32 +459,6 @@ export class PlayerShufflingService {
         return playersToPush;
     };
 
-
-    // Old
-    // const preparePlayersToPush = function (allChannels, currentChannel) {
-    //     //console.log(stateOfX.serverLogType.info,"allChannels and currentChannel in preparePlayersToPush in playerShuffling is -",JSON.stringify(allChannels),JSON.stringify(currentChannel));
-    //     let playersToPush = [], players = [], allChannelsIterartor = 0;
-    //     for (let currentChannelIterator = 0; currentChannelIterator < currentChannel.players.length;) {
-    //         if (players.length < allChannels[allChannelsIterartor].vacantSeats) {
-    //             players.push(currentChannel.players[currentChannelIterator]);
-    //             currentChannelIterator++;
-    //         } else {
-    //             playersToPush.push({
-    //                 players: players,
-    //                 channelId: allChannels[allChannelsIterartor].channelId
-    //             })
-    //             allChannelsIterartor++;
-    //             players = [];
-    //         }
-    //     }
-    //     if (players.length) {
-    //         playersToPush.push({
-    //             players: players,
-    //             channelId: allChannels[allChannelsIterartor].channelId
-    //         })
-    //     }
-    //     return playersToPush;
-    // }
     /*============================  END  =================================*/
 
 
@@ -493,417 +470,439 @@ export class PlayerShufflingService {
      * @param  {string}            channel2 
      * @return {Boolean}           true or false whether shuffling is required or not
      */
-    // New
-    
+isShufflingRequired(channel1: any, channel2: any): boolean {
+    return Math.abs(channel1.players.length - channel2.players.length) > 1;
+}
+/*============================  END  =================================*/
 
-    // Old
-    const isShufflingRequired = function (channel1, channel2) {
-        // //console.log(stateOfX.serverLogType.info,"channel 1 is - ",JSON.stringify(_.omit(channel1,"players")));
-        if (Math.abs(channel1.players.length - channel2.players.length) > 1) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-    /*============================  END  =================================*/
+/**
+ * this function gets no. of players shifted
+ * @method getNoOfPlayerShifted
+ * @param  {integer}             totalPlayers  
+ * @param  {integer}             occupiedSeats 
+ */
+getNoOfPlayerShifted (totalPlayers, occupiedSeats) {
+    return (totalPlayers & 1) === 0 ? Math.abs(occupiedSeats - totalPlayers / 2) : Math.abs(occupiedSeats - Math.ceil(totalPlayers / 2));
+}
 
-    /**
-     * this function gets no. of players shifted
-     * @method getNoOfPlayerShifted
-     * @param  {integer}             totalPlayers  
-     * @param  {integer}             occupiedSeats 
-     */
-    const getNoOfPlayerShifted = function (totalPlayers, occupiedSeats) {
-        return (totalPlayers & 1) === 0 ? Math.abs(occupiedSeats - totalPlayers / 2) : Math.abs(occupiedSeats - Math.ceil(totalPlayers / 2));
-    }
-
-    /**
-     * this function finds free seat index
-     * @method findFreeSeatIndex
-     * @param  {string}          channelId 
-     * @param  {Function}        cb        callback funciton
-     */
-    const findFreeSeatIndex = function (channelId, cb) {
-        //console.log(stateOfX.serverLogType.info,"channelId is in findFreeSeatIndex is in playerShuffling is - ",channelId);
-        imdb.getTable(channelId, function (err, channel) {
-            if (err || !channel) {
-                cb({ success: false, info: messages.IMDB_GETTABLE_FINDFREESEATINDEX_FAILED_PLAYERSHUFFLING, isRetry: false, isDisplay: false, channelId: (channelId || "") });
-            }
-            const freeIndex = _.difference(_.range(1, channel.maxPlayers + 1), _.pluck(channel.players, "seatIndex"));
-            cb({ success: true, result: freeIndex });
-        })
+/**
+ * this function finds free seat index
+ * @method findFreeSeatIndex
+ * @param  {string}          channelId 
+ * @param  {Function}        cb        callback funciton
+ */
+async findFreeSeatIndex(channelId: string): Promise<any> {
+  try {
+    const channel = await this.imdb.getTable(channelId);
+    if (!channel) {
+      return {
+        success: false,
+        info: popupTextManager.dbQyeryInfo.IMDB_GETTABLE_FINDFREESEATINDEX_FAILED_PLAYERSHUFFLING,
+        isRetry: false,
+        isDisplay: false,
+        channelId: channelId || "",
+      };
     }
 
-    /**
-     * this function prepares the players to be shifted
-     * @method preparePlayers
-     * @param  {array}       players   array of players
-     * @param  {string}       channelId 
-     * @param  {Function}     cb        callback function
-     */
-    const preparePlayers = function (players, channelId, cb) {
-        console.log("inside preparePlayers shuffling--------------------", players, channelId)
-        let playersToBeShifted = [];
-        findFreeSeatIndex(channelId, function (seatIndexResponse) {
-            let index = 0;
-            let seatIndexArray = seatIndexResponse.result;
-            async.eachSeries(players, function (player, callback) {
-                const newPlayer = tableManager.createPlayer({
-                    playerId: player.playerId,
-                    channelId: channelId,
-                    playerName: player.playerName,
-                    userName: player.playerName,
-                    networkIp: "",
-                    maxBuyIn: player.chips,
-                    chips: player.chips,
-                    seatIndex: seatIndexArray[index++],
-                    imageAvtar: player.imageAvtar,
-                    state: stateOfX.playerState.waiting,
-                    onGameStartBuyIn: convert.convert(player.chips),
-                    onSitBuyIn: convert.convert(player.chips),
-                    timeBankLeft: parseInt(player.tournamentData.totalTimeBank),
-                    roundId: null,
-                });
-                newPlayer.bounty = player.bounty;
-                playersToBeShifted.push(newPlayer);
-                callback();
-            }, function (err) {
-                if (err) {
-                    cb({ success: false, info: messages.ASYNC_PREPAREPLAYERS_FAILED_PLAYERSHUFFLING, isRetry: false, isDisplay: false, channelId: (channelId || "") });
-                } else {
-                    cb({ success: true, result: playersToBeShifted });
-                }
-            })
-        })
+    // Get all seat indexes from 1 to maxPlayers, and subtract occupied ones
+    const occupiedIndexes = channel.players.map((p: any) => p.seatIndex);
+    const freeIndex = _.difference(_.range(1, channel.maxPlayers + 1), occupiedIndexes);
+
+    return {
+      success: true,
+      result: freeIndex,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      info: popupTextManager.dbQyeryInfo.IMDB_GETTABLE_FINDFREESEATINDEX_FAILED_PLAYERSHUFFLING,
+      isRetry: false,
+      isDisplay: false,
+      channelId: channelId || "",
+    };
+  }
+}
+
+/**
+ * this function prepares the players to be shifted
+ * @method preparePlayers
+ * @param  {array}       players   array of players
+ * @param  {string}       channelId 
+ * @param  {Function}     cb        callback function
+ */
+async preparePlayers(players: any, channelId: string): Promise<any> {
+  const playersToBeShifted = [];
+
+  const seatIndexResponse = await this.findFreeSeatIndex(channelId);
+  if (!seatIndexResponse.success || !seatIndexResponse.result) {
+    return {
+      success: false,
+      info: popupTextManager.dbQyeryInfo.IMDB_GETTABLE_FINDFREESEATINDEX_FAILED_PLAYERSHUFFLING,
+      isRetry: false,
+      isDisplay: false,
+      channelId: channelId || "",
+    };
+  }
+
+  const seatIndexArray = seatIndexResponse.result;
+
+  for (let index = 0; index < players.length; index++) {
+    const player = players[index];
+    const seatIndex = seatIndexArray[index];
+
+    const newPlayer = this.tableManager.createPlayer({
+      playerId: player.playerId,
+      channelId,
+      playerName: player.playerName,
+      userName: player.playerName,
+      networkIp: "",
+      maxBuyIn: player.chips,
+      chips: player.chips,
+      seatIndex,
+      imageAvtar: player.imageAvtar,
+      state: stateOfX.playerState.waiting,
+      onGameStartBuyIn: this.utilsService.convertIntToDecimal(player.chips),
+      onSitBuyIn: this.utilsService.convertIntToDecimal(player.chips),
+      timeBankLeft: parseInt(player.tournamentData.totalTimeBank.toString(), 10),
+      roundId: null,
+    });
+    newPlayer.bounty = player.bounty;
+    playersToBeShifted.push(newPlayer);
+  }
+
+  return { success: true, result: playersToBeShifted };
+}
+
+
+/**
+ * this function merges two tables
+ * @method mergeTwoTables
+ * @param  {object}       channelToBeFilled 
+ * @param  {object}       params            request json object
+ * @param  {Function}     cb                callback function
+ */
+async mergeTwoTables(
+  channelToBeFilled: any,
+  params: any
+): Promise<any> {
+
+  const totalPlayers = channelToBeFilled.players.length + params.table.players.length;
+  const noOfPlayerShifted = this.getNoOfPlayerShifted(totalPlayers, params.table.players.length);
+  let playersToBeShifted = params.table.players.splice(0, noOfPlayerShifted);
+
+  const response = await this.preparePlayers(playersToBeShifted, channelToBeFilled.channelId);
+  if (!response.success) {
+    return response;
+  }
+
+  playersToBeShifted = response.result;
+
+  try {
+    const result = await this.imdb.pushPlayersInTable(playersToBeShifted, channelToBeFilled.channelId);
+    if (!result) {
+      return {
+        success: false,
+        info: popupTextManager.dbQyeryInfo.IMDB_PUSHPLAYERSINTABLE_FAILED_PLAYERSHUFFLING,
+        isRetry: false,
+        isDisplay: false,
+        channelId: channelToBeFilled.channelId || ""
+      };
     }
+    return { success: true, result: playersToBeShifted };
+  } catch (err) {
+    return {
+      success: false,
+      info: popupTextManager.dbQyeryInfo.IMDB_PUSHPLAYERSINTABLE_FAILED_PLAYERSHUFFLING,
+      isRetry: false,
+      isDisplay: false,
+      channelId: channelToBeFilled.channelId || ""
+    };
+  }
+}
 
-    /**
-     * this function merges two tables
-     * @method mergeTwoTables
-     * @param  {object}       channelToBeFilled 
-     * @param  {object}       params            request json object
-     * @param  {Function}     cb                callback function
-     */
-    const mergeTwoTables = function (channelToBeFilled, params, cb) {
-        console.log("inside mergeTwoTables---", params)
-        console.log("inside mergeTwoTables---222", params.table)
-        //console.log(stateOfX.serverLogType.info,"channelToBeFilled and params are in mergeTwoTables in playerShuffling is ",JSON.stringify(channelToBeFilled), JSON.stringify(params));
-        let totalPlayers = channelToBeFilled.players.length + params.table.players.length;
-        let noOfPlayerShifted = getNoOfPlayerShifted(totalPlayers, params.table.players.length);
-        let playersToBeShifted = params.table.players.splice(0, noOfPlayerShifted);
-        preparePlayers(playersToBeShifted, channelToBeFilled.channelId, function (response) {
-            if (response.success) {
-                playersToBeShifted = response.result;
-                imdb.pushPlayersInTable(playersToBeShifted, channelToBeFilled.channelId, function (err, result) {
-                    if (err || !result) {
-                        cb({ success: false, info: messages.IMDB_PUSHPLAYERSINTABLE_FAILED_PLAYERSHUFFLING, isRetry: false, isDisplay: false, channelId: (channelToBeFilled.channelId || "") });
-                    }
-                    cb({ success: true, result: playersToBeShifted })
-                })
-            } else {
-                cb(response);
-            }
-        })
-    }
-
-    /**
-     * this function shuffles with shuffle table id
-     * @method shufflingWithShuffleTableId
-     * @param  {object}                       channelToBeFilled 
-     * @param  {object}                       params            
-     * @param  {Function}                     cb                callback function
-     */
-    const shufflingWithShuffleTableId = function (channelToBeFilled, params, cb) {
-        // //console.log(stateOfX.serverLogType.info,"parmas is in shufflingWithShuffleTableId is in playerShuffling is - ",JSON.stringify(params.table));
-        // Check if shuffling required
-        if (isShufflingRequired(channelToBeFilled[0], params.table)) { //If shuffling required
-            if (params.table.occupiedSeats > channelToBeFilled[0].occupiedSeats) { // If current channel have more occupiedseats
-                mergeTwoTables(channelToBeFilled[0], params, function (response) { //merge two tables
-                    if (response.success) {
-                        cb({ success: true, isShuffleByTableId: true, playerShuffled: response.result });
-                    } else {
-                        cb({ success: false });
-                    }
-                })
-            } else { // If current channel have less occupied seats
-                cb({ success: true, isShuffleByTableId: false })
-            }
-        } else { //No shuffling required
-            cb({ success: true });
-        }
-    }
-
-    //update table shuffle id
-    /**
-     * this function updates table shuffle id
-     * @method updateTableShuffleId
-     * @param  {object}             channelToBeFilledId 
-     * @param  {string}             channelId           
-     * @param  {Function}           cb                  callback function
-     */
-    const updateTableShuffleId = function (channelToBeFilledId, channelId, cb) {
-        //console.log(stateOfX.serverLogType.info,"channelToBeFilled and channelId is in updateTableShuffleId is in playerShuffling is - ",channelToBeFilledId,channelId);
-        imdb.updateTableShuffleId(channelToBeFilledId, channelId, function (err, result) {
-            if (err || !result) {
-                cb({ success: false });
-            }
-            cb({ success: true });
-        })
-
-    }
-
-    /**
-     * this function shuffles without shuffle table id
-     * @method shufflingWithoutShuffleTableId
-     * @param  {object}                       channelToBeFilled 
-     * @param  {object}                       params            
-     * @param  {Function}                     cb                callback function
-     */
-    const shufflingWithoutShuffleTableId = function (channelToBeFilled, params, cb) {
-        //console.log(stateOfX.serverLogType.info,"channelToBeFilled is in shufflingWithoutShuffleTableId in playerShuffling is - ",JSON.stringify(channelToBeFilled));
-        if (isShufflingRequired(channelToBeFilled, params.table)) {
-            if (params.table.players.length > channelToBeFilled.players.length) { // If current channel have more occupiedseats
-                mergeTwoTables(channelToBeFilled, params, function (response) { //merge two tables
-                    if (response.success) {
-                        const playerShuffled = !!response.result ? response.result : [];
-                        cb({ success: true, playerShuffled: playerShuffled });
-                    } else {
-                        cb({ success: false });
-                    }
-                })
-            } else {
-                updateTableShuffleId(channelToBeFilled.channelId, params.table.channelId, function (response) {
-                    if (response.success) {
-                        cb({ success: true, playerShuffled: [] })
-                    } else {
-                        cb({ success: false })
-                    }
-                })
-            }
-        } else {
-            cb({ success: true, playerShuffled: [] })
-        }
-    }
-
-    const prepareShiftedPlayersForChannelWithoutReduction = function (players) {
-        let shiftedPlayers = [];
-        for (let playerIterator = 0; playerIterator < players.length; playerIterator++) {
-            shiftedPlayers.push({
-                playerId: players[playerIterator].playerId,
-                newChannelId: players[playerIterator].channelId
-            })
-        }
-        return shiftedPlayers;
-    }
-
-    /**
-     * this funciton performs shuffling without channel reduction
-     * @method shufflingWithoutChannelReduction
-     * @param  {object}                      params request json object
-     * @param  {Function}                    cb     callback function
-     */
-    const shufflingWithoutChannelReduction = function (params, cb) {
-        //console.log(stateOfX.serverLogType.info,"params is in shufflingWithoutChannelReduction is in players shuffling - ",JSON.stringify(params.table));
-        params.allChannels = _.sortBy(params.allChannels, "vacantSeats").reverse();
-        //If table shuffle id is available
-        if (!!params.table.shuffleTableId) {
-            // get the channel by which it is shuffled
-            let channelToBeFilled = _.where(params.allChannels, { channelId: params.table.shuffleTableId });
-            // check that channel is still availble
-            if (channelToBeFilled.length > 0) {
-                //shuffle these two tables
-                shufflingWithShuffleTableId(channelToBeFilled, params, function (response) {
-                    if (response.success) {
-                        if (!!response.isShuffleByTableId) { // Shuffle by table Id success just resturn table
-                            params.outOfMoneyPlayers = _.pluck(response.playerShuffled, "playerId");
-                            params.table.shuffleTableId = "";
-                            cb(response)
-                        } else {
-                            //Shuffle by tableId not happen - try to shuffle by sort players
-                            shufflingWithoutShuffleTableId(params.allChannels[0], params, function (response) {
-                                if (response.success) {
-                                    cb(response);
-                                } else {
-                                    cb(response);
-                                }
-                            })
-                        }
-                    } else {
-                        cb(response);
-                    }
-                });
-            } else {// that channel is not availble
-                cb({ success: true });
-            }
-        } else { // if table shuffle id is not availabe available
-            shufflingWithoutShuffleTableId(params.allChannels[0], params, function (response) {
-                cb(response);
-            })
-        }
-    }
-
-    // preparing array for sending broadcast later
-    /**
-     * this function prepares array for sending broadcast later
-     * @method prepareShiftedPlayers
-     * @param  {array}              players players array
-     */
-    const prepareShiftedPlayers = function (players) {
-        let shiftPlayers = [];
-        let shiftedPlayersData = [];
-        for (let channelIterator = 0; channelIterator < players.length; channelIterator++) {
-            let playersArray = players[channelIterator].players;
-            for (let playerIterator = 0; playerIterator < playersArray.length; playerIterator++) {
-                playersArray[playerIterator].channelId = players[channelIterator].channelId;
-                shiftedPlayersData.push(playersArray[playerIterator]);
-                shiftPlayers.push({
-                    playerId: playersArray[playerIterator].playerId,
-                    newChannelId: players[channelIterator].channelId
-                })
-            }
-        }
+/**
+ * this function shuffles with shuffle table id
+ * @method shufflingWithShuffleTableId
+ * @param  {object}                       channelToBeFilled 
+ * @param  {object}                       params            
+ * @param  {Function}                     cb                callback function
+ */
+async shufflingWithShuffleTableId(
+  channelToBeFilled: any[],
+  params: any
+): Promise<any> {
+  if (this.isShufflingRequired(channelToBeFilled[0], params.table)) {
+    if (params.table.occupiedSeats > channelToBeFilled[0].occupiedSeats) {
+      const response = await this.mergeTwoTables(channelToBeFilled[0], params);
+      if (response.success) {
         return {
-            shiftPlayers: shiftPlayers,
-            shiftedPlayersData: shiftedPlayersData
+          success: true,
+          isShuffleByTableId: true,
+          playerShuffled: response.result
         };
+      } else {
+        return { success: false };
+      }
+    } else {
+      return { success: true, isShuffleByTableId: false };
     }
+  } else {
+    return { success: true };
+  }
+}
 
-
-    /**
-     * this funciton performs shuffling with channel reduction
-     * @method shufflingWithChannelReduction
-     * @param  {object}                      params request json object
-     * @param  {Function}                    cb     callback function
-     */
-    const shufflingWithChannelReduction = function (params, cb) {
-        console.log("inside shufflingWithChannelReduction", params)
-        console.log("inside shufflingWithChannelReduction2222", params.allChannels)
-        console.log("inside shufflingWithChannelReduction23333", params.table)
-        params.allChannels = _.sortBy(params.allChannels, "vacantSeats");
-        let playersToPush = preparePlayersToPush(params.allChannels, params.table);
-        params.shiftedPlayers = (prepareShiftedPlayers(playersToPush)).shiftPlayers;
-        //params.shiftedPlayersData = (prepareShiftedPlayers(playersToPush)).shiftedPlayersData;
-        async.eachSeries(playersToPush, function (player, callback) {
-            pushPlayersInToNewChannel(player.players, player.channelId, function (response) {
-                if (response.success) {
-                    params.shiftedPlayersData = _.union(params.shiftedPlayersData, response.result);
-                    callback();
-                } else {
-                    cb(response);
-                }
-            })
-        }, function (err) {
-            if (err) {
-                cb(params);
-            } else {
-                cb({ success: true, result: params });
-            }
-        })
+//update table shuffle id
+/**
+ * this function updates table shuffle id
+ * @method updateTableShuffleId
+ * @param  {object}             channelToBeFilledId 
+ * @param  {string}             channelId           
+ * @param  {Function}           cb                  callback function
+ */
+async updateTableShuffleId(
+  channelToBeFilledId: string,
+  channelId: string
+): Promise<any> {
+  try {
+    const result = await this.imdb.updateTableShuffleId(channelToBeFilledId, channelId);
+    if (!result) {
+      return { success: false };
     }
+    return { success: true };
+  } catch (err) {
+    return { success: false };
+  }
+}
 
-    /**
-     * this function process shuffling both with or without channelReduction
-     * @method processShuffling
-     * @param  {[type]}         params [description]
-     * @param  {Function}       cb     [description]
-     * @return {[type]}                [description]
-     */
-    const processShuffling = function (params, cb) {
-        //console.log(stateOfX.serverLogType.info,"params is in processShuffling in playerShuffling is - ",JSON.stringify(params));
-        if (params.isChannelReductionPossible) {
-            shufflingWithChannelReduction(params, function (shufflingWithChannelReductionResponse) {
-                if (shufflingWithChannelReductionResponse.success) {
-                    cb(null, shufflingWithChannelReductionResponse.result);
-                } else {
-                    cb(shufflingWithChannelReductionResponse);
-                }
-            })
+/**
+ * this function shuffles without shuffle table id
+ * @method shufflingWithoutShuffleTableId
+ * @param  {object}                       channelToBeFilled 
+ * @param  {object}                       params            
+ * @param  {Function}                     cb                callback function
+ */
+async shufflingWithoutShuffleTableId(channelToBeFilled: any, params: any): Promise<{ success: boolean; playerShuffled?: any[] }> {
+  if (this.isShufflingRequired(channelToBeFilled, params.table)) {
+    if (params.table.players.length > channelToBeFilled.players.length) {
+      // Merge two tables
+      const response = await this.mergeTwoTables(channelToBeFilled, params);
+      if (response.success) {
+        const playerShuffled = response.result || [];
+        return { success: true, playerShuffled };
+      } else {
+        return { success: false };
+      }
+    } else {
+      // Update shuffle ID
+      const response = await this.updateTableShuffleId(channelToBeFilled.channelId, params.table.channelId);
+      if (response.success) {
+        return { success: true, playerShuffled: [] };
+      } else {
+        return { success: false };
+      }
+    }
+  } else {
+    return { success: true, playerShuffled: [] };
+  }
+}
+
+prepareShiftedPlayersForChannelWithoutReduction(players: any[]): any {
+  return players.map(player => ({
+    playerId: player.playerId,
+    newChannelId: player.channelId
+  }));
+}
+/**
+ * this funciton performs shuffling without channel reduction
+ * @method shufflingWithoutChannelReduction
+ * @param  {object}                      params request json object
+ * @param  {Function}                    cb     callback function
+ */
+async shufflingWithoutChannelReduction(params: any): Promise<any> {
+  params.allChannels = _.sortBy(params.allChannels, "vacantSeats").reverse();
+
+  if (params.table.shuffleTableId) {
+    const channelToBeFilled = _.where(params.allChannels, { channelId: params.table.shuffleTableId });
+
+    if (channelToBeFilled.length > 0) {
+      const response = await this.shufflingWithShuffleTableId(channelToBeFilled, params);
+
+      if (response.success) {
+        if (response.isShuffleByTableId) {
+          params.outOfMoneyPlayers = _.pluck(response.playerShuffled, "playerId");
+          params.table.shuffleTableId = "";
+          return response;
         } else {
-            shufflingWithoutChannelReduction(params, function (shufflingWithoutChannelReductionResponse) {
-                if (shufflingWithoutChannelReductionResponse.success) {
-                    params.shiftedPlayers = prepareShiftedPlayersForChannelWithoutReduction(shufflingWithoutChannelReductionResponse.playerShuffled);
-                    params.shiftedPlayersData = shufflingWithoutChannelReductionResponse.playerShuffled;
-                    cb(null, params);
-                } else {
-                    cb(shufflingWithoutChannelReductionResponse);
-                }
-            })
+          const fallbackResponse = await this.shufflingWithoutShuffleTableId(params.allChannels[0], params);
+          return fallbackResponse;
         }
+      } else {
+        return response;
+      }
+    } else {
+      return { success: true };
+    }
+  } else {
+    return await this.shufflingWithoutShuffleTableId(params.allChannels[0], params);
+  }
+}
+// preparing array for sending broadcast later
+
+
+/**
+ * this function prepares array for sending broadcast later
+ * @method prepareShiftedPlayers
+ * @param  {array}              players players array
+ */
+prepareShiftedPlayers(players: any) {
+  const shiftPlayers: { playerId: string; newChannelId: string }[] = [];
+  const shiftedPlayersData: any = [];
+
+  for (const playerGroup of players) {
+    for (const player of playerGroup.players) {
+      player.channelId = playerGroup.channelId;
+      shiftedPlayersData.push(player);
+      shiftPlayers.push({
+        playerId: player.playerId,
+        newChannelId: playerGroup.channelId,
+      });
+    }
+  }
+
+  return {
+    shiftPlayers,
+    shiftedPlayersData,
+  };
+}
+
+/**
+ * this funciton performs shuffling with channel reduction
+ * @method shufflingWithChannelReduction
+ * @param  {object}                      params request json object
+ * @param  {Function}                    cb     callback function
+ */
+async shufflingWithChannelReduction(params: any): Promise<{ success: boolean; result?: any }> {
+
+  params.allChannels = _.sortBy(params.allChannels, "vacantSeats");
+  const playersToPush = this.preparePlayersToPush(params.allChannels, params.table);
+  const { shiftPlayers, shiftedPlayersData } = this.prepareShiftedPlayers(playersToPush);
+
+  params.shiftedPlayers = shiftPlayers;
+  params.shiftedPlayersData = [];
+
+  for (const playerGroup of playersToPush) {
+    const response = await this.pushPlayersInToNewChannel(playerGroup.players, playerGroup.channelId);
+    if (!response.success) {
+      return response;
+    }
+    params.shiftedPlayersData = _.union(params.shiftedPlayersData, response.result);
+  }
+
+  return { success: true, result: params };
+}
+
+/**
+ * this function process shuffling both with or without channelReduction
+ * @method processShuffling
+ * @param  {[type]}         params [description]
+ * @param  {Function}       cb     [description]
+ * @return {[type]}                [description]
+ */
+async processShuffling(params: any): Promise<any> {
+  if (params.isChannelReductionPossible) {
+    const response = await this.shufflingWithChannelReduction(params);
+    if (response.success) {
+      return response.result;
+    } else {
+      throw response;
+    }
+  } else {
+    const response = await this.shufflingWithoutChannelReduction(params);
+    if (response.success) {
+      params.shiftedPlayers = this.prepareShiftedPlayersForChannelWithoutReduction(response.playerShuffled);
+      params.shiftedPlayersData = response.playerShuffled;
+      return params;
+    } else {
+      throw response;
+    }
+  }
+}
+
+// remove shifted players from current channel
+/**
+ * this function removes shifted players from current chaanel
+ * @method removeShiftedPlayers
+ * @param  {object}             params request json object
+ * @param  {Function}           cb     callback function
+ */
+removeShiftedPlayers(params: any): Promise<any> {
+  if (params.shiftedPlayers.length > 0) {
+    const newPlayers = params.table.players.filter((player: any) =>
+      !params.shiftedPlayers.some((shifted: any) => shifted.playerId === player.playerId)
+    );
+    params.table.players = newPlayers;
+  }
+  return params;
+}
+/**
+ * this function updates seats and shuufle id
+ * @method updateSeatsAndShuffleId
+ * @param  {object}                params request json object
+ * @param  {Function}              cb     callback function
+ */
+async updateSeatsAndShuffleId(params: any): Promise<any> {
+  params.table.occupiedSeats -= params.outOfMoneyPlayers.length;
+  params.table.vacantSeats += params.outOfMoneyPlayers.length;
+
+  for (const player of params.shiftedPlayers) {
+    const result = await this.imdb.getTable(player.newChannelId);
+    if (!result) {
+      throw {
+        success: false,
+        info: popupTextManager.dbQyeryInfo.IMDB_GETTABLE_UPDATESEATSANDSHUFFLEID_FAILED_PLAYERSHUFFLING,
+        isRetry: false,
+        isDisplay: false,
+        channelId: player.newChannelId || ""
+      };
     }
 
-    // remove shifted players from current channel
-    /**
-     * this function removes shifted players from current chaanel
-     * @method removeShiftedPlayers
-     * @param  {object}             params request json object
-     * @param  {Function}           cb     callback function
-     */
-    const removeShiftedPlayers = function (params, cb) {
-        //console.log(stateOfX.serverLogType.info,"params is in remove shifted players are in playerShuffling is - ",JSON.stringify(params.shiftedPlayers));
-        if (params.shiftedPlayers.length > 0) {
-            let newPlayers = [];
-            for (let playerIterator = 0; playerIterator < params.table.players.length; playerIterator++) {
-                let countPlayers = 0;
-                for (let shiftedPlayersIterator = 0; shiftedPlayersIterator < params.shiftedPlayers.length; shiftedPlayersIterator++) {
-                    if (params.table.players[playerIterator].playerId === params.shiftedPlayers[shiftedPlayersIterator].playerId) {
-                        countPlayers++;
-                    }
-                }
-                if (countPlayers === 0) {
-                    newPlayers.push(params.table.players[playerIterator]);
-                }
-            }
-            params.table.players = newPlayers;
-            cb(null, params);
-        } else {
-            cb(null, params);
-        }
+    const updateFields: any = {};
+    if (result.channelId !== params.table.channelId) {
+      updateFields.vacantSeats = result.maxPlayers - result.players.length;
+      updateFields.occupiedSeats = result.players.length;
+    } else {
+      updateFields.shuffleTableId = "";
     }
 
-    /**
-     * this function updates seats and shuufle id
-     * @method updateSeatsAndShuffleId
-     * @param  {object}                params request json object
-     * @param  {Function}              cb     callback function
-     */
-    const updateSeatsAndShuffleId = function (params, cb) {
-        params.table.occupiedSeats = params.table.occupiedSeats - params.outOfMoneyPlayers.length;
-        params.table.vacantSeats = params.table.vacantSeats + params.outOfMoneyPlayers.length;
-        async.eachSeries(params.shiftedPlayers, function (players, callback) {
-            imdb.getTable(players.newChannelId, function (err, result) {
-                if (err || !result) {
-                    cb({ success: false, info: messages.IMDB_GETTABLE_UPDATESEATSANDSHUFFLEID_FAILED_PLAYERSHUFFLING, isRetry: false, isDisplay: false, channelId: (players.newChannelId || "") });
-                } else {
-                    let updateFields = {};
-                    if (result.channelId != params.table.channelId) {
-                        updateFields.vacantSeats = result.maxPlayers - result.players.length;
-                        updateFields.occupiedSeats = result.players.length;
-                    } else {
-                        updateFields.shuffleTableId = "";
-                    }
-                    imdb.updateSeats(params.table.channelId, updateFields, function (err, response) {
-                        if (err || !response) {
-                            cb({ success: false, info: dbMessages.IMDBUPDATESEATS_UPDATESEATSANDSHUFFLEID_FAILED_PLAYERSHUFFLING, isRetry: false, isDisplay: false, channelId: (params.table.channelId || "") });
-                        } else {
-                            imdb.upsertPlayerJoin({ playerId: players.playerId, channelId: params.table.channelId }, { $set: { channelId: players.newChannelId } }, (err, result) => {
-                                if (err) {
-                                    cb({ success: false, info: dbMessages.IMDBUPDATESEATS_UPDATESEATSANDSHUFFLEID_FAILED_PLAYERSHUFFLING, isRetry: false, isDisplay: false, channelId: (params.table.channelId || "") });
-                                } else {
-                                    callback()
-                                }
-                            })
-                        }
-                    })
-                }
-            })
-        }, function (err) {
-            if (err) {
-                cb(params);
-            } else {
-                cb(null, params);
-            }
-        })
+    const response = await this.imdb.updateSeats(params.table.channelId, updateFields);
+    if (!response) {
+      throw {
+        success: false,
+        info: popupTextManager.dbQyeryInfo.IMDBUPDATESEATS_UPDATESEATSANDSHUFFLEID_FAILED_PLAYERSHUFFLING,
+        isRetry: false,
+        isDisplay: false,
+        channelId: params.table.channelId || ""
+      };
     }
+
+    const upsertResult = await this.imdb.upsertPlayerJoin(
+      { playerId: player.playerId, channelId: params.table.channelId },
+      { $set: { channelId: player.newChannelId } }
+    );
+
+    if (!upsertResult) {
+      throw {
+        success: false,
+        info: popupTextManager.dbQyeryInfo.IMDBUPDATESEATS_UPDATESEATSANDSHUFFLEID_FAILED_PLAYERSHUFFLING,
+        isRetry: false,
+        isDisplay: false,
+        channelId: params.table.channelId || ""
+      };
+    }
+  }
+
+  return params;
+}
 
 /**
  * this function contains the entire shuffle processs in series of steps
@@ -911,59 +910,47 @@ export class PlayerShufflingService {
  * @param  {object}   params requst json object
  * @param  {Function} cb     callback function
  */
-playerShuffling.shuffle = function (params, cb) {
-        // //console.log(stateOfX.serverLogType.info,"params in shuffle in playerShuffling is - " + JSON.stringify(params));
-        getTournamentRoom(params.table.tournamentRules.tournamentId, function (tournamentResponse) {
-            if (tournamentResponse.success) {
-                if (params.table.roundCount === 1 || !tournamentResponse.isTournamentRunning) {
-                    //console.log(stateOfX.serverLogType.info,"This is first round no need to shuffle or may be tournament is not running rigth now satellite case !!!");
-                    params.data.isPlayerShuffled = false;
-                    params.data.success = true;
-                    cb({ success: true, table: params.table, data: params.data });
-                    return;
-                }
-                dynamicRanks.getRegisteredTournamentUsers(params.table.tournamentRules.tournamentId);
-                if (params.table.channelType === stateOfX.gameType.tournament) {
-                    getAllChannels(params.table.tournamentRules.tournamentId, function (channelsResponse) {
-                        // check whether more than one channel available
-                        if (channelsResponse.success && channelsResponse.result.length > 1) {
-                            async.waterfall([
-                                async.apply(initializeParams, params),
-                                removeOutOfMoneyPlayers,
-                                updateSeats,
-                                checkChannelReduction,
-                                processShuffling,
-                                removeShiftedPlayers,
-                                updateSeatsAndShuffleId
-                            ], function (err, response) {
-                                if (!err && !!response) {
-                                    response.isPlayerShuffled = true;
-                                    response.success = true;
-                                    response.tournamentId = response.table.tournamentRules.tournamentId;
-                                    cb({ success: true, table: response.table, data: _.omit(response, 'table') });
-                                } else {
-                                    cb(err);
-                                }
-                            });
-                        } else {
-                            //console.log(stateOfX.serverLogType.info,"*********** NO NEED TO SHUFFLE CHANNEL ONLY ONE CHANNEL AVAILABLE *************" + JSON.stringify(channelsResponse));
-                            params.data.isPlayerShuffled = false;
-                            params.data.success = true;
-                            params.data.totalChannels = 1;
-                            cb({ success: true, table: params.table, data: params.data });
-                        }
-                    })
-                } else {
-                    //console.log(stateOfX.serverLogType.info,"No need to shuffling this is not a tournament");
-                    params.data.isPlayerShuffled = false;
-                    params.data.success = true;
-                    cb({ success: true, table: params.table, data: params.data });
-                }
-            } else {
-                cb(tournamentResponse);
-            }
-        })
+async shuffle(params: any): Promise<any> {
+  const tournamentResponse = await this.getTournamentRoom(params.table.tournamentRules.tournamentId);
+  if (!tournamentResponse.success) {
+    return tournamentResponse;
+  }
+
+  if (params.table.roundCount === 1 || !tournamentResponse.isTournamentRunning) {
+    params.data.isPlayerShuffled = false;
+    params.data.success = true;
+    return { success: true, table: params.table, data: params.data };
+  }
+
+  await this.dynamicRanks.getRegisteredTournamentUsers(params.table.tournamentRules.tournamentId);
+
+  if (params.table.channelType === stateOfX.gameType.tournament) {
+    const channelsResponse = await this.getAllChannels(params.table.tournamentRules.tournamentId);
+    if (channelsResponse.success && channelsResponse.result.length > 1) {
+      let response: any = await this.initializeParams(params)
+        .then(this.removeOutOfMoneyPlayers)
+        .then(this.updateSeats)
+        .then(this.checkChannelReduction)
+        .then(this.processShuffling)
+        .then(this.removeShiftedPlayers)
+        .then(this.updateSeatsAndShuffleId);
+
+      response.isPlayerShuffled = true;
+      response.success = true;
+      response.tournamentId = response.table.tournamentRules.tournamentId;
+      return { success: true, table: response.table, data: _.omit(response, 'table') };
+    } else {
+      params.data.isPlayerShuffled = false;
+      params.data.success = true;
+      params.data.totalChannels = 1;
+      return { success: true, table: params.table, data: params.data };
     }
+  } else {
+    params.data.isPlayerShuffled = false;
+    params.data.success = true;
+    return { success: true, table: params.table, data: params.data };
+  }
+}
 
 
 

@@ -1,8 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import { WalletService } from "apps/wallet/src/wallet.service";
-import { stateOfX } from "shared/common";
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { WalletQueryService } from "../../utils/walletQuery.service";
 
 
 
@@ -19,7 +18,7 @@ export class AutoRebuyRemoteService {
 
         private readonly db: PokerDatabaseService,
         private readonly imdb: ImdbDatabaseService,
-        private readonly wallet: WalletService,
+        private readonly wallet: WalletQueryService,
 
     ) { }
 

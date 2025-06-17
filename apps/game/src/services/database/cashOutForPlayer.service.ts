@@ -1,8 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import _ from 'underscore';
-import { stateOfX } from "shared/common";
+import { stateOfX, UtilityService } from "shared/common";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import { WalletService } from "apps/wallet/src/wallet.service";
+import { SharedModuleServie } from "shared/common/utils/sharedModule.service";
+import { WalletQueryService } from "../../utils/walletQuery.service";
 
 
 
@@ -20,7 +22,9 @@ export class CashOutForPlayerService {
 
     constructor(
         private readonly db: PokerDatabaseService,
-        private readonly wallet: WalletService
+        private readonly wallet: WalletQueryService,
+        private readonly sharedModule:SharedModuleServie,
+        private readonly utilsService:UtilityService
     ) { }
 
 
@@ -38,8 +42,8 @@ export class CashOutForPlayerService {
         }
 
         let data = { ...params };
-        data.cashOutAmount = convert.convert(params.realChips);
-        data.tds = convert.convert(params.tds);
+        data.cashOutAmount = this.utilsService.convertIntToDecimal(params.realChips);
+        data.tds = this.utilsService.convertIntToDecimal(params.tds);
         data.playerId = params.playerId;
 
         if (params.realChips < 500) {
@@ -522,8 +526,8 @@ export class CashOutForPlayerService {
                 template: 'cashoutPlayerMail'
             });
 
-            await sharedModule.sendMailWithHtml(mailData);
-            await sharedModule.sendMailWithHtml(mailDataAffiliate);
+            await this.sharedModule.sendMailWithHtml(mailData);
+            await this.sharedModule.sendMailWithHtml(mailDataAffiliate);
         }
 
         return params;

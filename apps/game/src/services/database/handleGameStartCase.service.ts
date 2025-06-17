@@ -1,26 +1,29 @@
 import { Injectable } from "@nestjs/common";
-import async from "async";
 import _ld from "lodash";
 import _ from 'underscore';
-import setMove from './setMove';
-import adjustIndex from './adjustActiveIndex';
-import handleGameOver from './handleGameOver';
 import { stateOfX, popupTextManager } from "shared/common";
-import tableManager from "./tableManager";
+import { validateKeySets } from "shared/common/utils/activity";
+import { TableManagerService } from "./tableManager.service";
+import { HandleGameOverService } from "./handleGameOver.service";
+import { SetMoveService } from "./setMove.service";
+import { AdjustActiveIndexService } from "./adjustActiveIndex.service";
 
 @Injectable()
 export class HandleGameStartCaseService {
     
-    constructor(){
-
-    }
+    constructor(
+      private readonly handleGameOver:HandleGameOverService,
+      private readonly setMove:SetMoveService,
+      private readonly adjustIndex:AdjustActiveIndexService,
+      private readonly tableManager:TableManagerService
+    ){}
 
   // to check game state through out the process
    async isGameProgress(params: any): Promise<any> {
     if (params.table.state === stateOfX.gameState.running) {
       return { success: true, isGameOver: false };
     } else {
-      const gameOverResponse = await handleGameOver.processGameOver(params);
+      const gameOverResponse = await this.handleGameOver.processGameOver(params);
       
       if (gameOverResponse.success) {
         params = gameOverResponse.params;
@@ -71,7 +74,7 @@ export class HandleGameStartCaseService {
    async getMoves(params: any): Promise<any> {
     const isGameProgressResponse = await this.isGameProgress(params);
     if (isGameProgressResponse.success && !isGameProgressResponse.isGameOver) {
-      const getMoveResponse = await setMove.getMove(params);
+      const getMoveResponse = await this.setMove.getMove(params);
       if (getMoveResponse.success) {
         return getMoveResponse.params;
       } else {
@@ -159,7 +162,7 @@ export class HandleGameStartCaseService {
           pot: _.pluck(params.table.pot, 'amount'),
           minRaiseAmount: params.table.minRaiseAmount,
           maxRaiseAmount: params.table.maxRaiseAmount,
-          totalPot: tableManager.getTotalPot(params.table.pot) + tableManager.getTotalBet(params.table.roundBets)
+          totalPot: this.tableManager.getTotalPot(params.table.pot) + this.tableManager.getTotalBet(params.table.roundBets)
         });
       }
 
@@ -181,7 +184,7 @@ export class HandleGameStartCaseService {
    async checkIfOnStartGameOver(params: any): Promise<any> {
     const isGameProgressResponse = await this.isGameProgress(params);
     if (isGameProgressResponse.success && !isGameProgressResponse.isGameOver) {
-      if (tableManager.isPlayerWithMove(params) === false) {
+      if (this.tableManager.isPlayerWithMove(params) === false) {
         params.table.state = stateOfX.gameState.gameOver;
       }
       return params;
@@ -256,14 +259,14 @@ export class HandleGameStartCaseService {
 
   // Adjust active player indexes among each other
    async adjustActiveIndexes(params: any): Promise<any> {
-    const performResponse = await adjustIndex.perform(params);
+    const performResponse = await this.adjustIndex.perform(params);
     return performResponse.params;
   }
 
   // Handle all cases required to handle an action
    async processGameStartCases(params: any): Promise<any> {
     params = _.omit(params, 'self');
-    const validated = await keyValidator.validateKeySets("Request", "database", "processGameStartCases", params);
+    const validated = await validateKeySets("Request", "database", "processGameStartCases", params);
     
     if (validated.success) {
       try {

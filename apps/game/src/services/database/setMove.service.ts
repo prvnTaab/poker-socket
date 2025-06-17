@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import _ld from "lodash";
 import _ from 'underscore';
-import { stateOfX, popupTextManager, convertIntToDecimal } from "shared/common";
+import { stateOfX, popupTextManager, UtilityService } from "shared/common";
 import async from "async";
 import { validateKeySets } from "shared/common/utils/activity";
 import { TableManagerService } from "./tableManager.service";
@@ -10,23 +10,24 @@ import { TableManagerService } from "./tableManager.service";
 export class SetMoveService {
     
     constructor(
-      private readonly tableManager:TableManagerService
+      private readonly tableManager:TableManagerService,
+      private readonly utilsService:UtilityService
     ){}
 
 
   // Return call amount for current turn player
     callAmount(table: any): number {
-    return convertIntToDecimal(table.roundMaxBet) - convertIntToDecimal(table.roundBets[table.currentMoveIndex]);
+    return this.utilsService.convertIntToDecimal(table.roundMaxBet) - this.utilsService.convertIntToDecimal(table.roundBets[table.currentMoveIndex]);
   }
 
   // Return true if current turn player has chips more or equal than his callAmount
    enoughCallAmount(table: any, player: any): boolean {
-    return convertIntToDecimal(player.chips) > convertIntToDecimal(table.roundMaxBet) - convertIntToDecimal(table.roundBets[table.currentMoveIndex]);
+    return this.utilsService.convertIntToDecimal(player.chips) > this.utilsService.convertIntToDecimal(table.roundMaxBet) - this.utilsService.convertIntToDecimal(table.roundBets[table.currentMoveIndex]);
   }
 
   // Return true if current turn player has chips more or equal than min raise (minus his current bet)
    enoughRaiseAmount(table: any, player: any): boolean {
-    return convertIntToDecimal(player.chips) >= (table.minRaiseAmount - convertIntToDecimal(table.players[table.currentMoveIndex].totalRoundBet));
+    return this.utilsService.convertIntToDecimal(player.chips) >= (table.minRaiseAmount - this.utilsService.convertIntToDecimal(table.players[table.currentMoveIndex].totalRoundBet));
   }
 
   // Return true if player is small blind, round on table is preflop
@@ -61,8 +62,8 @@ export class SetMoveService {
    assignBet(table: any, player: any): void {
     if (
       player.moves.indexOf(stateOfX.moveValue.raise) >= 0 || 
-      convertIntToDecimal(player.chips) <= 0 || 
-      convertIntToDecimal(player.chips) <= table.roundMaxBet
+      this.utilsService.convertIntToDecimal(player.chips) <= 0 || 
+      this.utilsService.convertIntToDecimal(player.chips) <= table.roundMaxBet
     ) return;
 
     if (table.roundBets[table.currentMoveIndex] == table.roundMaxBet) {
@@ -312,7 +313,7 @@ export class SetMoveService {
             
             if (params.table.roundBets[playerIndex] == params.table.roundMaxBet) {
               player.preCheck = stateOfX.preCheck.setOne;
-            } else if ((convertIntToDecimal(player.chips) + (params.table.roundBets[playerIndex])) >= params.table.roundMaxBet) {
+            } else if ((this.utilsService.convertIntToDecimal(player.chips) + (params.table.roundBets[playerIndex])) >= params.table.roundMaxBet) {
               player.preCheck = stateOfX.preCheck.setTwo;
             }
             

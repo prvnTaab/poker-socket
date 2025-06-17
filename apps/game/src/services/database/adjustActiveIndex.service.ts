@@ -3,16 +3,16 @@ import _ld from "lodash";
 import _ from 'underscore';
 import async from "async";
 import { stateOfX, popupTextManager } from "shared/common";
-import tableManager from "./tableManager";
 import { validateKeySets } from "shared/common/utils/activity";
+import { TableManagerService } from "./tableManager.service";
 
 
 @Injectable()
 export class AdjustActiveIndexService {
 
-  constructor() {
-
-  }
+  constructor(
+    private readonly tableManager:TableManagerService
+  ) {}
 
 
   // ### Get next active player index
@@ -20,12 +20,12 @@ export class AdjustActiveIndexService {
   async getNextActiveIndex(params: any) {
     const validated = await validateKeySets("Request", params.serverType, "getNextActiveIndex", params);
     if (validated.success) {
-      const totalActivePlayersResponse = await tableManager.totalActivePlayers(params);
+      const totalActivePlayersResponse = await this.tableManager.totalActivePlayers(params);
       if (totalActivePlayersResponse.success) {
         const activePlayers = totalActivePlayersResponse.players;
         if (activePlayers.length > 1) {
           const indexInActivePlayers = _ld.findIndex(activePlayers, params.table.players[params.index]);
-          const nextSuitableIndex = tableManager.getNextSuitableIndex(indexInActivePlayers, activePlayers.length);
+          const nextSuitableIndex = this.tableManager.getNextSuitableIndex(indexInActivePlayers, activePlayers.length);
           const indexInPlayers = _ld.findIndex(params.table.players, activePlayers[nextSuitableIndex]);
           return { success: true, index: indexInPlayers };
         } else {
@@ -44,12 +44,12 @@ export class AdjustActiveIndexService {
   async getPreActiveIndex(params: any) {
     const validated = await validateKeySets("Request", params.serverType, "getPreActiveIndex", params);
     if (validated.success) {
-      const totalActivePlayersResponse = await tableManager.totalActivePlayers(params);
+      const totalActivePlayersResponse = await this.tableManager.totalActivePlayers(params);
       if (totalActivePlayersResponse.success) {
         const activePlayers = totalActivePlayersResponse.players;
         if (activePlayers.length > 1) {
           const indexInActivePlayers = _ld.findIndex(activePlayers, params.table.players[params.index]);
-          const preSuitableIndex = tableManager.getPreSuitableIndex(indexInActivePlayers, activePlayers.length);
+          const preSuitableIndex = this.tableManager.getPreSuitableIndex(indexInActivePlayers, activePlayers.length);
           const indexInPlayers = _ld.findIndex(params.table.players, activePlayers[preSuitableIndex]);
           return { success: true, index: indexInPlayers };
         } else {

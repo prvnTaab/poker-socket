@@ -2,10 +2,10 @@ import { Injectable } from "@nestjs/common";
 import _ld from "lodash";
 import _ from 'underscore';
 import { stateOfX, popupTextManager } from "shared/common";
-import { WalletService } from "apps/wallet/src/wallet.service";
-import { DynamicRanksService } from './dynamicRanks.service.ts'
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service.js";
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service.js";
+import { DynamicRanksService } from "./dynamicRanks.service";
+import { WalletQueryService } from "../../utils/walletQuery.service";
 
 
 
@@ -19,7 +19,7 @@ export class CalculateRanksService {
         private readonly db: PokerDatabaseService,
         private readonly imdb: ImdbDatabaseService,
         private readonly dynamicRanks: DynamicRanksService,
-        private readonly wallet: WalletService
+        private readonly wallet: WalletQueryService
     ) { }
 
 
@@ -1036,10 +1036,7 @@ export class CalculateRanksService {
                 await this.insertRanksInDb(args);
                 await this.updateUserChips(args);
     
-                this.dynamicRanks.getRegisteredTournamentUsers(
-                    args.params.table.tournamentRules.tournamentId,
-                    args.params.table.gameVersionCount
-                );
+                await this.dynamicRanks.getRegisteredTournamentUsers(args.params.table.tournamentRules.tournamentId);
     
                 return { success: true, result: args.params };
             } catch (err) {
@@ -1280,7 +1277,7 @@ export class CalculateRanksService {
             await this.updateUserChips(args);
     
             // After all the processes
-            this.dynamicRanks.getRegisteredTournamentUsers(args.params.table.tournamentRules.tournamentId, args.params.table.gameVersionCount);
+            await this.dynamicRanks.getRegisteredTournamentUsers(args.params.table.tournamentRules.tournamentId);
     
             return { success: true, result: args.params };
         } catch (err) {
@@ -1421,7 +1418,7 @@ export class CalculateRanksService {
             await this.insertRanksInDb(args);
     
             // Get registered tournament users
-            this.dynamicRanks.getRegisteredTournamentUsers(args.params.table.tournamentRules.tournamentId, args.params.table.gameVersionCount);
+            this.dynamicRanks.getRegisteredTournamentUsers(args.params.table.tournamentRules.tournamentId);
     
             return { success: true, result: args.params };
         } catch (err) {

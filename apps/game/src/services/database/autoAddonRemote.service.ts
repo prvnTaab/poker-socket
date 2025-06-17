@@ -4,7 +4,7 @@ import { stateOfX,popupTextManager } from "shared/common";
 
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
-import { WalletService } from "apps/wallet/src/wallet.service";
+import { WalletQueryService } from "../../utils/walletQuery.service";
 
 
 
@@ -19,13 +19,10 @@ import { WalletService } from "apps/wallet/src/wallet.service";
 @Injectable()
 export class AutoAddonRemoteService {
 
-    private dbInfoMessage: popupTextManager.dbQyeryInfo;
-
-
     constructor(
         private readonly db: PokerDatabaseService,
         private readonly imdb: ImdbDatabaseService,
-        private readonly wallet: WalletService
+        private readonly wallet: WalletQueryService
     ) { }
 
 
@@ -264,7 +261,7 @@ export class AutoAddonRemoteService {
                     isRetry: false,
                     isDisplay: false,
                     channelId: "",
-                    info: this.dbInfoMessage.DBUPDATEREBUY_REBUYHANDLER
+                    info: popupTextManager.dbQyeryInfo.DBUPDATEREBUY_REBUYHANDLER
                 };
             }
 
@@ -277,7 +274,7 @@ export class AutoAddonRemoteService {
                     isRetry: false,
                     isDisplay: false,
                     channelId: "",
-                    info: this.dbInfoMessage.DBUPDATEREBUY_REBUYHANDLER
+                    info: popupTextManager.dbQyeryInfo.DBUPDATEREBUY_REBUYHANDLER
                 };
             }
         } else {

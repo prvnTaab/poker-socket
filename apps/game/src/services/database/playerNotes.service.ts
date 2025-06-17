@@ -194,7 +194,7 @@ export class PlayerNotesService {
     async deleteNotes(params: any): Promise<any> {
 
         try {
-            const notes = await this.db.deleteNotes(params.query, params.updateKeys);
+            const notes = await this.db.deleteNotes(params.query);
 
             if (!notes) {
                 return {

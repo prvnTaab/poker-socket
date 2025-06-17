@@ -1,23 +1,24 @@
 import { Injectable } from "@nestjs/common";
 
-var serverDownManager = require(appDir+ "game-server/app/util/serverDownManager");
+var appDir = "../../../../../";
+var serverDownManager = require(appDir + "game-server/app/util/serverDownManager");
 
 
 
-declare const pomelo:any;
+declare const pomelo: any;
 
 @Injectable()
 export class AdminManagerRemoteService {
 
-    constructor(
+  constructor(
 
-    ) {}
+  ) { }
 
 
 
-    async inform(message: any): Promise<void> {
-        await serverDownManager.msgRcvd(pomelo.app, message);
-      }
+  async inform(message: any): Promise<void> {
+    await serverDownManager.msgRcvd(pomelo.app, message);
+  }
 
 
 

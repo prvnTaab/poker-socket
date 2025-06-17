@@ -4,7 +4,7 @@ import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.servi
 import _ from 'underscore';
 import shortid from 'shortid32';
 import { UtilsService } from "../../utils/utils.service";
-
+import { v4 as uuid } from "uuid";
 
 
 
@@ -132,7 +132,7 @@ export class RewardRakeService {
                 addeddate: new Date().getTime()
             };
 
-            await this.ransactionhistroy(subaffdata);
+            await this.transactionhistroy(subaffdata);
             await this.manageaffandsubaffrakebal(subaffuserdata._id, affAmount);
             await this.managecompanyrakebal(affAmount);
 
@@ -782,7 +782,7 @@ export class RewardRakeService {
             result.playerRakeOriginalBeforGST = params.rakeAmountOriginal;
             result.GST1 = params.GST1;
             result.GST2 = params.GST2;
-            result.transactionid = this.uuid.v4();
+            result.transactionid = uuid();
             result.rakeRefType = params.rakeRefType;
             result.rakeRefVariation = params.rakeRefVariation;
             result.rakeRefSubType = params.rakeRefSubType;

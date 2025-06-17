@@ -3,9 +3,11 @@ import { DynamicRanksService } from "./dynamicRanks.service";
 import _ from "underscore";
 import popupTextManager from "shared/common/popupTextManager";
 import { stateOfX } from "shared/common";
+import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { ProfileMgmtService } from "shared/common/utils/profileMgmt.service";
+import { WalletQueryService } from "../../utils/walletQuery.service";
 
 
-// profileMgmt = require('../../../../../shared/model/profileMgmt.js'),
 // let wallet = require('../../walletQuery');
 
 
@@ -19,6 +21,7 @@ export class TournamentRegistrationService {
         private readonly db: PokerDatabaseService,
         private readonly dynamicRanks: DynamicRanksService,
         private readonly profileMgmt: ProfileMgmtService,
+        private readonly wallet: WalletQueryService,
     ) { }
 
 
@@ -30,7 +33,7 @@ export class TournamentRegistrationService {
 async createTournamentUserCallback(deductChipsResponse: any, params: any): Promise<any> {
     if (deductChipsResponse.success) {
         // Save records to in-memory DB
-        await this.dynamicRanks.getRegisteredTournamentUsers(params.tournamentId, params.gameVersionCount);
+        await this.dynamicRanks.getRegisteredTournamentUsers(params.tournamentId);
 
         return {
             success: true,
@@ -227,7 +230,7 @@ async createTournamentUser(isEligibleForRebuy: boolean,params: any): Promise<any
             }
         };
 
-        const deductChipsResponse = await wallet.sendWalletBroadCast(dataForWallet);
+        const deductChipsResponse = await this.wallet.sendWalletBroadCast(dataForWallet);
         return await this.createTournamentUserCallback(deductChipsResponse, params.query);
     }
 
@@ -263,7 +266,7 @@ async createTournamentUser(isEligibleForRebuy: boolean,params: any): Promise<any
             }
         };
 
-        const deductChipsResponse = await wallet.sendWalletBroadCast(dataForWallet);
+        const deductChipsResponse = await this.wallet.sendWalletBroadCast(dataForWallet);
         return await this.createTournamentUserCallback(deductChipsResponse, params.query);
     }
 
@@ -424,7 +427,8 @@ async deRegisteration(params: any): Promise<any> {
     const updatePlayerChipsResponse = await this.updatePlayerChips(params);
 
     // Fire-and-forget update of in-memory rankings
-    await this.dynamicRanks.getRegisteredTournamentUsers(params.tournamentId, params.gameVersionCount);
+    // await this.dynamicRanks.getRegisteredTournamentUsers(params.tournamentId, params.gameVersionCount);
+    await this.dynamicRanks.getRegisteredTournamentUsers(params.tournamentId);
 
     return updatePlayerChipsResponse;
 };

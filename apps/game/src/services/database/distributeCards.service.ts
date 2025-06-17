@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import _ld from "lodash";
 import { stateOfX, popupTextManager } from "shared/common";
 import { validateKeySets } from "shared/common/utils/activity";
+import { TableManagerService } from "./tableManager.service";
 
 
 
@@ -92,7 +93,7 @@ export class DistributeCardsService  {
             return totalActivePlayersResponse; // Return the error response from totalActivePlayers
         }
         } catch (err) {
-        return { success: false, channelId: (params.channelId || ""), info: popupTextManager.DISTRIBUTE_DISTRIBUTECARDS + JSON.stringify(err), isRetry: false, isDisplay: true };
+        return { success: false, channelId: (params.channelId || ""), info: popupTextManager.dbQyeryInfo.DISTRIBUTE_DISTRIBUTECARDS + JSON.stringify(err), isRetry: false, isDisplay: true };
         }
     }
     

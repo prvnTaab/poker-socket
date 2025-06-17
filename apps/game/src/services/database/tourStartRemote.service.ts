@@ -4,6 +4,8 @@ import { BroadcastHandlerService } from "../room/broadcastHandler.service";
 import popupTextManager from "shared/common/popupTextManager";
 import stateOfX from "shared/common/stateOfX.sevice";
 import { systemConfig } from "shared/common";
+import { ProfileMgmtService } from "shared/common/utils/profileMgmt.service";
+import { SharedModuleServie } from "shared/common/utils/sharedModule.service";
 
 
 
@@ -27,7 +29,8 @@ export class TourStartRemoteService {
     constructor(
         private readonly db: PokerDatabaseService,
         private readonly broadcastHandler: BroadcastHandlerService,
-
+        private readonly profileMgmt:ProfileMgmtService,
+        private readonly sharedModule:SharedModuleServie
     ) { }
 
 
@@ -127,7 +130,7 @@ export class TourStartRemoteService {
 
         // 5. Compute number of tables and build each
         const noOfTables = Math.ceil(tourRoom.enrolledPlayer / tourRoom.playerPerTable);
-        const tables = Array.from({ length: noOfTables }, () => tableKeys(dataToCreateTable));
+        const tables = Array.from({ length: noOfTables }, () => this.tableKeys(dataToCreateTable));
 
         // 6. Create each tournament table sequentially
         let index = 1;
@@ -239,7 +242,7 @@ export class TourStartRemoteService {
             if (!updateResult) {
                 throw {
                     success: false,
-                    info: dbConfigMsg.DBUPDATEMULTIPLETOURNAMENTUSERFAIL_CANCELTOURNAMENT,
+                    info: popupTextManager.dbQyeryInfo.DBUPDATEMULTIPLETOURNAMENTUSERFAIL_CANCELTOURNAMENT,
                     isRetry: false,
                     isDisplay: false,
                     channelId: ""
@@ -247,11 +250,11 @@ export class TourStartRemoteService {
             }
 
             // 2. Fetch all now-inactive tournament users
-            const users = await db.findTournamentUser({ ...filter, isActive: false });
+            const users = await this.db.findTournamentUser({ ...filter, isActive: false });
             if (!users) {
                 throw {
                     success: false,
-                    info: dbConfigMsg.DBFINDTOURNAMENTUSERFAIL_CANCELTOURNAMENT,
+                    info: popupTextManager.dbQyeryInfo.DBFINDTOURNAMENTUSERFAIL_CANCELTOURNAMENT,
                     isRetry: false,
                     isDisplay: false,
                     channelId: ""
@@ -272,7 +275,7 @@ export class TourStartRemoteService {
 
                     if (tourRoom.isRealMoney &&
                         (tourRoom.tournamentType === "NORMAL" || tourRoom.tournamentType === "SATELLITE")) {
-                        await addRealChips(userTicket);
+                        await this.addRealChips(userTicket);
                     }
 
                     const tourUpdateData = {
@@ -352,7 +355,7 @@ async addRealChips(params: any): Promise<void> {
         const user = await this.db.findUserDataForMth(params.playerId);
 
         // 2. Add chips to user profile
-        const addChipsResponse = await profileMgmt.addChips({
+        const addChipsResponse = await this.profileMgmt.addChips({
             playerId: params.playerId,
             chips: params.entryFees,
             bonusChips: 0,

@@ -6,12 +6,17 @@ import { Injectable } from "@nestjs/common";
 import _ld from "lodash";
 import _ from "underscore";
 import async from "async";
-import { stateOfX, systemConfig, popupTextManager } from "shared/common";
+import { stateOfX, systemConfig, popupTextManager, UtilityService } from "shared/common";
 import { ActivityService } from "shared/common/activity/activity.service";
 import { validateKeySets } from "shared/common/utils/activity";
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { WalletQueryService } from "../../utils/walletQuery.service";
+import { EntryService } from "shared/common/utils/winner-algo/entry.service";
+import { BroadcastHandlerService } from "../room/broadcastHandler.service";
 
+
+declare const pomelo: any;
 
 @Injectable()
 export class TableManagerService {
@@ -19,7 +24,11 @@ export class TableManagerService {
   constructor(
     private readonly imdb: ImdbDatabaseService,
     private readonly db: PokerDatabaseService,
-    private readonly activity: ActivityService
+    private readonly activity: ActivityService,
+    private readonly utilsService: UtilityService,
+    private readonly wallet: WalletQueryService,
+    private readonly winnerMgmt: EntryService,
+    private readonly broadcastHandler: BroadcastHandlerService
   ) { }
 
 
@@ -29,7 +38,7 @@ export class TableManagerService {
         playerId: player.playerId,
         channelId: player.channelId
       });
-      player.playerScore = convertIntToDecimal((player.chips - (res[0] ? res[0].sum : 0)));
+      player.playerScore = this.utilsService.convertIntToDecimal((player.chips - (res[0] ? res[0].sum : 0)));
       return player;
     } catch (err) {
       console.log(err);
@@ -320,7 +329,7 @@ export class TableManagerService {
     params.data.previousState = player.state;
 
     if (params.table.channelType !== stateOfX.gameType.tournament) {
-      if (convertIntToDecimal(player.chips) === 0) {
+      if (this.utilsService.convertIntToDecimal(player.chips) === 0) {
         params.data.isOutOfMoney = true;
         if (player.previousState === stateOfX.playerState.reserved) {
           params.data.fromJoinWaitList = true;
@@ -481,7 +490,7 @@ export class TableManagerService {
             const response = await this.db.getCustomUser(params.data.playerId, typeofChips);
             if (((typeof response.realChips == 'number') || (typeof response.freeChips == 'number'))) {
               const chips = params.table.isRealMoney ? (response.realChips + response.realChipBonus || 0) : (response.freeChips || 0);
-              if (convertIntToDecimal(chips) >= convertIntToDecimal(minChips)) {
+              if (this.utilsService.convertIntToDecimal(chips) >= this.utilsService.convertIntToDecimal(minChips)) {
                 params.table.queueList.push({
                   playerId: params.data.playerId,
                   playerName: params.data.playerName,
@@ -864,35 +873,35 @@ export class TableManagerService {
   };
 
   callAmount(table: any) {
-    return convertIntToDecimal(table.roundMaxBet - table.roundBets[table.currentMoveIndex]);
+    return this.utilsService.convertIntToDecimal(table.roundMaxBet - table.roundBets[table.currentMoveIndex]);
   };
 
   getTotalPot(pot: any) {
     let totalPot = 0;
     for (let i = 0; i < pot.length; i++) {
-      totalPot = convertIntToDecimal(totalPot + pot[i].amount);
+      totalPot = this.utilsService.convertIntToDecimal(totalPot + pot[i].amount);
     }
-    return convertIntToDecimal(totalPot);
+    return this.utilsService.convertIntToDecimal(totalPot);
   };
 
   getTotalCompetitionPot(pot: any) {
     let totalPot = 0;
     for (let i = 0; i < pot.length; i++) {
       if (typeof pot[i].isRefund == 'boolean') {
-        totalPot += pot[i].isRefund ? 0 : convertIntToDecimal(pot[i].amount);
+        totalPot += pot[i].isRefund ? 0 : this.utilsService.convertIntToDecimal(pot[i].amount);
       } else {
-        totalPot += (pot[i].contributors.length > 1) ? convertIntToDecimal(pot[i].amount) : 0;
+        totalPot += (pot[i].contributors.length > 1) ? this.utilsService.convertIntToDecimal(pot[i].amount) : 0;
       }
     }
-    return convertIntToDecimal(totalPot);
+    return this.utilsService.convertIntToDecimal(totalPot);
   };
 
   getTotalBet(bets: any) {
     let totalBets = 0;
     for (let i = 0; i < bets.length; i++) {
-      totalBets = convertIntToDecimal(totalBets + bets[i]);
+      totalBets = this.utilsService.convertIntToDecimal(totalBets + bets[i]);
     }
-    return convertIntToDecimal(totalBets);
+    return this.utilsService.convertIntToDecimal(totalBets);
   };
 
   getTotalGameContribution(table: any) {
@@ -900,7 +909,7 @@ export class TableManagerService {
     for (let i = 0; i < table.contributors.length; i++) {
       sum += table.contributors[i].amount;
     }
-    return convertIntToDecimal(sum);
+    return this.utilsService.convertIntToDecimal(sum);
   };
 
   maxRaise(table: any) {
@@ -912,12 +921,12 @@ export class TableManagerService {
 
       let expectedMaxRaise;
       if (table.players[table.currentMoveIndex].seatIndex === table.smallBlindSeatIndex) {
-        expectedMaxRaise = convertIntToDecimal(2 * table.roundMaxBet + this.getTotalGameContribution(table) - (table.players[table.currentMoveIndex].totalRoundBet || 0));
+        expectedMaxRaise = this.utilsService.convertIntToDecimal(2 * table.roundMaxBet + this.getTotalGameContribution(table) - (table.players[table.currentMoveIndex].totalRoundBet || 0));
       } else {
-        expectedMaxRaise = convertIntToDecimal(2 * table.roundMaxBet + this.getTotalGameContribution(table) - (table.players[table.currentMoveIndex].totalRoundBet || 0));
+        expectedMaxRaise = this.utilsService.convertIntToDecimal(2 * table.roundMaxBet + this.getTotalGameContribution(table) - (table.players[table.currentMoveIndex].totalRoundBet || 0));
       }
 
-      return expectedMaxRaise <= convertIntToDecimal(table.players[table.currentMoveIndex].chips + (table.players[table.currentMoveIndex].totalRoundBet || 0)) ? expectedMaxRaise : (table.players[table.currentMoveIndex].chips + (table.players[table.currentMoveIndex].totalRoundBet || 0));
+      return expectedMaxRaise <= this.utilsService.convertIntToDecimal(table.players[table.currentMoveIndex].chips + (table.players[table.currentMoveIndex].totalRoundBet || 0)) ? expectedMaxRaise : (table.players[table.currentMoveIndex].chips + (table.players[table.currentMoveIndex].totalRoundBet || 0));
     } else {
       return table.bigBlind;
     }
@@ -933,7 +942,7 @@ export class TableManagerService {
   };
 
   minRaise(params: any) {
-    return convertIntToDecimal(params.table.raiseDifference + params.table.lastRaiseAmount);
+    return this.utilsService.convertIntToDecimal(params.table.raiseDifference + params.table.lastRaiseAmount);
   };
 
   async checkTableCountForPlayer(params: any) {
@@ -1085,7 +1094,7 @@ export class TableManagerService {
       networkIp: params.networkIp,
       deviceType: params.deviceType,
       active: false,
-      chips: convertIntToDecimal(params.chips),
+      chips: this.utilsService.convertIntToDecimal(params.chips),
       chipsToBeAdded: 0,
       lastRealChipBonus: params.lastRealChipBonus || 0,
       lastRealChip: params.lastRealChip || 0,
@@ -1129,8 +1138,8 @@ export class TableManagerService {
       isAutoAddOnEnabled: false,
       isCurrentRoundPlayer: false,
       isActionBySystem: false,
-      onGameStartBuyIn: convertIntToDecimal(params.chips),
-      onSitBuyIn: convertIntToDecimal(params.chips) <= convertIntToDecimal(params.maxBuyIn) ? convertIntToDecimal(params.chips) : convertIntToDecimal(params.maxBuyIn),
+      onGameStartBuyIn: this.utilsService.convertIntToDecimal(params.chips),
+      onSitBuyIn: this.utilsService.convertIntToDecimal(params.chips) <= this.utilsService.convertIntToDecimal(params.maxBuyIn) ? this.utilsService.convertIntToDecimal(params.chips) : this.utilsService.convertIntToDecimal(params.maxBuyIn),
       roundId: null,
       totalGames: 0,
       systemFoldedCount: 0,
@@ -1417,6 +1426,826 @@ export class TableManagerService {
     };
   };
 
+
+  // ### Deduct chips from player profile (in add chips request)
+async getUserChipsFn(data: any): Promise<any> {
+  data.channelId = data.channelId || "";
+  data.chips = this.utilsService.convertIntToDecimal(data.chips);
+
+  // Replace callback with async/await
+  const response = await this.db.findUser({ playerId: data.playerId });
+
+  if (!response) {
+    return { success: false, message: "User not found" };
+  }
+
+  let detectChipsFromRCB = 0;
+  let detectChipsFromRC = 0;
+
+  if (response.realChips >= data.chips) {
+    detectChipsFromRC = data.chips;
+    detectChipsFromRCB = 0;
+  } else if (
+    response.realChips &&
+    response.realChipBonus &&
+    response.realChipBonus < data.chips
+  ) {
+    detectChipsFromRCB = data.chips - response.realChips || 0;
+    detectChipsFromRC = this.utilsService.convertIntToDecimal(data.chips - detectChipsFromRCB);
+  } else if (
+    response.realChips <= 0 &&
+    response.realChipBonus &&
+    response.realChipBonus >= data.chips
+  ) {
+    detectChipsFromRCB = data.chips;
+    detectChipsFromRC = 0;
+  } else if (
+    response.realChips &&
+    response.realChipBonus &&
+    response.realChipBonus >= data.chips
+  ) {
+    detectChipsFromRC = response.realChips;
+    detectChipsFromRCB = data.chips - detectChipsFromRC;
+  } else {
+    detectChipsFromRCB = 0;
+    detectChipsFromRC = 0;
+  }
+
+  return {
+    success: true,
+    totalBalance: response.realChips + response.realChipBonus,
+    realChips: response.realChips,
+    realChipBonus: response.realChipBonus,
+    realChipBonusDetected: detectChipsFromRCB,
+    detectChipsFromRC: detectChipsFromRC,
+    freeChips: response.freeChips,
+    points: response.points
+  };
+};
+
+// ### Deduct chips from wallet and return deduction details
+async deductChipsFn(data: any): Promise<any> {
+  // Step 1: Fetch user
+  const user = await this.db.findUser({ playerId: data.playerId });
+
+  if (!user) {
+    return { success: false, channelId: data.channelId, info: "User not found" };
+  }
+
+  // Step 2: Fetch reference number
+  const refNumber = await this.imdb.findRefrenceNumber({ playerId: data.playerId, channelId: data.channelId });
+
+  data.referenceNumber = refNumber.length ? refNumber[0].referenceNumber : "aa";
+  data.channelId = data.channelId || "";
+  data.chips = this.utilsService.convertIntToDecimal(data.chips);
+
+  if (data.isRealMoney) {
+    data.points = data.points;
+    data.realChips = user.realChips;
+    data.realChipBonus = user.realChipBonus;
+    data.isKYCVerified = user.isKYCVerified;
+    data.tableName = data.tableName || data.channelName;
+  } else if (!data.isRealMoney) {
+    data.freeChips = user.freeChips;
+    data.tableName = data.tableName || data.channelName;
+  } else {
+    return { success: false, channelId: data.channelId, info: "Unable to deduct chips" };
+  }
+
+  // Step 3: Wallet deduction
+  let walletAction = 'topUp';
+  let transactionType = "Top Up";
+
+  if (data.state === 'RESERVED') {
+    walletAction = 'chipsTaken';
+    transactionType = "Chips Taken";
+  }
+
+  delete data.state;
+
+  const dataForWallet = { action: walletAction, data };
+
+  const response = await this.wallet.sendWalletBroadCast(dataForWallet);
+
+  if (response.success) {
+    // Fire RPC leaveActivity if chips were taken from reserved state
+    if (walletAction === 'chipsTaken') {
+      pomelo.app.rpc.room.roomRemote.leaveActivity(
+        {},
+        {
+          playerId: data.playerId,
+          channelId: data.channelId,
+          takenChips: data.chips,
+          type: "Taken seat",
+          points: response.points
+        },
+        () => {} // Fire and forget
+      );
+    }
+
+    return {
+      success: true,
+      points: response.points,
+      totalBalance: response.data.totalBalance,
+      realChips: response.data.realChips,
+      realChipBonus: response.data.realChipBonus,
+      detectChipsFromRC: response.data.detectChipsFromRC,
+      realChipBonusDetected: response.data.realChipBonusDetected,
+      totalRC: response.data.totalRC,
+      totalRCB: response.data.totalRCB,
+      freeChips: response.data.freeChips
+    };
+  } else {
+    return response;
+  }
+};
+
+
+
+
+
+  async deductChips(params: any, player: any, doNotDeduct: boolean): Promise<any> {
+  // Remove spectator from table
+  await this.imdb.updateTableSetting(
+    { channelId: params.channelId, playerId: player.playerId },
+    { $set: { status: "Playing" } }
+  );
+
+  let playerChipDetails: any = {};
+
+  const fn = doNotDeduct ? this.getUserChipsFn : this.deductChipsFn;
+
+  const deductChipsResponse = await fn({
+      playerId: player.playerId,
+      tableName: params.table.channelName,
+      points: player.points,
+      isRealMoney: params.table.isRealMoney,
+      chips: params.data.amount,
+      channelId: params.channelId,
+      state: player.state,
+      transactionType: "Top Up"
+    });
+
+  if (!deductChipsResponse.success) {
+    deductChipsResponse.state = player.state;
+    return deductChipsResponse;
+  }
+
+  if (deductChipsResponse.points) {
+    const playerIndex = _ld.findIndex(params.table.players, { playerId: player.playerId });
+
+    params.table.players[playerIndex].points = !doNotDeduct
+      ? deductChipsResponse.points
+      : {
+          coinType: 1,
+          deposit: 0,
+          win: 0,
+          promo: 0,
+          totalBalance: 0
+        };
+  }
+
+  playerChipDetails.chipsInHand = player.chips;
+  playerChipDetails.isChipsToUpdate = false;
+
+  let lastRCDetected = 0;
+  let lastRCBDetected = 0;
+
+  if (player.state === stateOfX.playerState.reserved) {
+    player.state = stateOfX.playerState.waiting;
+    player.chips = this.utilsService.convertIntToDecimal(player.chips + params.data.amount);
+    player.activityRecord.sitTableAt = new Date();
+
+    if (deductChipsResponse.detectChipsFromRC) {
+      lastRCDetected = deductChipsResponse.detectChipsFromRC;
+      player.lastRealChip += this.utilsService.convertIntToDecimal(lastRCDetected);
+    }
+
+    if (deductChipsResponse.realChipBonusDetected) {
+      lastRCBDetected = deductChipsResponse.realChipBonusDetected;
+      player.lastRealChipBonus += this.utilsService.convertIntToDecimal(lastRCBDetected);
+      player.currentRCBstack += this.utilsService.convertIntToDecimal(lastRCBDetected);
+    }
+
+    playerChipDetails.newChips = params.data.amount;
+  } else if (player.state === stateOfX.playerState.playing || player.state === stateOfX.playerState.onBreak) {
+    if (doNotDeduct) {
+      if (player.lastRealChipBonus <= player.chips) {
+        const tmpData = player.chips - player.lastRealChipBonus || 0;
+        player.lastRealChipBonus = this.utilsService.convertIntToDecimal(player.chips - tmpData);
+        player.lastRealChip = player.chips - player.lastRealChipBonus;
+      } else {
+        player.lastRealChipBonus = player.chips;
+        player.lastRealChip = 0;
+      }
+
+      player.chipsToBeAdded = this.utilsService.convertIntToDecimal(params.data.amount);
+      playerChipDetails.isChipsToUpdate = true;
+      playerChipDetails.newChipsToAdd = params.data.amount;
+      player.RCtoBeAdded = deductChipsResponse.detectChipsFromRC || 0;
+      player.realChipBonusToBeAdded = deductChipsResponse.realChipBonusDetected || 0;
+    } else {
+      player.chips = this.utilsService.convertIntToDecimal(player.chips + params.data.amount);
+
+      if (deductChipsResponse.detectChipsFromRC) {
+        lastRCDetected = deductChipsResponse.detectChipsFromRC;
+        player.lastRealChip += this.utilsService.convertIntToDecimal(lastRCDetected);
+      }
+
+      if (deductChipsResponse.realChipBonusDetected) {
+        lastRCBDetected = deductChipsResponse.realChipBonusDetected;
+        player.lastRealChipBonus += this.utilsService.convertIntToDecimal(lastRCBDetected);
+        player.currentRCBstack += this.utilsService.convertIntToDecimal(lastRCBDetected);
+      }
+
+      playerChipDetails.newChips = params.data.amount;
+    }
+  } else {
+    if (player.lastRealChipBonus <= player.chips) {
+      const tmpData = player.chips - player.lastRealChipBonus || 0;
+      player.lastRealChipBonus = this.utilsService.convertIntToDecimal(player.chips - tmpData);
+      player.lastRealChip = player.chips - player.lastRealChipBonus;
+    } else {
+      player.lastRealChipBonus = player.chips;
+      player.lastRealChip = 0;
+    }
+
+    if (deductChipsResponse.detectChipsFromRC) {
+      lastRCDetected = deductChipsResponse.detectChipsFromRC;
+      player.lastRealChip += this.utilsService.convertIntToDecimal(lastRCDetected);
+    }
+
+    if (deductChipsResponse.realChipBonusDetected) {
+      lastRCBDetected = deductChipsResponse.realChipBonusDetected;
+      player.lastRealChipBonus += this.utilsService.convertIntToDecimal(lastRCBDetected);
+      player.currentRCBstack += this.utilsService.convertIntToDecimal(lastRCBDetected);
+    }
+
+    if (player.chips <= 0 && deductChipsResponse.detectChipsFromRC && deductChipsResponse.realChipBonusDetected <= 0) {
+      player.lastRealChipBonus = 0;
+      player.currentRCBstack = 0;
+    }
+
+    player.chips = this.utilsService.convertIntToDecimal(player.chips + params.data.amount);
+    playerChipDetails.newChips = params.data.amount;
+  }
+
+  // Finalize player updates
+  params.data.success = true;
+  player.onSitBuyIn = player.chips + player.chipsToBeAdded;
+  params.data.amount = player.chips;
+  params.data.chipsAdded = player.chipsToBeAdded;
+  params.data.realChipBonusToBeAdded = player.realChipBonusToBeAdded || 0;
+  params.data.lastRealChipBonus = player.lastRealChipBonus;
+  params.data.lastRealChip = player.lastRealChip;
+  params.data.state = player.state;
+  params.data.playerName = player.playerName;
+  params.data.realChips = deductChipsResponse.realChips + deductChipsResponse.realChipBonus || 0;
+  params.data.freeChips = deductChipsResponse.freeChips;
+  params.data.realChipBonus = deductChipsResponse.realChipBonus || 0;
+
+  if (deductChipsResponse.points) {
+    params.data.points = deductChipsResponse.points;
+  }
+
+  this.activity.addChipsOnTable(params, stateOfX.profile.category.game, stateOfX.game.subCategory.addChips, stateOfX.logType.success, playerChipDetails);
+
+  return {
+    success: true,
+    data: params.data,
+    table: params.table
+  };
+};
+
+
+
+  async addChipsOnTableInGame(params: any, player: any): Promise<any> {
+
+    const totalChipsAfterAdd = this.utilsService.convertIntToDecimal(player.chips + params.data.amount);
+    params.data.previousState = player.state;
+
+    // Validate adding chips exceeding table max buy-in, which is not allowed
+    if (totalChipsAfterAdd > this.utilsService.convertIntToDecimal(params.table.maxBuyIn) && player.state !== stateOfX.playerState.reserved) {
+      const maxAddable = this.utilsService.convertIntToDecimal(params.table.maxBuyIn - (totalChipsAfterAdd - params.data.amount));
+      return {
+        success: false,
+        channelId: params.channelId,
+        isRetry: false,
+        isDisplay: true,
+        info:
+          (maxAddable > 0
+            ? `You can now add ${maxAddable} more points.`
+            : `You cannot add more points.`) +
+          ` Max buyin for table is ${this.utilsService.convertIntToDecimal(params.table.maxBuyIn)}.`
+      };
+    }
+
+    // Anti-banking checks for RESERVED player state can go here if needed
+    // Note: Min buy-in validation was commented out in original code
+
+    // Deduct chips and return response
+    const deductChipsResponse = await this.deductChips(params, player, true); // true = inGame
+    return deductChipsResponse;
+  };
+
+
+
+
+
+
+  async deductRabbitChips(params: any, player: any): Promise<any> {
+
+    const chipsToDeduct = params.table.isRabbitTable ? params.table.buyRabbit : params.table.bigBlind;
+
+    try {
+      const refNumber = await this.imdb.findRefrenceNumber({
+        playerId: player.playerId,
+        channelId: params.channelId,
+      });
+
+      console.log("imdb.findRefrenceNumber in leave", refNumber);
+
+      if (!refNumber || refNumber.length === 0) {
+        params.referenceNumber = 'aa';
+      } else {
+        params.referenceNumber = refNumber[0].referenceNumber;
+      }
+
+      const dataForWallet = {
+        action: 'rabbit',
+        data: {
+          playerId: player.playerId,
+          isRealMoney: params.table.isRealMoney,
+          channelType: params.table.channelType,
+          channelId: params.channelId || "",
+          chips: chipsToDeduct,
+          tableName: params.table.channelName,
+          referenceNumber: params.referenceNumber,
+        },
+      };
+
+      const response = await this.wallet.sendWalletBroadCast(dataForWallet);
+      console.log("rabbit response is888>", response);
+
+      if (response.success) {
+        const coinTypeSelection = params.table.isRealMoney ? 1 : 2;
+        const generalCoinType = response.user.points.find(
+          ({ coinType }: any) => coinType === coinTypeSelection,
+        );
+
+        let rcBefore = 0, rcAfter = 0;
+
+        if (coinTypeSelection === 1) {
+          rcBefore = generalCoinType.win + generalCoinType.deposit + chipsToDeduct;
+          rcAfter = generalCoinType.win + generalCoinType.deposit;
+        } else {
+          rcBefore = generalCoinType.totalBalance + chipsToDeduct;
+          rcAfter = generalCoinType.totalBalance;
+        }
+
+        params.rabbitTransaction = {
+          userName: response.user.userName,
+          playerId: response.user.playerId,
+          isOrganic: response.user.isOrganic,
+          date: Number(new Date()),
+          transactionId: params.referenceNumber,
+          tableName: params.table.channelName,
+          amount: chipsToDeduct,
+          handId: params.table.roundNumber,
+          rcBefore: this.utilsService.convertIntToDecimal(rcBefore),
+          rcAfter: this.utilsService.convertIntToDecimal(rcAfter),
+        };
+
+        response.params = params;
+      }
+
+      return response;
+
+    } catch (err) {
+      console.error("Error in deductRabbitChips", err);
+      return { success: false, error: err };
+    }
+  }
+
+
+  async checkSubscription(params: any, player: any): Promise<any> {
+    try {
+      const findUserResponse = await this.db.findUser({ playerId: player.playerId });
+
+      const isSubscribed =
+        findUserResponse &&
+        findUserResponse.subscription &&
+        Date.now() >= findUserResponse.subscription.startDate &&
+        Date.now() <= findUserResponse.subscription.endDate;
+
+      if (!isSubscribed) {
+        return { success: false };
+      }
+
+      const result = await this.db.fetchSubscription({
+        subscriptionId: findUserResponse.subscription.subscriptionId,
+      });
+
+      if (!result || !result.length || !result[0].rabbit) {
+        return { success: false };
+      }
+
+      const refNumber = await this.imdb.findRefrenceNumber({
+        playerId: findUserResponse.playerId,
+        channelId: params.channelId,
+      });
+
+      if (!refNumber || refNumber.length === 0) {
+        params.referenceNumber = 'aa';
+      } else {
+        params.referenceNumber = refNumber[0].referenceNumber;
+      }
+
+      await this.db.updateSubscriptionRecord(
+        { subscriptionId: findUserResponse.subscription.subscriptionId },
+        { rabbit: result[0].rabbit - 1 }
+      );
+
+      const usageLogData = {
+        playerId: player.playerId,
+        roundId: params.table.roundNumber,
+        channelId: params.channelId,
+        tableName: params.table.channelName,
+        date: Date.now(),
+        subscriptionId: result[0].subscriptionId,
+        subscriptionName: result[0].name,
+        subscriptionType: result[0].type,
+        userName: player.playerName,
+        rabbit: true,
+      };
+
+      const coinTypeSelection = params.table.isRealMoney ? 1 : 2;
+
+      const response = await this.db.saveSubscriptionUsage(
+        { playerId: player.playerId, roundId: params.table.roundNumber },
+        usageLogData
+      );
+
+      if (!response) {
+        return { success: false };
+      }
+
+      params.rabbitTransaction = {
+        userName: findUserResponse.userName,
+        playerId: findUserResponse.playerId,
+        isOrganic: findUserResponse.isOrganic,
+        date: Number(new Date()),
+        transactionId: params.referenceNumber,
+        tableName: params.table.channelName,
+        amount: 0,
+        handId: params.table.roundNumber,
+        parentUser: findUserResponse.isParentUserName,
+        throughSubscription: true,
+        subscriptionId: result[0].subscriptionId,
+        subscriptionName: result[0].name,
+        rcBefore:
+          coinTypeSelection === 1
+            ? this.utilsService.convertIntToDecimal(findUserResponse.realChips)
+            : this.utilsService.convertIntToDecimal(findUserResponse.freeChips),
+        rcAfter:
+          coinTypeSelection === 1
+            ? this.utilsService.convertIntToDecimal(findUserResponse.realChips)
+            : this.utilsService.convertIntToDecimal(findUserResponse.freeChips),
+      };
+
+      return { success: true, params };
+
+    } catch (err) {
+      console.error("Error in checkSubscription:", err);
+      return { success: false };
+    }
+  }
+
+
+  // getCards for rabbit – TypeScript version using async/await style
+  async getCards(params: any): Promise<{ success: boolean; table?: any; channelId?: string; info?: string }> {
+
+    const cardsToSend: any[] = [];
+    let deck: any[], currentRound: string;
+
+    // Determine deck and current round
+    if (!params.params.table.rabbitData) {
+      deck = params.params.table.deck;
+      currentRound = params.params.table.roundName || params.params.table.lastRoundName;
+    } else {
+      const data = params.params.table.rabbitData;
+      deck = data.cards;
+      currentRound = data.round;
+    }
+
+    // Normalize card suits and extract cards based on round
+    const suitMap: Record<string, number> = {
+      spade: 1,
+      heart: 2,
+      club: 3,
+      diamond: 4,
+    };
+
+    const pushCards = (count: number) => {
+      for (let i = 0; i < count; i++) {
+        const card = deck[i];
+        card.suit = suitMap[card.type] || 0;
+        cardsToSend.push(card);
+      }
+      params.params.cards = cardsToSend;
+    };
+
+    if (currentRound === 'PREFLOP') {
+      pushCards(5);
+      return { success: true, table: params.params };
+    } else if (currentRound === 'FLOP') {
+      pushCards(2);
+      return { success: true, table: params.params };
+    } else if (currentRound === 'TURN') {
+      pushCards(1);
+      return { success: true, table: params.params };
+    } else {
+      return {
+        success: false,
+        channelId: params.channelId,
+        info: "ERROR: Didn't find the Cards!",
+      };
+    }
+  }
+
+
+
+  async buyRabbit(params: any): Promise<any> {
+
+    const { table } = params;
+    const { channelType, players } = table;
+
+    const playerIndexOnTable = _ld.findIndex(players, { playerId: params.playerId });
+    if (playerIndexOnTable < 0) {
+      return {
+        success: false,
+        isRetry: false,
+        isDisplay: false,
+        channelId: params.channelId || '',
+        info: popupTextManager.falseMessages.RABBITONTABLEINTOURNAMENT_TABLEMANAGER,
+      };
+    }
+
+    const player = players[playerIndexOnTable];
+    console.log('----------playerDetails-----', player);
+    player.activityRecord.lastActivityTime = Number(new Date());
+
+    const subscriptionResponse = await this.checkSubscription(params, player);
+    if (subscriptionResponse.success && channelType !== stateOfX.gameType.tournament) {
+      const data = await this.getCards(subscriptionResponse);
+      if (data.success) {
+        const trx = data.table.rabbitTransaction;
+
+        const filter = {
+          playerId: trx.playerId,
+          handId: trx.handId,
+          tableName: trx.tableName,
+        };
+
+        const filter2 = {
+          handId: trx.handId,
+          channelName: trx.tableName,
+        };
+
+        const rabbitData = {
+          userName: trx.userName,
+          amount: trx.amount,
+          playerId: trx.playerId,
+          refrenceNumber: trx.transactionId,
+          parentUser: trx.isParentUserName,
+          cards: data.table.cards,
+          throughSubscription: trx.throughSubscription,
+          subscriptionId: trx.subscriptionId,
+          subscriptionName: trx.subscriptionName,
+        };
+
+        trx.rabbitCards = data.table.cards;
+
+        try {
+          await this.db.insertRabbiCardInGameHistory(filter2, rabbitData);
+        } catch (err) {
+          console.log("insertRabbiCardInGameHistory error:", err);
+        }
+
+        try {
+          await this.db.insertRabbitData(trx);
+          console.log("RabbitData inserted successfully!");
+        } catch (err) {
+          console.log("OOPS! couldn't enter RabbitData.");
+        }
+
+        return { success: true, table: data.table, info: "Rabbit bought Successfully!" };
+      } else {
+        return data;
+      }
+    } else {
+      const deductChipsResponse = await this.deductRabbitChips(params, player);
+      console.log('got deductChipsResponse in tableManager', deductChipsResponse);
+
+      if (deductChipsResponse.success) {
+        const data = await this.getCards(deductChipsResponse);
+        console.log('data.table', data.table);
+
+        if (data.success) {
+          const trx = data.table.rabbitTransaction;
+
+          const filter = {
+            playerId: trx.playerId,
+            handId: trx.handId,
+            tableName: trx.tableName,
+          };
+
+          const filter2 = {
+            handId: trx.handId,
+            channelName: trx.tableName,
+          };
+
+          const rabbitData = {
+            userName: trx.userName,
+            amount: trx.amount,
+            playerId: trx.playerId,
+            refrenceNumber: trx.transactionId,
+            parentUser: trx.isParentUserName,
+            cards: data.table.cards,
+          };
+
+          trx.rabbitCards = data.table.cards;
+
+          try {
+            await this.db.insertRabbiCardInGameHistory(filter2, rabbitData);
+          } catch (err) {
+            console.log("insertRabbiCardInGameHistory error:", err);
+          }
+
+          try {
+            await this.db.insertRabbitData(trx);
+            console.log("RabbitData inserted successfully!");
+          } catch (err) {
+            console.log("OOPS! couldn't enter RabbitData.");
+          }
+
+          return { success: true, table: data.table, info: "Rabbit bought Successfully!" };
+        } else {
+          return data;
+        }
+      } else {
+        return deductChipsResponse;
+      }
+    }
+  }
+
+  async addChipsOnTable(params: any): Promise<any> {
+    params.data.channelId = params.table.channelId;
+
+    if (params.table.channelType === stateOfX.gameType.tournament) {
+      return {
+        success: false,
+        isRetry: false,
+        isDisplay: false,
+        channelId: params.channelId || "",
+        info: popupTextManager.falseMessages.ADDCHIPSONTABLEFAIL_TABLEMANAGER
+      };
+    }
+
+    if (params.data.amount <= 0) {
+      return {
+        success: false,
+        isRetry: false,
+        isDisplay: true,
+        channelId: params.channelId,
+        info: `Cannot add ${params.data.amount} points, provide a value greater than 0.`
+      };
+    }
+
+    const playerIndexOnTable = _ld.findIndex(params.table.players, { playerId: params.data.playerId });
+
+    if (playerIndexOnTable < 0) {
+      return {
+        success: false,
+        isRetry: false,
+        isDisplay: false,
+        channelId: params.channelId || "",
+        info: popupTextManager.falseMessages.ADDCHIPSONTABLEINTOURNAMENT_TABLEMANAGER
+      };
+    }
+
+    const player = params.table.players[playerIndexOnTable];
+    player.activityRecord.lastActivityTime = Date.now();
+
+    if (params.table.state === stateOfX.gameState.running) {
+      if (params.table.onStartPlayers.includes(player.playerId) && player.roundId === params.table.roundId) {
+        return await this.addChipsOnTableInGame(params, player);
+      }
+    }
+
+    const totalChipsAfterAdd =
+      player.state === stateOfX.playerState.reserved
+        ? this.utilsService.convertIntToDecimal(player.chips) + this.utilsService.convertIntToDecimal(params.data.amount)
+        : this.utilsService.convertIntToDecimal(player.chips) + this.utilsService.convertIntToDecimal(params.data.amount) + this.utilsService.convertIntToDecimal(player.chipsToBeAdded);
+
+    params.data.previousState = player.state;
+
+    if (player.state === stateOfX.playerState.outOfMoney) {
+      if (player.previousState === stateOfX.playerState.reserved) {
+        player.state = stateOfX.playerState.reserved;
+        params.data.previousState = player.state;
+      } else {
+        player.state = stateOfX.playerState.waiting;
+
+        let channel = pomelo.app.get('channelService').getChannel(params.channelId, false);
+        if (!channel) {
+          channel = pomelo.app.get('channelService').getChannel(params.channelId, true);
+        }
+
+        const updatedPlayerIndex = _ld.findIndex(params.table.players, { playerId: params.data.playerId });
+        const updatedPlayer = params.table.players[updatedPlayerIndex];
+        updatedPlayer.isForceBlindVisible = params.table.players.length > 3 && player.state === stateOfX.playerState.waiting;
+
+        await this.broadcastHandler.playerSettings({
+          channel,
+          player: updatedPlayer,
+          table: params.table
+        });
+      }
+    }
+
+    if (totalChipsAfterAdd > this.utilsService.convertIntToDecimal(params.table.maxBuyIn) && player.state !== stateOfX.playerState.reserved) {
+      const maxAddable = this.utilsService.convertIntToDecimal(params.table.maxBuyIn - (totalChipsAfterAdd - params.data.amount));
+      return {
+        success: false,
+        channelId: params.channelId,
+        isRetry: false,
+        isDisplay: true,
+        info:
+          (maxAddable > 0
+            ? `You can now add ${maxAddable} more points.`
+            : `You cannot add more points.`) +
+          ` Max buyin for table is ${this.utilsService.convertIntToDecimal(params.table.maxBuyIn)}.`
+      };
+    }
+
+    if (player.state === stateOfX.playerState.reserved) {
+      try {
+        const res = await this.db.getAntiBanking({ playerId: player.playerId, channelId: params.channelId });
+
+        const isAntiBankingExpired =
+          !res ||
+          (Number(systemConfig.expireAntiBankingSeconds) +
+            Number(systemConfig.antiBankingBuffer) -
+            (Date.now() - Number(res.createdAt)) / 1000) <= 0;
+
+        if (
+          isAntiBankingExpired ||
+          this.utilsService.convertIntToDecimal(params.data.amount) >= this.utilsService.convertIntToDecimal(res.amount)
+        ) {
+          const deductChipsResponse = await this.deductChips(params, player,true);
+          return deductChipsResponse;
+        } else {
+          return {
+            success: false,
+            channelId: params.channelId || "",
+            info: popupTextManager.falseMessages.ANTIBANKINGPREVENT + parseInt(res.amount),
+            isRetry: false,
+            isDisplay: true
+          };
+        }
+      } catch (err) {
+        return {
+          success: false,
+          channelId: params.channelId || "",
+          info: popupTextManager.dbQyeryInfo.DB_GETANTIBANKING_FAIL,
+          isRetry: false,
+          isDisplay: false
+        };
+      }
+    } else {
+      const requestedAmount = this.utilsService.convertIntToDecimal(params.data.amount);
+      const deductChipsResponse = await this.deductChips(params, player,true);
+
+      const scoreQuery = {
+        playerId: params.data.playerId,
+        channelId: params.channelId,
+        amount: requestedAmount,
+        createdAt: new Date()
+      };
+
+      if (deductChipsResponse.success) {
+        await this.imdb.addPlayerScore(scoreQuery);
+      }
+
+      return deductChipsResponse;
+    }
+  }
+
+
+
+
+
   async nextActiveSeatIndex(params: any) {
     const totalPlayingPlayers = _.filter(params.table.players, (player: any) => {
       return (player.state == stateOfX.playerState.playing) || (player.state == stateOfX.playerState.onBreak && (params.table.isCTEnabledTable && player.playerScore > 0
@@ -1638,7 +2467,7 @@ export class TableManagerService {
 
     await async.each(params.table.players, async (player: any) => {
       if (params.table.onStartPlayers.includes(player.playerId) && (player.state == stateOfX.playerState.playing || player.state == stateOfX.playerState.disconnected || player.state == stateOfX.playerState.onBreak)) {
-        bestHandForPlayer = winnerMgmt.findCardsConfiguration({
+        bestHandForPlayer = this.winnerMgmt.findCardsConfiguration({
           boardCards: params.table.boardCard[0],
           playerCards: [{ playerId: player.playerId, cards: player.cards }]
         }, params.table.channelVariation);
@@ -2006,6 +2835,115 @@ export class TableManagerService {
       return params.table.password !== params.data.password;
     }
   }
+
+  // ### Update player's auto-addon status in a tournament table
+async updateAutoAddon(params: any): Promise<any>  {
+
+  const playerIndexOnTable = _ld.findIndex(params.table.players, { playerId: params.data.playerId });
+
+
+  if (playerIndexOnTable >= 0) {
+
+    params.table.players[playerIndexOnTable].isAutoAddOnEnabled = params.data.isAutoAddOnEnabled;
+
+
+    return {
+      success: true,
+      data: params.data,
+      table: params.table
+    };
+  } else {
+    return {
+      success: false,
+      channelId: params.channelId,
+      info: "Invalid attempt !",
+      isRetry: false,
+      isDisplay: false
+    };
+  }
+};
+
+// ### Add chips on table directly in tournaments
+async addChipsOnTableInTournament(params: any): Promise<any> {
+
+  const playerIndexOnTable = _ld.findIndex(params.table.players, { playerId: params.data.playerId });
+  params.data.channelId = params.table.channelId;
+
+  if (playerIndexOnTable >= 0) {
+    const player = params.table.players[playerIndexOnTable];
+
+    const dataForWallet = {
+      action: params.data.action ?? '- -',
+      data: {
+        playerId: player.playerId,
+        isRealMoney: params.table.isRealMoney,
+        amount: params.data.amount,
+        channelId: params.channelId,
+        referenceNumber: player.refrenceNumber
+      }
+    };
+
+    const deductChipsResponse = await this.wallet.sendWalletBroadCast(dataForWallet);
+
+    if (deductChipsResponse.success) {
+      if (player.state === stateOfX.playerState.outOfMoney) {
+        player.state = stateOfX.playerState.waiting;
+      }
+
+      params.data.success = true;
+      player.chips = parseInt(player.chips) + parseInt(params.data.chips);
+      player.tournamentData.rebuyChips = (player.tournamentData.rebuyChips ?? 0) + parseInt(params.data.chips);
+      player.onSitBuyIn = player.chips;
+
+      params.data.amount = player.chips;
+      params.data.state = player.state;
+      params.data.playerName = player.playerName;
+
+
+      return { success: true, data: params.data, table: params.table };
+    } else {
+      deductChipsResponse.state = player.state;
+      return deductChipsResponse;
+    }
+
+  } else {
+    return {
+      success: false,
+      channelId: params.channelId,
+      info: "Invalid attempt to add points, Please take a seat first!",
+      isRetry: false,
+      isDisplay: false
+    };
+  }
+};
+
+
+
+  // ### Update player's auto-rebuy status on the table
+async updateAutoRebuy(params: any): Promise<any>  {
+
+  const playerIndexOnTable = _ld.findIndex(params.table.players, { playerId: params.data.playerId });
+
+  if (playerIndexOnTable >= 0) {
+
+    params.table.players[playerIndexOnTable].isAutoReBuyEnabled = params.data.isAutoRebuyEnabled;
+
+    return {
+      success: true,
+      data: params.data,
+      table: params.table
+    };
+  } else {
+    return {
+      success: false,
+      channelId: params.channelId,
+      info: "Invalid attempt to add chips, Please take a seat first!",
+      isRetry: false,
+      isDisplay: false
+    };
+  }
+};
+
 
   async isRunItTwice(params: any, contributors: string[]): Promise<any> {
     // Do not check run it twice in case of tournament table

@@ -3,8 +3,9 @@ import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import { BroadcastHandlerService } from "./broadcastHandler.service";
 import shortid = require('shortid32');
-import stateOfX from "shared/common/stateOfX.sevice";
-import { systemConfig } from "shared/common";
+import { stateOfX, systemConfig } from "shared/common";
+import { SharedModuleServie } from "shared/common/utils/sharedModule.service";
+import { WalletQueryService } from "apps/game/src/utils/walletQuery.service";
 
 // Set your custom character set
 shortid.characters('QWERTYUIOPASDFGHJKLZXCVBNM012345');
@@ -42,6 +43,8 @@ export class TopupHandlerService {
         private readonly db:PokerDatabaseService,
         private readonly imd:ImdbDatabaseService,
         private readonly broadcastHandler:BroadcastHandlerService,
+        private readonly sharedModule:SharedModuleServie,
+        private readonly wallet:WalletQueryService,
 
     ) {}
 
@@ -134,7 +137,7 @@ async checkAvailableCredit(params: any): Promise<any> {
 async addChipsToUser(params: any): Promise<any> {
   params.playerRealChips = params.playerRealChips + chips;
 
-  const result = await wallet.sendWalletBroadCast({
+  const result = await this.wallet.sendWalletBroadCast({
     action: 'pushRc',
     filter: {
       userName: params.userName,
@@ -274,7 +277,7 @@ async sendEmailAdminPlayerChipsTransfer(params: any): Promise<any> {
   };
 
   const mailSubject = `${content.userName} ${stateOfX.transaction.topUp}`;
-  const mailData = createMailData({
+  const mailData = this.createMailData({
     content,
     toEmail: systemConfig.operation_email,
     subject: mailSubject,
@@ -282,7 +285,7 @@ async sendEmailAdminPlayerChipsTransfer(params: any): Promise<any> {
   });
 
   try {
-    const result = await sharedModule.sendMailWithHtml(mailData);
+    const result = await this.sharedModule.sendMailWithHtml(mailData);
     if (!result) {
       throw {
         success: false,
@@ -312,7 +315,7 @@ async sendEmailPlayerChipsTransfer(params: any): Promise<any> {
       mobileNumber: '91' + params.childMobile,
       msg: `Hi ${params.userName}, ${params.amount} points have been used by you with VIP credit ID - ${params.referenceNo}. Your current points balance is ${params.playerRealChips}.` + systemConfig.originalName + "."
     };
-    params.otpApiResponse = await sharedModule.sendOtp(messageData);
+    params.otpApiResponse = await this.sharedModule.sendOtp(messageData);
   }
 
   const content = {
@@ -333,7 +336,7 @@ async sendEmailPlayerChipsTransfer(params: any): Promise<any> {
   });
 
   try {
-    const result = await sharedModule.sendMailWithHtml(mailData);
+    const result = await this.sharedModule.sendMailWithHtml(mailData);
     if (!result) {
       throw {
         success: false,

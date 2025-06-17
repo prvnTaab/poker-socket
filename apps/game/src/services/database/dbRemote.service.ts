@@ -7,13 +7,15 @@ import _ from "underscore";
 import _ld from "lodash";
 import async from 'async';
 import { v4 as uuid } from "uuid";
-import { stateOfX, systemConfig , popupTextManager} from "shared/common";
+import { stateOfX, systemConfig , popupTextManager, UtilityService} from "shared/common";
 import { UserRemoteService } from "./userRemote.service";
 import { ResponseHandlerService } from "./responseHandler.service";
 
 // import shortid from 'shortid32';
 import { validateKeySets } from "shared/common/utils/activity";
 import { WalletQueryService } from "../../utils/walletQuery.service";
+import { PasswordencrytpdecryptService } from "shared/common/utils/passwordencrytpdecrypt.service";
+import { SharedModuleServie } from "shared/common/utils/sharedModule.service";
 // shortid.characters('QWERTYUIOPASDFGHJKLZXCVBNM012345');
 
 
@@ -23,7 +25,10 @@ export class DbRemoteService {
         private imdb : ImdbDatabaseService,
         private userRemote : UserRemoteService,
         private responseHandler : ResponseHandlerService, 
-        private wallet : WalletQueryService
+        private wallet : WalletQueryService,
+        private readonly utilsService:UtilityService,
+        private readonly passwordencrytpdecryptService:PasswordencrytpdecryptService,
+        private readonly sharedModule:SharedModuleServie
     ){
     }
 
@@ -99,7 +104,7 @@ export class DbRemoteService {
       freeChips: user.freeChips,
       realChips: user.realChips,
       realChipBonus: user.realChipBonus, // RCB
-      totalBalance: convertIntToDecimal(user.realChips + user.realChipBonus), // Bonus Point
+      totalBalance: this.utilsService.convertIntToDecimal(user.realChips + user.realChipBonus), // Bonus Point
       topUp: topUpDetails,
       isMuckHand: user.isMuckHand,
       ipV4Address: user.ipV4Address,
@@ -112,7 +117,7 @@ export class DbRemoteService {
       isParentUserName: user.isParentUserName,
       isParent: user.isParent,
       loyalityRakeLevel: user.loyalityRakeLevel || 0,
-      panNumber: decrypt(user.panNumber).result,
+      panNumber: this.passwordencrytpdecryptService.decrypt(user.panNumber).result,
       panNumberVerified: user.panNumberVerified || false,
       panNumberVerifiedFailed: user.panNumberVerifiedFailed || false,
       panNumberNameVerifiedFailed: user.panNumberNameVerifiedFailed || false,
@@ -249,7 +254,7 @@ export class DbRemoteService {
         return { success: false, isRetry: false, isDisplay: true, channelId: "", info: popupTextManager.dbQyeryInfo.DB_BLOCK_USER_BY_ADMIN };
       }
 
-      const decryptPassword = decrypt(user.password);
+      const decryptPassword = this.passwordencrytpdecryptService.decrypt(user.password);
       if (!decryptPassword.success) {
         return { success: false, info: "error in decrypting password", isRetry: false, isDisplay: false, channelId: "" };
       }
@@ -445,7 +450,7 @@ export class DbRemoteService {
       withdrawlDate: Number(new Date())
     };
 
-    const encryptPass = encrypt(dataOfUser.password);
+    const encryptPass = this.passwordencrytpdecryptService.encrypt(dataOfUser.password);
     if (!encryptPass.success) {
       return { success: false };
     }
@@ -656,8 +661,8 @@ export class DbRemoteService {
           ucbExpiryDate: Number(new Date(year, month, day)),
           instantbonus: 0,
           amountDeposited: 0,
-          totalBonusAmount: convertIntToDecimal(this.setPercent(filter.bonusData.bonusAmount) * this.setPercent(filter.bonusData.rcbPercent) / 100) + 
-          convertIntToDecimal(this.setPercent(filter.bonusData.bonusAmount) * this.setPercent(filter.bonusData.ucbPercent) / 100) + 0,
+          totalBonusAmount: this.utilsService.convertIntToDecimal(this.setPercent(filter.bonusData.bonusAmount) * this.setPercent(filter.bonusData.rcbPercent) / 100) + 
+          this.utilsService.convertIntToDecimal(this.setPercent(filter.bonusData.bonusAmount) * this.setPercent(filter.bonusData.ucbPercent) / 100) + 0,
           createdAt: Number(new Date()),
           status: "Active",
           ucbClaimed: 0
@@ -676,7 +681,7 @@ export class DbRemoteService {
           }
         };
 
-       let result = await sendMailWithHtml(mailData)
+       let result = await this.sharedModule.sendMailWithHtml(mailData)
       }
 
       const formattedUser = await this.formatUser(createdUser);

@@ -7,6 +7,10 @@ import { AutoSitRemoteService } from "./autoSitRemote.service";
 import { HandleGameStartCaseService } from "./handleGameStartCase.service";
 import { validateKeySets } from "shared/common/utils/activity";
 import { TableManagerService } from "./tableManager.service";
+import { StartGameRemoteService } from "./startGameRemote.service";
+import { PrecheckRemoteService } from "./precheckRemote.service";
+import { PlayerShufflingService } from "./playerShuffling.service";
+import { TipRemoteService } from "./tipRemote.service";
 
 
 
@@ -30,7 +34,7 @@ export class PerformActionService {
         private readonly logRemote:LogRemoteService,
         private readonly playerShuffling:PlayerShufflingService,
         private readonly autoSitRemote:AutoSitRemoteService,
-        private readonly tipRemote:LogRemoteService
+        private readonly tipRemote:TipRemoteService
     ) {}
 
 
@@ -139,60 +143,6 @@ export class PerformActionService {
         return { success: false, error: "Internal error occurred" };
         }
     };
-    
-
-    // Old
-    // performAction.divert = function (params, cb) {
-    // 	keyValidator.validateKeySets("Request", "database", "performAction", params, function (validated) {
-    //     if(validated.success) {
-    //       switch(params.actionName.toUpperCase()) {
-    // 		  case "LEAVE" 											: leaveRemote.leavePlayer(params, function(response) { cb(response); }); break;
-    // 	      case "GETTABLE" 										: this.tableManager.getTableObject(params, function (response) { cb(response); }); break;
-    // 	      case "ADDWAITINGPLAYER" 								: this.tableManager.addPlayerAsWaiting(params, function (response) { cb(response); }); break;
-    // 	      case "ADDWAITINGPLAYERFORTOURNAMENT" 					: this.tableManager.addPlayerAsWaiting(params, function (response) { cb(response); }); break;
-    // 	      case "TABLEBUYIN" 									: this.tableManager.getTableBuyIn(params, function (response) { cb(response); }); break;
-    // 	      case "SEATOCCUPIED" 									: this.tableManager.getSeatOccupied(params, function (response) { cb(response); }); break;
-    // 	      case "RESUME" 										: this.tableManager.resumePlayer(params, function (response) { cb(response); }); break;
-    // 	      case "SITOUTNEXTHAND" 								: this.tableManager.processSitoutNextHand(params, function (response) { cb(response); }); break;
-    // 	      case "SITOUTNEXTBIGBLIND" 							: this.tableManager.processSitoutNextBigBlind(params, function (response) { cb(response); }); break;
-    // 	      case "JOINQUEUE" 										: this.tableManager.joinPlayerInQueue(params, function (response) { cb(response); }); break;
-    // 	      case "SETPLAYERATTRIB" 								: this.tableManager.setPlayerValue(params, function (response) { cb(response); }); break;
-    // 	      case "GETTABLEATTRIB" 								: this.tableManager.getTableValue(params, function (response) { cb(response); }); break;
-    // 	      case "SETCURRENTPLAYERDISCONN" 						: this.tableManager.disconnectCurrentPlayer(params, function (response) { cb(response); }); break;
-    // 	      case "GETPLAYERATTRIBUTE" 							: this.tableManager.getPlayerValue(params, function (response) { cb(response); }); break;
-    // 	      case "AUTOSITOUT" 									: this.tableManager.performAutoSitout(params, function (response) { cb(response); }); break;
-    // 	      case "ISPLAYERNOTONTABLE" 							: this.tableManager.seatsFullOrPlayerNotOnTable(params, function (response) { cb(response); }); break;
-    // 	      case "BUYRABBIT" 								        : this.tableManager.buyRabbit(params, function (response) { cb(response); }); break;
-    // 	      case "ADDCHIPSONTABLE" 								: this.tableManager.addChipsOnTable(params, function (response) { cb(response); }); break;
-    // 	      case "ADDCHIPSONTABLEINTOURNAMENT" 					: this.tableManager.addChipsOnTableInTournament(params, function (response) { cb(response); }); break;
-    // 	      case "RESETSITOUT" 									: this.tableManager.resetSitOut(params, function (response) { cb(response); }); break;
-    // 	      case "ISSAMENETWORKSIT" 								: this.tableManager.isSameNetworkSit(params, function (response) { cb(response); }); break;
-    // 	      case "SETPLAYERVALUEONTABLE"							: this.tableManager.setPlayerValueOnTable(params, function (response) { cb(response); }); break;
-    // 	      case "GETCURRENTPLAYER" 								: this.tableManager.getCurrentPlayer(params, function (response) { cb(response); }); break;
-    // 	      case "REMOVEWAITINGPLAYER"							: this.tableManager.removeWaitingPlayer(params, function (response) { cb(response); }); break;
-    // 	      case "CHANGEDISCONNPLAYERSTATE"						: this.tableManager.changeDisconnPlayerState(params, function (response) { cb(response); }); break;
-    // 	      case "SETTIMEBANKDETAILS" 							: this.tableManager.setTimeBankDetails(params, function (response) { cb(response); }); break;
-    // 	      case "UPDATETOURNAMENTRULES" 							: this.tableManager.updateTournamentRules(params, function(response) { cb(response); }); break;
-    // 	      case "UPDATEAUTOREBUY" 								: this.tableManager.updateAutoRebuy(params, function(response) { cb(response); }); break;
-    // 	      case  "UPDATEAUTOADDON"               				: this.tableManager.updateAutoAddon(params,function(response) { cb(response); }); break;
-    // 	      case "SHUFFLEPLAYERS" 								: playerShuffling.shuffle(params, function (response) { cb(response); }); break;
-    // 	      case "STARTGAMEPROCESS" 								: startGameRemote.processStartGame(params, function (response) { cb(response); }); break;
-    // 	      case "MAKEMOVE" 										: moveRemote.takeAction(params, function (response) { cb(response); }); break;
-    // 	      case "UPDATEPRECHECKORMAKEMOVE" 						: precheckRemote.updatePrecheckOrMakeMoveAfterLock(params, function (response) { cb(response); }); break;
-    // 	      case "PROCESSCASES" 									: handleGameStartCase.processGameStartCases(params, function (response) { cb(response); }); break;
-    // 	      case "CREATELOG" 										: logRemote.generateLog(params, function(response) { cb(response); }); break;
-    // 	      case "LEAVETOURNAMENT" 								: this.tableManager.leaveTournamentPlayer(params, function(response) { cb(response); }); break;
-    // 	      case "AUTOSIT" 										: autoSitRemote.processAutoSit(params, function(response) { cb(response); }); break;
-    // 	      case "GETPLAYERCHIPSWITHFILTER" 						: this.tableManager.getPlayerChipsWithFilter(params, function(response) { cb(response); }); break;
-    // 		  case "TIPDEALER"										: tipRemote.processTip(params, function(response) { cb(response); }); break;
-    // 	      case "HANDLEDISCONNECTION" 							: this.tableManager.handleDisconnection(params, function(response) { cb(response); }); break;
-    // 		  default 												: serverLog(stateOfX.serverLogType.error, 'No action name found - ' + params.actionName); cb({success: false, info: messages.VALIDATEKEYSETS_FAILED_PERFORMACTION + params.actionName, isRetry: false, isDiplay:true, channelId:(params.channelId||"")}); break;
-    // 		}
-    //     } else {
-    //       cb(validated);
-    //     }
-    //   });
-    // }
         /*============================  END  =================================*/
 
 

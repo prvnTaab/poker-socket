@@ -8,7 +8,7 @@ import { ObjectId } from 'mongodb';
 
 @Injectable()
 export class PokerDatabaseService {
-  constructor(@InjectConnection('db') private db: Connection) {}
+  constructor(@InjectConnection('db') private db: Connection) { }
 
   async updateSubUsedCount(query: any, updateKeys: any): Promise<any> {
     try {
@@ -104,9 +104,9 @@ export class PokerDatabaseService {
   ): Promise<any> {
     console.log(
       'updateteAffiliateRakeBalance' +
-        JSON.stringify(userdata) +
-        'userid' +
-        userid,
+      JSON.stringify(userdata) +
+      'userid' +
+      userid,
     );
     try {
       return await this.db
@@ -1026,8 +1026,8 @@ export class PokerDatabaseService {
   async updateBounty(query: any, bounty: number): Promise<any> {
     console.log(
       'query and bounty is in updateBounty is - ' +
-        JSON.stringify(query) +
-        bounty,
+      JSON.stringify(query) +
+      bounty,
     );
     try {
       return await this.db
@@ -1239,7 +1239,7 @@ export class PokerDatabaseService {
     id: string,
     totalGame: number,
     totalStack: number,
-    avgStack: number,
+    avgStack?: number,
   ): Promise<any> {
     id = id.split('-')[0];
     try {
@@ -2052,8 +2052,8 @@ export class PokerDatabaseService {
     console.log(
       stateOfX.serverLogType.info,
       'query and updated data are in updateRebuy2- ' +
-        JSON.stringify(query) +
-        JSON.stringify(updatedData),
+      JSON.stringify(query) +
+      JSON.stringify(updatedData),
     );
     try {
       return await this.db
@@ -3642,7 +3642,7 @@ export class PokerDatabaseService {
     }
   }
 
-    async findBreakRule(id: string): Promise<any> {
+  async findBreakRule(id: string): Promise<any> {
     try {
       const objectId = new ObjectId(id);
       const result = await this.db.collection('breakRules').findOne({ _id: objectId });
@@ -3652,5 +3652,37 @@ export class PokerDatabaseService {
     }
   }
 
+
+  async findUserDataForMth(playerId: any) {
+
+    let result = await this.db.collection('masterTansactionHistory').findOne({ playerId: playerId });
+
+    return result;
+
+  }
+
+  async insertIntoMTH(data) {
+
+    let result = await this.db.collection('masterTansactionHistory').insertOne(data);
+
+    return result;
+
+  }
+
+  async insertingTable(table) {
+
+    let result = await this.db.collection("tables").insertOne(table);
+
+    return result;
+
+  }
+
+  async getTurnData(query) {
+
+
+    return query;
+
+
+  }
 
 }

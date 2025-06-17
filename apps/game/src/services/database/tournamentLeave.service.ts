@@ -10,6 +10,7 @@ import { PostsplitService } from "./potsplit.service";
 import { validateKeySets } from "shared/common/utils/activity";
 import stateOfX from "shared/common/stateOfX.sevice";
 import popupTextManager from "shared/common/popupTextManager";
+import { RoundOverService } from "./utils/roundOver.service";
 
 
 
@@ -32,6 +33,7 @@ export class TournamentLeaveService {
         private readonly handleGameOver: HandleGameOverService,
         private readonly tableManager: TableManagerService,
         private readonly responseHandler: ResponseHandlerService,
+        private readonly roundOver: RoundOverService,
 
     ) { }
 
@@ -163,7 +165,7 @@ isCurrentPlayer(params: any): Promise<any> {
 };
 
 
-adjustActiveIndexes(params: any): Promise<any> {
+async adjustActiveIndexes(params: any): Promise<any> {
     const performResponse = await this.adjustIndex.perform(params);
     return performResponse.params;
 };

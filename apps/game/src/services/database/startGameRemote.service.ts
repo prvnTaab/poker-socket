@@ -7,6 +7,7 @@ import { DeductBlindsService } from "./deductBlinds.service";
 import { DistributeCardsService } from "./distributeCards.service";
 import { TableManagerService } from "./tableManager.service";
 import { ActivityService } from "shared/common/activity/activity.service";
+import { ValidateGameStartService } from "./validateGameStart.service";
 
 
 

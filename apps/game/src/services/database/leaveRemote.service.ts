@@ -10,6 +10,11 @@ import { TableManagerService } from "./tableManager.service";
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import { validateKeySets } from "shared/common/utils/activity";
+import { TournamentLeaveService } from "./tournamentLeave.service";
+import { WalletQueryService } from "../../utils/walletQuery.service";
+import { ActivityService } from "shared/common/activity/activity.service";
+import { RoundOverService } from "./utils/roundOver.service";
+import { SummaryGeneratorService } from "./utils/summaryGenerator.service";
 
 
 
@@ -51,7 +56,10 @@ export class LeaveRemoteService {
         private readonly tableManager: TableManagerService,
         private readonly responseHandler: ResponseHandlerService,
         private readonly tournamentLeave: TournamentLeaveService,
-        private readonly wallet: WalletService,
+        private readonly wallet: WalletQueryService,
+        private readonly activity: ActivityService,
+        private readonly roundOver: RoundOverService,
+        private readonly summary: SummaryGeneratorService,
 
     ) { }
 
@@ -913,9 +921,9 @@ export class LeaveRemoteService {
     // New
     async onLeaveSummary(params: any): Promise<any> {
         if (params.data.state === stateOfX.playerState.playing) {
-            summary.onLeave(params);
-            activity.leaveGame(params, stateOfX.profile.category.gamePlay, stateOfX.gamePlay.subCategory.leave, stateOfX.logType.success);
-            activity.leaveGame(params, stateOfX.profile.category.game, stateOfX.game.subCategory.leave, stateOfX.logType.success);
+            this.summary.onLeave(params);
+            this.activity.leaveGame(params, stateOfX.profile.category.gamePlay, stateOfX.gamePlay.subCategory.leave, stateOfX.logType.success);
+            this.activity.leaveGame(params, stateOfX.profile.category.game, stateOfX.game.subCategory.leave, stateOfX.logType.success);
         }
         return params;
     };
@@ -1575,10 +1583,10 @@ export class LeaveRemoteService {
                     }
                 };
 
-                let addChipsResponse = this.wallet.sendWalletBroadCast(dataForWallet);
+                let addChipsResponse:any = this.wallet.sendWalletBroadCast(dataForWallet);
 
                 if (addChipsResponse.success) {
-                    lockedCashoutHandler(player);
+                    this.lockedCashoutHandler(player);
                     params.data.leavePoints = player.points;
                     params.data.leaveChips = player.chips;
                     return params;
@@ -1944,7 +1952,7 @@ export class LeaveRemoteService {
         };
 
         try {
-            const res = await this.db.getPlayerBuyIn(updateQuery);
+            const res = await this.imdb.getPlayerBuyIn(updateQuery);
             const updateParams: any = {
                 buyins: [],
                 score: 0,

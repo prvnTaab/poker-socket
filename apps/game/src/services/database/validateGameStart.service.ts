@@ -579,7 +579,7 @@ async resetTableOnNoGameStart(params: any): Promise<{ success: true; table: any 
 
 
 // try if game could be started
-async validateGameStart_validate(params: any): Promise<any> {
+async validate(params: any): Promise<any> {
   if (params.table.state === stateOfX.gameState.idle) {
     try {
       params = await this.initializeParams(params);

@@ -3,6 +3,7 @@ import _ld from "lodash";
 import _ from 'underscore';
 import { stateOfX, popupTextManager,systemConfig } from "shared/common";
 import { TableManagerService } from "./tableManager.service";
+import { SummaryGeneratorService } from "./utils/summaryGenerator.service";
 
 
 // summaryRemote = require('./utils/summaryGenerator'),
@@ -25,6 +26,7 @@ export class LogRemoteService {
 
     constructor(
         private readonly tableManager: TableManagerService,
+        private readonly summaryRemote:SummaryGeneratorService
     ) { }
 
 

@@ -38,7 +38,7 @@ export class HandInHandManagementService {
             if (!channels || channels.length === 0) {
                 return {
                     success: false,
-                    info: dbMessages.IMDB_GETALLTABLEBYTOURNAMENTID__FAILED_PLAYERSHUFFLING,
+                    info: popupTextManager.dbQyeryInfo.IMDB_GETALLTABLEBYTOURNAMENTID__FAILED_PLAYERSHUFFLING,
                     isRetry: false,
                     isDisplay: false,
                     channelId: ""
@@ -55,7 +55,7 @@ export class HandInHandManagementService {
         } catch (error) {
             return {
                 success: false,
-                info: dbMessages.IMDB_GETALLTABLEBYTOURNAMENTID__FAILED_PLAYERSHUFFLING,
+                info: popupTextManager.dbQyeryInfo.IMDB_GETALLTABLEBYTOURNAMENTID__FAILED_PLAYERSHUFFLING,
                 isRetry: false,
                 isDisplay: false,
                 channelId: ""

@@ -4,19 +4,28 @@ import async from "async";
 import _ld from "lodash";
 import _ from "underscore";
 import { stateOfX , systemConfig, popupTextManager} from "shared/common";
-// import cardAlgo from "../../../util/model/deck";
-// import lockTable from "./lockTable";
 import { ResponseHandlerService } from "./responseHandler.service";
 import { validateKeySets } from "shared/common/utils/activity";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
+import { LockTableService } from "./lockTable.service";
+import { TableManagerService } from "./tableManager.service";
+import { DeckService } from "shared/common/utils/cards/deck.service";
+import { BroadcastHandlerService } from "../room/broadcastHandler.service";
+
+declare const pomelo:any;
 
 @Injectable()
 export class TableRemoteService {
     
-    constructor(private db: PokerDatabaseService,
-        private imdb : ImdbDatabaseService,
-        private responseHandler : ResponseHandlerService
+    constructor(
+        private readonly db: PokerDatabaseService,
+        private readonly imdb : ImdbDatabaseService,
+        private readonly responseHandler : ResponseHandlerService,
+        private readonly lockTable : LockTableService,
+        private readonly tableManager:TableManagerService,
+        private readonly cardAlgo:DeckService,
+        private readonly broadcastHandler:BroadcastHandlerService
     ){
 
     }
@@ -49,7 +58,7 @@ export class TableRemoteService {
         
         const validated = await validateKeySets("Request", params.serverType, "generatePlayer", params);
         if (validated.success) {
-            return { success: true, player: tableManager.createPlayer(params) };
+            return { success: true, player: await this.tableManager.createPlayer(params) };
         }
         return validated;
     }
@@ -87,7 +96,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "distributecards", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "distributecards", 
             data: {} 
@@ -106,7 +115,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "tableConfig", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "getTable", 
             data: {} 
@@ -128,7 +137,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "sitoutNextHand", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "sitoutNextHand", 
             data: params 
@@ -145,7 +154,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "sitoutNextBigBlind", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "sitoutNextBigBlind", 
             data: params 
@@ -162,7 +171,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "makeMove", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "makeMove", 
             data: params 
@@ -177,7 +186,7 @@ export class TableRemoteService {
     }
 
     async updatePrecheckOrMakeMove(params: any) {
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "updatePrecheckOrMakeMove", 
             data: params 
@@ -201,7 +210,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "leave", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "leave", 
             data: params 
@@ -220,7 +229,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "processCases", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "processCases", 
             data: params 
@@ -235,7 +244,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "autoSitout", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "autoSitout", 
             data: params 
@@ -249,7 +258,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "resume", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "resume", 
             data: params 
@@ -266,7 +275,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "joinQueue", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "joinQueue", 
             data: params 
@@ -283,7 +292,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "setPlayerAttrib", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "setPlayerAttrib", 
             data: params 
@@ -297,7 +306,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "getTableAttrib", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "getTableAttrib", 
             data: params 
@@ -311,7 +320,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "setCurrentPlayerDisconn", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "setCurrentPlayerDisconn", 
             data: params 
@@ -325,7 +334,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "getPlayerAttribute", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "getPlayerAttribute", 
             data: params 
@@ -339,7 +348,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "getCurrentPlayer", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "getCurrentPlayer", 
             data: params 
@@ -362,7 +371,7 @@ export class TableRemoteService {
         const generatePlayerResponse = await this.generatePlayer(params);
         if (!generatePlayerResponse.success) return generatePlayerResponse;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "addWaitingPlayerForTournament", 
             data: { player: generatePlayerResponse.player } 
@@ -386,7 +395,7 @@ export class TableRemoteService {
         if (!validated.success) return validated;
 
         params.self = this;
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "startGameProcess", 
             data: {}, 
@@ -408,7 +417,7 @@ export class TableRemoteService {
         if (!validated.success) return validated;
 
         params.self = this;
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "shouldStartGame", 
             data: {} 
@@ -455,7 +464,7 @@ export class TableRemoteService {
                         if (dbTables[n].secondId > 1) {
                             try {
                                 const res = await this.db.removeCloneTable({ channelId: dbTables[n].channelId });
-                                broadcastHandler.fireBroadcastToAllSessions({ 
+                                this.broadcastHandler.fireBroadcastToAllSessions({ 
                                     app: {}, 
                                     data: { event: 'DISABLETABLE', _id: dbTables[n] }, 
                                     route: "removeTable" 
@@ -514,7 +523,7 @@ export class TableRemoteService {
                 for (let n = 0; n < tablesToDelete.length; n++) {
                     try {
                         const res = await this.db.removeCloneTable({ channelId: tablesToDelete[n], secondId: { $gt: 1 } });
-                        broadcastHandler.fireBroadcastToAllSessions({ 
+                        this.broadcastHandler.fireBroadcastToAllSessions({ 
                             app: {}, 
                             data: { event: 'DISABLETABLE', _id: tablesToDelete[n] }, 
                             route: "removeTable" 
@@ -630,7 +639,7 @@ export class TableRemoteService {
             state: stateOfX.gameState.idle,
             stateInternal: stateOfX.gameState.starting,
             roundCount: 1,
-            deck: cardAlgo.getCards(),
+            deck: this.cardAlgo.getCards(),
             players: [],
             onStartPlayers: [],
             queueList: [],
@@ -779,7 +788,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "getTable", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "getTable", 
             data: {} 
@@ -806,7 +815,7 @@ export class TableRemoteService {
         const generatePlayerResponse = await this.generatePlayer(params);
         if (!generatePlayerResponse.success) return generatePlayerResponse;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "addWaitingPlayer", 
             data: { player: generatePlayerResponse.player } 
@@ -829,7 +838,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "tableBuyIn", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "tableBuyIn", 
             data: {} 
@@ -862,7 +871,7 @@ export class TableRemoteService {
             }
 
             params.table = table;
-            const response = await tableManager.buyRabbit(params);
+            const response = await this.tableManager.buyRabbit(params);
             console.log("response from tableManager.buyRabbit");
 
             if (response.success) {
@@ -878,7 +887,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "addChipsOnTable", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "addChipsOnTable", 
             data: params 
@@ -892,7 +901,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "addChipsOnTable", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "addChipsOnTableInTournament", 
             data: params 
@@ -903,7 +912,7 @@ export class TableRemoteService {
 
     // toggle autoRebuy enabled key in player object in inmemory
     async updateAutoRebuy(params: any) {
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "updateAutoRebuy", 
             data: params 
@@ -918,7 +927,7 @@ export class TableRemoteService {
 
     // toggle isAutoAddOn enabled key in player object in inmemory
     async updateAutoAddon(params: any) {
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "updateAutoAddon", 
             data: params 
@@ -936,7 +945,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "resetSitout", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "resetSitout", 
             data: params 
@@ -950,7 +959,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "isSameNetworkSit", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "isSameNetworkSit", 
             data: params 
@@ -1015,7 +1024,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "shufflePlayers", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "shufflePlayers", 
             data: params 
@@ -1029,7 +1038,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "createLog", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "createLog", 
             data: params.data 
@@ -1043,7 +1052,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "seatOccupied", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "seatOccupied", 
             data: {} 
@@ -1065,7 +1074,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "isPlayerNotOnTable", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "isPlayerNotOnTable", 
             data: { playerId: params.playerId } 
@@ -1087,7 +1096,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "deductBlinds", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "deductBlinds", 
             data: { playerId: params.playerId } 
@@ -1106,7 +1115,7 @@ export class TableRemoteService {
         const validated = await validateKeySets("Request", "database", "setGameConfig", params);
         if (!validated.success) return validated;
 
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "setGameConfig", 
             data: {} 
@@ -1122,7 +1131,7 @@ export class TableRemoteService {
 
     // leave tournament
     async leaveTournament(params: any) {
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "leaveTournament", 
             data: { channelId: params.channelId, playerId: params.playerId } 
@@ -1132,7 +1141,7 @@ export class TableRemoteService {
 
     // get player chips balance
     async getPlayerChipsWithFilter(params: any) {
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "getPlayerChipsWithFilter", 
             data: { channelId: params.channelId, playerId: params.playerId, key: params.key } 
@@ -1144,7 +1153,7 @@ export class TableRemoteService {
     // handle sitting player disconnections
     async handleDisconnection(params: any) {
         
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "handleDisconnection", 
             data: { channelId: params.channelId, playerId: params.playerId } 
@@ -1174,7 +1183,7 @@ export class TableRemoteService {
 
     //handles tip to dealer
     async processTip(params: any) {
-        const lockTableResponse = await lockTable.lock({ 
+        const lockTableResponse = await this.lockTable.lock({ 
             channelId: params.channelId, 
             actionName: "TIPDEALER", 
             data: { channelId: params.channelId, playerId: params.playerId, chips: params.chips } 

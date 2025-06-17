@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Global, Injectable } from "@nestjs/common";
 import { systemConfig } from "shared/common";
 import * as crc from 'crc';
 

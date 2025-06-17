@@ -10,6 +10,7 @@ import { validateKeySets } from "shared/common/utils/activity";
 @Injectable()
 export class RequestRemoteService {
 
+    private app:any;
 
     constructor(
         private readonly imdb: ImdbDatabaseService,
@@ -369,6 +370,7 @@ export class RequestRemoteService {
     // New
     async playerLeftEv(params: any) {
         const self = this;
+
         const channel = self.app.get('channelService').getChannel(params.channelId, false);
 
         if (channel && (channel.evChopTimer || channel.evRITTimer)) {

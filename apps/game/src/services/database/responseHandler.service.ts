@@ -2,8 +2,8 @@ import { Injectable } from "@nestjs/common";
 import { stateOfX, systemConfig } from "shared/common";
 import _ from 'underscore';
 import _ld from 'lodash';
-import { convertIntToDecimal as convert } from "shared/common";
 import { TableManagerService } from "./tableManager.service";
+import { UtilsService } from "../../utils/utils.service";
 
 
 
@@ -12,11 +12,12 @@ import { TableManagerService } from "./tableManager.service";
 export class ResponseHandlerService {
     
     constructor(
-        private readonly tableManager:TableManagerService
+        private readonly tableManager:TableManagerService,
+        private utilsService:UtilsService
     ){}
 
     // Generate response for any action performed
-    setActionKeys = async function(params: any) {
+    async setActionKeys(params: any) {
         const res: any = {};
         res.success = true;
         res.isGameOver = params.data.isGameOver;
@@ -90,7 +91,7 @@ export class ResponseHandlerService {
             roundMaxBet: params.table.roundMaxBet,
             minRaiseAmount: params.table.minRaiseAmount,
             maxRaiseAmount: params.table.maxRaiseAmount,
-            totalPot: tableManager.getTotalPot(_.filter(params.table.pot, (item: any) => item.contributors.length > 1)) + tableManager.getTotalBet(params.table.roundBets),
+            totalPot: this.tableManager.getTotalPot(_.filter(params.table.pot, (item: any) => item.contributors.length > 1)) + this.tableManager.getTotalBet(params.table.roundBets),
             refundPot: refundPot.length ? {playerId: refundPot[0].contributors[0], amount: refundPot[0].amount} : null
         };
     
@@ -184,7 +185,7 @@ export class ResponseHandlerService {
             roundName: params.table.roundName,
             minRaiseAmount: params.table.minRaiseAmount,
             maxRaiseAmount: params.table.maxRaiseAmount,
-            totalPot: tableManager.getTotalPot(params.table.pot) + tableManager.getTotalBet(params.table.roundBets)
+            totalPot: this.tableManager.getTotalPot(params.table.pot) + this.tableManager.getTotalBet(params.table.roundBets)
         };
     
         // Event details
@@ -251,7 +252,7 @@ export class ResponseHandlerService {
             smallBlind: params.table.smallBlindIndex >= 0 ? params.table.roundBets[params.table.smallBlindIndex] : 0,
             bigBlind: params.table.roundBets[params.table.bigBlindIndex],
             pot: _.pluck(params.table.pot, 'amount'),
-            totalPot: tableManager.getTotalPot(params.table.pot) + tableManager.getTotalBet(params.table.roundBets),
+            totalPot: this.tableManager.getTotalPot(params.table.pot) + this.tableManager.getTotalBet(params.table.roundBets),
             moves: params.table.players[params.table.currentMoveIndex].moves,
             forceBlind: params.data.forceBlind,
             tableSmallBlind: params.table.smallBlind,
@@ -261,7 +262,7 @@ export class ResponseHandlerService {
     };
     
     // Generate table view response
-   setTableViewKeys = async function(params: any) {
+   async setTableViewKeys(params: any) {
         
         if(params.table.isROE) {
             params.table.channelVariation = stateOfX.channelVariation.roe;
@@ -284,12 +285,12 @@ export class ResponseHandlerService {
         tableObj.channelName = params.table.channelName;
         tableObj.channelVariation = this.getchannelVariation(params.table.channelVariation);
         tableObj.isRealMoney = params.table.isRealMoney ? "Real Points" : "Points";
-        tableObj.buyIn = convert(params.table.minBuyIn) + "/" + convert(params.table.maxBuyIn);
-        tableObj.blinds = convert(params.table.smallBlind) + "/" + convert(params.table.bigBlind);
-        tableObj.rakePercentMoreThanFive = convert(params.table.rake ? params.table.rake.rakePercentMoreThanFive : 0) + '%';
-        tableObj.rakePercentThreeFour = convert(params.table.rake ? params.table.rake.rakePercentThreeFour : 0) + '%';
-        tableObj.rakeHeadsUp = convert(params.table.rake ? params.table.rake.rakePercentTwo : 0) + '%';
-        tableObj.capAmount = convert(params.table.rake ? Math.max(params.table.rake.capTwo, params.table.rake.capThreeFour, params.table.rake.capMoreThanFive) : 0).toString();
+        tableObj.buyIn = this.utilsService.convertIntToDecimal(params.table.minBuyIn) + "/" + this.utilsService.convertIntToDecimal(params.table.maxBuyIn);
+        tableObj.blinds = this.utilsService.convertIntToDecimal(params.table.smallBlind) + "/" + this.utilsService.convertIntToDecimal(params.table.bigBlind);
+        tableObj.rakePercentMoreThanFive = this.utilsService.convertIntToDecimal(params.table.rake ? params.table.rake.rakePercentMoreThanFive : 0) + '%';
+        tableObj.rakePercentThreeFour = this.utilsService.convertIntToDecimal(params.table.rake ? params.table.rake.rakePercentThreeFour : 0) + '%';
+        tableObj.rakeHeadsUp = this.utilsService.convertIntToDecimal(params.table.rake ? params.table.rake.rakePercentTwo : 0) + '%';
+        tableObj.capAmount = this.utilsService.convertIntToDecimal(params.table.rake ? Math.max(params.table.rake.capTwo, params.table.rake.capThreeFour, params.table.rake.capMoreThanFive) : 0).toString();
         tableObj.maxPlayers = params.table.maxPlayers.toString();
         tableObj.straddle = ((params.table.isStraddleEnable == true) ? ("Mandatory") : ("Optional"));
         tableObj.turnTime = params.table.turnTime + ' Sec';
