@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { systemConfig } from "shared/common";
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { SharedModuleServie } from "shared/common/utils/sharedModule.service";
 import _ from 'underscore';
 
 
@@ -28,7 +29,8 @@ export class CommonHandlerService {
 
     constructor(
         private readonly db:PokerDatabaseService,
-        private readonly imdb:ImdbDatabaseService
+        private readonly imdb:ImdbDatabaseService,
+        private readonly sharedModule:SharedModuleServie
     ) {}
 
 
@@ -96,7 +98,7 @@ async sendCashoutSms(params: any): Promise<void> {
     mobileNumber: "91" + params.mobileNumber
   };
 
-  await sharedModule.sendOtp(data);
+  await this.sharedModule.sendOtp(data);
 };
 
 

@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as crc from 'crc';
 import * as crypto from 'crypto';
-import fetch from 'node-fetch';
 import { systemConfig } from '..';
 
 @Injectable()

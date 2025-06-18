@@ -1,23 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import _ld from "lodash";
 import _ from 'underscore';
-import { stateOfX, popupTextManager, systemConfig } from "shared/common";
+import { stateOfX, systemConfig } from "shared/common";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
 import { UserRemoteService } from "./userRemote.service";
-
-
-
-
-
-
-
-
-
-
-
-var profileMgmt = require("../../../../../shared/model/profileMgmt");
-const wallet = require('../../walletQuery');
+import { WalletQueryService } from "../../utils/walletQuery.service";
+import { ProfileMgmtService } from "shared/common/utils/profileMgmt.service";
 
 
 
@@ -34,8 +22,8 @@ export class MegaPointsManagerService {
 
     constructor(
         private readonly db: PokerDatabaseService,
-        // private readonly imdb: ImdbDatabaseService,
-        // private readonly wallet: WalletService,
+        private readonly profileMgmt: ProfileMgmtService,
+        private readonly wallet: WalletQueryService,
         private readonly userRemote: UserRemoteService,
 
     ) { }
@@ -325,7 +313,7 @@ export class MegaPointsManagerService {
                     updateKeys: { "statistics.megaPointLevel": t.value }
                 }
             };
-            wallet.sendWalletBroadCast(dataForWallet);
+            this.wallet.sendWalletBroadCast(dataForWallet);
         }
 
         return [player, params];
@@ -392,7 +380,7 @@ export class MegaPointsManagerService {
                             if (!updateRes) {
                                 console.log(stateOfX.serverLogType.error, 'bonus claiming update failed');
                             } else {
-                                const addChipsRes = await profileMgmt.addChips({
+                                const addChipsRes = await this.profileMgmt.addChips({
                                     chips: claimedAmt,
                                     playerId: player.playerId,
                                     isRealMoney: true
@@ -509,7 +497,7 @@ export class MegaPointsManagerService {
                             )}`
                         );
 
-                        const addChipsRes = await profileMgmt.addChips({
+                        const addChipsRes = await this.profileMgmt.addChips({
                             chips: totalIncrease,
                             playerId: player.playerId,
                             isRealMoney: true,

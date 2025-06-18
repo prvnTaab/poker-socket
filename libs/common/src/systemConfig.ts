@@ -1,4 +1,5 @@
-{
+
+export const systemConfig = {
   "disablePlayerType": false,
   "lockedCashoutPrecentage": 0.5,
   "bufferHadToHad": 2,

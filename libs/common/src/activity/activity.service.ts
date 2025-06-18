@@ -3,10 +3,9 @@ import { Injectable } from '@nestjs/common';
 
 
 import _ from "underscore";
-import async from "async";
-import stateOfX from '../stateOfX.sevice.js';
+import stateOfX from '../stateOfX.sevice';
 import { systemConfig, UtilityService } from 'shared/common';
-import { PokerDatabaseService } from '../datebase/pokerdatabase.service.js';
+import { PokerDatabaseService } from '../datebase/pokerdatabase.service';
 
 // const logDB = require("./model/logDbQuery.js");
 

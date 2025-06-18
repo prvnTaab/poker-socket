@@ -351,7 +351,7 @@ export class LeaveRemoteService {
     /*============================  START  =================================*/
     // > Spectator player cannot opt to standup
     //   New
-    validateAction(params: any) {
+    async validateAction(params: any) {
         // Check if the player is not seated and attempts to stand up
         if (params.data.index < 0 && params.data.action === stateOfX.move.standup) {
             return {
@@ -359,8 +359,7 @@ export class LeaveRemoteService {
                 channelId: params.channelId,
                 info: "You are not allowed to " + params.data.action + ", please choose Leave.",
                 isRetry: false,
-                isDisplay: false,
-                channelId: "",
+                isDisplay: false
             };
         } else {
             // Proceed to check the origin
@@ -1583,7 +1582,7 @@ export class LeaveRemoteService {
                     }
                 };
 
-                let addChipsResponse:any = this.wallet.sendWalletBroadCast(dataForWallet);
+                let addChipsResponse: any = this.wallet.sendWalletBroadCast(dataForWallet);
 
                 if (addChipsResponse.success) {
                     this.lockedCashoutHandler(player);
@@ -2142,30 +2141,30 @@ export class LeaveRemoteService {
         if (params.table.channelType === stateOfX.gameType.normal) {
             if (params.table.state === stateOfX.gameState.running) {
                 try {
-                    await this.initializeParams(params),
-                        await this.validateAction(params),
-                        await this.getAllPlayerScore(params),
-                        await this.isLeavePossible(params),
-                        await this.refundAmountOnLeave(params),
-                        await this.createAntiBankingEntry(params),
-                        await this.updatePlayer(params),
-                        await this.isCurrentPlayer(params),
-                        await this.setfirstActiveIndex(params),
-                        await this.adjustActiveIndexes(params),
-                        await this.updateConfigIndexes(params),
-                        await this.validateGameOver(params),
-                        await this.onLeaveSummary(params),
-                        await this.removeFromTable(params), // remove activity fro in memory for disconnection handling
-                        await this.removeActivity(params),
-                        await this.removeSpectatorRecord(params),
-                        await this.isRoundOver(params),
-                        await this.setNextPlayer(params),
-                        await this.adjustRoundBets(params),
-                        await this.setMaxRaise(params),
-                        await this.getMoves(params),
-                        await this.adjustActiveIndexes(params),
-                        await this.decidePlayerPrechecks(params),
-                        await this.createLeaveResponse(params),
+                    await this.initializeParams(params);
+                        await this.validateAction(params);
+                        await this.getAllPlayerScore(params);
+                        await this.isLeavePossible(params);
+                        await this.refundAmountOnLeave(params);
+                        await this.createAntiBankingEntry(params);
+                        await this.updatePlayer(params);
+                        await this.isCurrentPlayer(params);
+                        await this.setfirstActiveIndex(params);
+                        await this.adjustActiveIndexes(params);
+                        await this.updateConfigIndexes(params);
+                        await this.validateGameOver(params);
+                        await this.onLeaveSummary(params);
+                        await this.removeFromTable(params); // remove activity fro in memory for disconnection handling
+                        await this.removeActivity(params);
+                        await this.removeSpectatorRecord(params);
+                        await this.isRoundOver(params);
+                        await this.setNextPlayer(params);
+                        await this.adjustRoundBets(params);
+                        await this.setMaxRaise(params);
+                        await this.getMoves(params);
+                        await this.adjustActiveIndexes(params);
+                        await this.decidePlayerPrechecks(params);
+                        await this.createLeaveResponse(params);
 
                     return { success: true, table: params.table, data: params.data };
                 } catch (err: any) {

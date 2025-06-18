@@ -135,7 +135,7 @@ async checkAvailableCredit(params: any): Promise<any> {
 
 // add chips to specific player when admin or affiliate transfers amount to user
 async addChipsToUser(params: any): Promise<any> {
-  params.playerRealChips = params.playerRealChips + chips;
+  params.playerRealChips = params.playerRealChips + params.amount;
 
   const result = await this.wallet.sendWalletBroadCast({
     action: 'pushRc',
@@ -210,7 +210,7 @@ async saveTransferHistoryToPlayer(params: any): Promise<any> {
     amount: params.amount,
     transferBy: params.transferTo,
     referenceNoAff: shortid.generate().toUpperCase(),
-    transactionType: stateOfX.transaction.topUp,
+    transactionType: stateOfX.transaction.subCategory.topUp,
     description: "Points transferred through topup on credit",
     date: Number(new Date()),
     names: params.names
@@ -232,12 +232,12 @@ async saveToFundTransactionHistoryPlayer(params: any): Promise<any> {
     date: Number(new Date()),
     referenceNumber: shortid.generate().toUpperCase(),
     amount: params.amount,
-    transferMode: stateOfX.transaction.topUp,
+    transferMode: stateOfX.transaction.subCategory.topUp,
     paymentId: 'N/A',
     bonusCode: 'N/A',
     bonusAmount: 'N/A',
     approvedBy: "MagnetAdmin",
-    transactionType: stateOfX.transaction.topUp,
+    transactionType: stateOfX.transaction.subCategory.topUp,
     names: params.names,
     loginType: `${temp}/PLAYER`,
     status: 'SUCCESS'
@@ -272,11 +272,11 @@ async sendEmailAdminPlayerChipsTransfer(params: any): Promise<any> {
     playerName: "Admin",
     referenceNo: params.referenceNo || params.referenceNoAff,
     amount: params.amount,
-    message: `${params.userName} has used ${params.amount} points with ${stateOfX.transaction.topUp} ID - ${params.referenceNo || params.referenceNoAff} on ${new Date(new Date().toLocaleString().slice(0, -3))}`,
+    message: `${params.userName} has used ${params.amount} points with ${stateOfX.transaction.subCategory.topUp} ID - ${params.referenceNo || params.referenceNoAff} on ${new Date(new Date().toLocaleString().slice(0, -3))}`,
     totalAmount: `His current available balance is ${params.playerRealChips}`
   };
 
-  const mailSubject = `${content.userName} ${stateOfX.transaction.topUp}`;
+  const mailSubject = `${content.userName} ${stateOfX.transaction.subCategory.topUp}`;
   const mailData = this.createMailData({
     content,
     toEmail: systemConfig.operation_email,
@@ -327,7 +327,7 @@ async sendEmailPlayerChipsTransfer(params: any): Promise<any> {
     totalAmount: `Your current point balance is ${params.playerRealChips}. Good luck at the tables.`
   };
 
-  const mailSubject = stateOfX.transaction.topUp;
+  const mailSubject = stateOfX.transaction.subCategory.topUp;
   const mailData = this.createMailData({
     content,
     toEmail: params.childEmail,

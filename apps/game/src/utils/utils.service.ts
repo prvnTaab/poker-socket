@@ -44,6 +44,25 @@ export class UtilsService {
     }
 
 
+    milliSecondsToTime(timeInMiliseconds: any) {
+        let h, m, s;
+        h = Math.floor(timeInMiliseconds / 1000 / 60 / 60);
+        m = Math.floor((timeInMiliseconds / 1000 / 60 / 60 - h) * 60);
+        s = Math.ceil(((timeInMiliseconds / 1000 / 60 / 60 - h) * 60 - m) * 60);
+
+        return h + " hr " + m + " min " + s + " sec "
+    }
+
+    convertDateToMidnight(dateToConvert:any) {
+    dateToConvert = new Date(dateToConvert)
+    dateToConvert.setHours(0)
+    dateToConvert.setMinutes(0)
+    dateToConvert.setSeconds(0)
+    dateToConvert.setMilliseconds(0)
+    return Number(dateToConvert)
+}
+
+
 
 
 

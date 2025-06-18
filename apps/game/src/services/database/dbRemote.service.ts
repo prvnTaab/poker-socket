@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 
 
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service.js";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service.js";
+import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
 import _ from "underscore";
 import _ld from "lodash";
 import async from 'async';

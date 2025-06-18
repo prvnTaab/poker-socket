@@ -35,7 +35,7 @@ export class SessionHandlerService {
 
         const session = msg.session;
         session.bind(msg.playerId);
-        session.on("closed", this.onUserLeave.bind(null, msg.self.app));
+        // session.on("closed", this.onUserLeave.bind(null, msg.self.app));
 
         session.set("playerId", msg.playerId);
         await session.push("playerId");

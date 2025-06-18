@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { UtilsService } from "apps/game/src/utils/utils.service";
 import { systemConfig } from "shared/common";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { SharedModuleServie } from "shared/common/utils/sharedModule.service";
 
 
 
@@ -27,7 +28,8 @@ export class CashOutHandlerFromAppService {
     constructor(
         private readonly db: PokerDatabaseService,
         private readonly wallet,
-        private readonly utilsService: UtilsService
+        private readonly utilsService: UtilsService,
+        private readonly sharedModule:SharedModuleServie
     ) { }
 
 
@@ -86,7 +88,7 @@ export class CashOutHandlerFromAppService {
             if (params.playerData.chipsManagement.withdrawlCount >= 0) {
                 const lastTransactionDate = new Date(params.playerData.chipsManagement.withdrawlDate).toDateString();
                 const todaysDate = new Date().toDateString();
-                if (convertDateToMidnight(todaysDate) >= convertDateToMidnight(lastTransactionDate)) {
+                if (this.utilsService.convertDateToMidnight(todaysDate) >= this.utilsService.convertDateToMidnight(lastTransactionDate)) {
                     params.playerData.chipsManagement.withdrawlCount = 0;
                 } else {
                     throw {

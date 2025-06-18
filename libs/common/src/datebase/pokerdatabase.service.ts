@@ -2,7 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import stateOfX from '../stateOfX.sevice';
-import systemConfig from '../systemConfig.json';
+import {systemConfig} from '../systemConfig';
 import { ObjectId } from 'mongodb';
 
 

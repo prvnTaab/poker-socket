@@ -1,4 +1,6 @@
-import systemConfig from './systemConfig.json';
+import { systemConfig}  from "./systemConfig";
+
+
 
 interface PopupTextManager {
     falseMessages: Record<string, string>;

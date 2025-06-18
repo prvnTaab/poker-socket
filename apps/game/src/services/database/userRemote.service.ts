@@ -1,12 +1,14 @@
 import { Injectable } from "@nestjs/common";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { MegaPointsManagerService } from "./megaPointsManager.service";
 
 
 @Injectable()
 export class UserRemoteService {
-    constructor(private db: PokerDatabaseService){
-
-    }
+    constructor(
+        private db: PokerDatabaseService,
+        private readonly megaPointsManager:MegaPointsManagerService
+    ){}
 
 
 // update player win, lose stats
@@ -34,13 +36,11 @@ async updateStats (data: any) {
         createdAt: userData.createdAt,
         level: userData.statistics.megaPointLevel
     };
-    const megaPointsManager = require('./megaPointsManager');
-    megaPointsManager.createFirstExpirySlot(data);
+    this.megaPointsManager.createFirstExpirySlot(data);
 };
 
 // CASHIER API - get chips related details for a player
  async getCashDetails (data: any) {
-    const megaPointsManager = require('./megaPointsManager');
 
     try {
         const user = await this.db.findUser({ playerId: data.playerId });
@@ -93,7 +93,7 @@ async updateStats (data: any) {
             bankDetails: bankDetails
         };
 
-        const response = await megaPointsManager.getPercentOfLevel({ points: user.statistics.megaPoints });
+        const response = await this.megaPointsManager.getPercentOfLevel({ points: user.statistics.megaPoints });
         if (response) {
             result.percentOfLevel = response.percentOfLevel;
             result.megaPointLevel = response.megaPointLevel;

@@ -1,9 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import _ from "underscore";
 import _ld from "lodash";
-import systemConfig from "./../../../../../libs/common/src/systemConfig.json";
+import {systemConfig} from "../../../../../libs/common/src/systemConfig";
 import popupTextManager from "../../../../../libs/common/src/popupTextManager";
-import stateOfX from "shared/common/stateOfX.sevice";
 import { validateKeySets } from "shared/common/utils/activity";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
@@ -13,6 +12,8 @@ import { BroadcastHandlerService } from "./broadcastHandler.service";
 import { TournamentJoinHandlerService } from "./tournamentJoinHandler.service";
 import { SharedModuleServie } from "shared/common/utils/sharedModule.service";
 import { SatelliteTournamentService } from "../database/satelliteTournament.service";
+import { stateOfX } from "shared/common";
+import { StartGameHandlerService } from "./startGameHandler.service";
 
 declare const pomelo: any;
 
@@ -29,7 +30,8 @@ export class StartTournamentHandlerService {
     private readonly commonHandler: CommonHandlerService,
     private readonly broadcastHandler: BroadcastHandlerService,
     private readonly satelliteTournament: SatelliteTournamentService,
-    private readonly sharedModule:SharedModuleServie
+    private readonly sharedModule:SharedModuleServie,
+    private readonly startGameHandler:StartGameHandlerService,
   ) { }
 
 
@@ -736,8 +738,7 @@ export class StartTournamentHandlerService {
       };
 
       setTimeout(() => {
-        const startGameHandler = require('./startGameHandler');
-        startGameHandler.startGame(paramsForStartGame);
+        this.startGameHandler.startGame(paramsForStartGame);
       }, Number(systemConfig.delayInSitNGoTimer) * 1000);
     }
 

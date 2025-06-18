@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import _ from "underscore";
 import _ld from "lodash";
-import systemConfig from "./../../../../../libs/common/src/systemConfig.json";
+import {systemConfig} from "../../../../../libs/common/src/systemConfig";
 import stateOfX from "shared/common/stateOfX.sevice";
 import { BroadcastHandlerService } from "./broadcastHandler.service";
 

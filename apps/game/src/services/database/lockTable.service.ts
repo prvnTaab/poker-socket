@@ -9,7 +9,7 @@ import { validateKeySets } from "shared/common/utils/activity";
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import { PerformActionService } from "./performAction.service";
-import { LinkedListService } from "shared/common/utils/linkedList.service.js";
+import { LinkedListService } from "shared/common/utils/linkedList.service";
 
 
 @Injectable()

@@ -1,4 +1,5 @@
-import systemConfig from './systemConfig.json';
+import { systemConfig } from ".";
+
 
 interface StateOfX {
     gameDetails: {

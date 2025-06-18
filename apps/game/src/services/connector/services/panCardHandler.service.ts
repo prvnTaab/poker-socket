@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { PasswordencrytpdecryptService } from "shared/common/utils/passwordencrytpdecrypt.service";
 
 
 
@@ -17,7 +18,7 @@ export class PanCardHandlerService {
 
     constructor(
         private readonly db: PokerDatabaseService,
-        private readonly encryptDecrypt: EncryptDecryptService
+        private readonly encryptDecrypt: PasswordencrytpdecryptService
     ) { }
 
 

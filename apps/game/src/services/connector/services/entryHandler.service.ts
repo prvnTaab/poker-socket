@@ -23,6 +23,9 @@ import { CashOutHandlerFromAppService } from "./cashOutHandlerFromApp.service";
 import { PanCardHandlerService } from "./panCardHandler.service";
 import { SpinTheWheelHandlerService } from "./spinTheWheelHandler.service";
 import { BonusHandlerService } from "./bonusHandler.service";
+import { UtilsService } from "apps/game/src/utils/utils.service";
+import { ContestService } from "shared/common/utils/contest.service";
+import { EntryService } from "shared/common/utils/winner-algo/entry.service";
 
 
 
@@ -86,6 +89,9 @@ export class EntryHandlerService {
     private readonly spinTheWheelHandler: SpinTheWheelHandlerService,
     private readonly bonusCodeHandler: BonusHandlerService,
     private readonly app: any, // This is where your Pomelo-like `app` instance would be injected if needed
+    private readonly utilsService:UtilsService,
+    private readonly contest:ContestService,
+    private readonly winnerMgmt:EntryService,
   ) { }
 
 
@@ -279,7 +285,7 @@ export class EntryHandlerService {
     }
 
     const self = this;
-    self.session = session;
+    // self.session = session;
 
     const validated = await validateKeySets("Request", "connector", "enter", msg);
 
@@ -287,17 +293,17 @@ export class EntryHandlerService {
       return validated;
     }
 
-    const sessionExist = await self.app.rpc.connector.entryRemote.getUserSession(self.session, msg);
+    const sessionExist = await self.app.rpc.connector.entryRemote.getUserSession( msg);
 
     if (sessionExist.success) {
       const prevSession = self.app.sessionService.get(sessionExist.sessionId);
       if (prevSession) {
         prevSession.set("isConnected", false);
-        self.session.set("waitingChannels", prevSession.get("waitingChannels"));
+        // self.session.set("waitingChannels", prevSession.get("waitingChannels"));
         await self.app.sessionService.kickBySessionId(sessionExist.sessionId, 'elseWhere-another device');
       }
 
-      await self.app.rpc.connector.entryRemote.killUserSession(self.session, sessionExist.sessionId);
+      // await self.app.rpc.connector.entryRemote.killUserSession(self.session, sessionExist.sessionId);
 
       const userSession = await this.bindUserSession({
         playerId: msg.playerId,
@@ -404,9 +410,9 @@ export class EntryHandlerService {
       return validated;
     }
 
-    const sessionExist = await this.app.rpc.connector.entryRemote.getUserSession(this.session, msg);
+    // const sessionExist = await this.app.rpc.connector.entryRemote.getUserSession(this.session, msg);
 
-    await this.app.rpc.connector.entryRemote.killUserSession(this.session, sessionExist.sessionId);
+    // await this.app.rpc.connector.entryRemote.killUserSession(this.session, sessionExist.sessionId);
 
     const params = {
       playerId: msg.playerId,
@@ -713,7 +719,7 @@ export class EntryHandlerService {
 
   // ### Handler to create tournament table
   // tournament
-  createTournamentTables(msg, session, next) {
+  async createTournamentTables(msg, session, next) {
     this.sessionHandler.recordLastActivityTime({ session, msg });
     const self = this;
 
@@ -745,7 +751,7 @@ export class EntryHandlerService {
   // ### Handler to report issue from player
   // internally uses feedback function
   async reportIssue(msg, session, next) {
-    await this.handler.feedback.call(this, msg, session, next);
+    await this.feedback.call(this, msg, session, next);
   };
 
 
@@ -811,31 +817,31 @@ export class EntryHandlerService {
 
   //### handler for start tournament
   //tournament
-  async startTournament(msg: any, session: any, next: Function) {
-    // sessionHandler.recordLastActivityTime({ session, msg });
+  // async startTournament(msg: any, session: any, next: Function) {
+  //   // sessionHandler.recordLastActivityTime({ session, msg });
 
-    const self = this;
+  //   const self = this;
 
-    const validated = await validateKeySets("Request", "connector", "startTournament", msg);
-    if (validated) {
-      const params = {
-        tournamentId: msg.tournamentId,
-        gameVersionCount: msg.gameVersionCount,
-        self,
-        session,
-      };
+  //   const validated = await validateKeySets("Request", "connector", "startTournament", msg);
+  //   if (validated) {
+  //     const params = {
+  //       tournamentId: msg.tournamentId,
+  //       gameVersionCount: msg.gameVersionCount,
+  //       self,
+  //       session,
+  //     };
 
-      const tournamentStartResponse = await this.startTournamentHandler.process(params);
+  //     const tournamentStartResponse = await this.startTournamentHandler.process(params);
 
-      if (tournamentStartResponse.success) {
-        next(null, tournamentStartResponse.result);
-      } else {
-        next(null, tournamentStartResponse);
-      }
-    } else {
-      next(null, validated);
-    }
-  };
+  //     if (tournamentStartResponse.success) {
+  //       next(null, tournamentStartResponse.result);
+  //     } else {
+  //       next(null, tournamentStartResponse);
+  //     }
+  //   } else {
+  //     next(null, validated);
+  //   }
+  // };
 
 
   //### handler for quick seat management for cash games
@@ -1390,8 +1396,8 @@ export class EntryHandlerService {
 
   // fetch hand history - from hand tab
   // msg contains handHistoryId i.e. unique to every game as well as roundId
-  async getHandHistory(msg: any, session: any): Promise<any> {
-    this.sessionHandler.recordLastActivityTime({ session, msg });
+  async getHandHistory(msg: any): Promise<any> {
+    // this.sessionHandler.recordLastActivityTime({ session, msg });
 
     const validated = await validateKeySets("Request", "connector", "getHandHistory", msg);
     if (!validated.success) {
@@ -1918,7 +1924,7 @@ export class EntryHandlerService {
 
     tableData.players.forEach(players => {
       const player: any = {};
-      const bestHandForPlayer = winnerMgmt.findCardsConfiguration(
+      const bestHandForPlayer = this.winnerMgmt.findCardsConfiguration(
         { boardCards, playerCards: [{ playerId: players.playerId, cards: players.cards }] },
         tableData.channelVariation
       );
@@ -1973,7 +1979,7 @@ export class EntryHandlerService {
     }
 
     try {
-      const result = await this.getPlayerGames(query);
+      const result = await this.db.getPlayerGames(query);
       const handsData: any[] = [];
 
       for (const player of result) {
@@ -2079,6 +2085,7 @@ export class EntryHandlerService {
     params.response = response;
     return response;
   };
+  
 
 
   async getVideoData(msg, session, next) {
@@ -2225,7 +2232,7 @@ export class EntryHandlerService {
     if ('spinActivate' in result) {
       const currentTime = Date.now();
       if (currentTime < result.spinActivate) {
-        const time = this.milliToTime.convert(result.spinActivate - currentTime);
+        const time = this.utilsService.milliSecondsToTime(result.spinActivate - currentTime);
         return {
           success: false,
           info: " Oops !! Seems like you've already played today. Come back in " + time + "to play again !!"

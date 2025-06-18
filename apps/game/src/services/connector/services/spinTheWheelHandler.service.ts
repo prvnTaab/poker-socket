@@ -1,26 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { systemConfig } from "shared/common";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { SharedModuleServie } from "shared/common/utils/sharedModule.service";
 import _ from 'underscore';
-
-
-
-
-// var systemConfig = require("../../../../../shared/systemConfig.json");
-// var _            = require('underscore');
-// var spinHandler = {};
-// var db          =  require("../../../../../shared/model/dbQuery");
-// var logDB       =  require("../../../../../shared/model/logDbQuery");
-// var rootTools = require('../../../../../config/keys').rootTools;
-// var pomelo_client = require('pomelo-node-client-websocket');
-// var pomelo = pomelo_client.create();
-// var sharedModule = require('../../../../../shared/sharedModule');
-// var financeDB    = require('../../../../../shared/model/financeDbQuery');
-
-
-
-
-
 
 
 
@@ -28,7 +10,8 @@ import _ from 'underscore';
 export class SpinTheWheelHandlerService {
 
     constructor(
-        private readonly db: PokerDatabaseService
+        private readonly db: PokerDatabaseService,
+        private readonly sharedModule: SharedModuleServie
     ) { }
 
 

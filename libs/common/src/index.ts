@@ -1,4 +1,4 @@
-import systemConfig from './systemConfig.json';
+import {systemConfig} from './systemConfig';
 import stateOfX from './stateOfX.sevice';
 import popupTextManager from './popupTextManager';
 export * from './common.module';

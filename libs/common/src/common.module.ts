@@ -1,5 +1,4 @@
 import { Global, Module } from '@nestjs/common';
-import { CommonService } from './common.service';
 import { ActivityService } from './activity/activity.service';
 import { ServerDownManagerService } from './server-down-manager/server-down-manager.service';
 import { ProfileMgmtService } from './utils/profileMgmt.service';
@@ -23,11 +22,18 @@ import { CustomLibraryService } from './utils/custumLibrary.service';
 import { LinkedListService } from './utils/linkedList.service';
 import { OutsScriptService } from './utils/outsScript.service';
 import { PasswordencrytpdecryptService } from './utils/passwordencrytpdecrypt.service';
+import { ContestService } from './utils/contest.service';
+import { DatabaseModule } from './datebase/database.module';
+import { ConfigModule } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
 
 @Global()
 @Module({
+  imports: [
+
+    // DatabaseModule
+  ],
   providers: [
-    CommonService,
     ActivityService,
     ServerDownManagerService,
     ProfileMgmtService,
@@ -50,10 +56,12 @@ import { PasswordencrytpdecryptService } from './utils/passwordencrytpdecrypt.se
     CustomLibraryService,
     LinkedListService,
     OutsScriptService,
-    PasswordencrytpdecryptService
+    PasswordencrytpdecryptService,
+    ContestService,
+
   ],
   exports: [
-    CommonService,
+    
     ActivityService,
     ServerDownManagerService
   ],

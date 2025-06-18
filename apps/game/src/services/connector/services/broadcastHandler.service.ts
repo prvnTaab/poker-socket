@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { SocketQueryService } from "apps/game/src/utils/socketQuery.service";
 import { stateOfX, systemConfig } from "shared/common";
 import { validateKeySets } from "shared/common/utils/activity";
 
@@ -9,15 +10,15 @@ import { validateKeySets } from "shared/common/utils/activity";
 
 let pomelo: any;
 //  pomelo to socket connection 
-let socket = require('../../socketQuery');
+// let socket = require('../../socketQuery');
 
 
-let sendPlayerBroadCast = (data) => {
-    return socket.sendPlayerBroadCast(data)
-}
-let sendGeneralBroadCast = (data) => {
-    return socket.sendGeneralBroadCast(data)
-}
+// let sendPlayerBroadCast = (data) => {
+//     return socket.sendPlayerBroadCast(data)
+// }
+// let sendGeneralBroadCast = (data) => {
+//     return socket.sendGeneralBroadCast(data)
+// }
 //  pomelo to socket connection 
 
 @Injectable()
@@ -25,7 +26,9 @@ export class BroadcastHandlerService {
 
 
 
-    constructor() { }
+    constructor(
+        private readonly socketQuery:SocketQueryService
+    ) { }
 
 
 
@@ -38,7 +41,7 @@ export class BroadcastHandlerService {
  * @param  {Object}          params contains route data playerId
  */
     async userLoggedIn(msg: any): Promise<void> {
-        sendPlayerBroadCast(msg);
+        this.socketQuery.sendPlayerBroadCast(msg);
     }
 
     async sendMessageToUser(params: any): Promise<void> {
@@ -60,7 +63,7 @@ export class BroadcastHandlerService {
 
             // sending player broadcast using socket
             params.msg.action = params.route;
-            sendPlayerBroadCast(params.msg);
+            this.socketQuery.sendPlayerBroadCast(params.msg);
         }
     }
 
@@ -89,7 +92,7 @@ export class BroadcastHandlerService {
             });
 
             params.broadcastData.action = params.broadcastName;
-            sendGeneralBroadCast(params.broadcastData);
+            this.socketQuery.sendGeneralBroadCast(params.broadcastData);
         }
     }
 
@@ -259,15 +262,15 @@ export class BroadcastHandlerService {
 
         params.channel.pushMessage('sit', data);
 
-        await this.videoHandler.createVideo({
-            roundId: params.channel.roundId,
-            channelId: params.newChannelId,
-            type: stateOfX.videoLogEventType.broadcast,
-            data
-        });
+        // await this.videoHandler.createVideo({
+        //     roundId: params.channel.roundId,
+        //     channelId: params.newChannelId,
+        //     type: stateOfX.videoLogEventType.broadcast,
+        //     data
+        // });
 
         data.action = 'sit';
-        sendGeneralBroadCast(data);
+        this.socketQuery.sendGeneralBroadCast(data);
     }
 
     // ### Player state broadcast to player only
@@ -285,7 +288,7 @@ export class BroadcastHandlerService {
         };
 
         pomelo.app.rpc.room.broadcastRemote.pushMessage("playerState", data);
-        sendGeneralBroadCast(data);
+        this.socketQuery.sendGeneralBroadCast(data);
     }
 
 
@@ -320,7 +323,7 @@ export class BroadcastHandlerService {
             action: "playerCoins"
         };
         params.channel.pushMessage("playerCoins", data);
-        sendGeneralBroadCast(data);
+        this.socketQuery.sendGeneralBroadCast(data);
     }
 
 
@@ -389,7 +392,7 @@ export class BroadcastHandlerService {
         channelService.broadcast(pomelo.app.get("frontendType"), params.route, params.data);
 
         params.data.action = params.route;
-        sendGeneralBroadCast(params.data);
+        this.socketQuery.sendGeneralBroadCast(params.data);
     }
     ///////////////////////////////////////////////////////////////////
     // General broadcast function to broadcast data on channel level //
@@ -401,7 +404,7 @@ export class BroadcastHandlerService {
 
         params.channel.pushMessage(params.route, params.data);
         params.data.action = params.route;
-        sendGeneralBroadCast(params.data);
+        this.socketQuery.sendGeneralBroadCast(params.data);
     }
 
 
@@ -413,7 +416,7 @@ export class BroadcastHandlerService {
 
         params.channel.pushMessage("updateBlind", params.data);
         params.data.action = "updateBlind";
-        sendGeneralBroadCast(params.data);
+        this.socketQuery.sendGeneralBroadCast(params.data);
     }
 
 
@@ -422,7 +425,7 @@ export class BroadcastHandlerService {
         channelService.broadcast(pomelo.app.get("frontendType"), "playerDisconnected", params);
 
         params.action = "playerDisconnected";
-        sendGeneralBroadCast(params);
+        this.socketQuery.sendGeneralBroadCast(params);
     }
 
     async isKYCBroadcast(params: any): Promise<void> {

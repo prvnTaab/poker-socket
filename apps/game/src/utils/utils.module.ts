@@ -1,5 +1,6 @@
 import { Global, Module } from "@nestjs/common";
 import { UtilsService } from "./utils.service";
+import { SocketQueryService } from "./socketQuery.service";
 
 
 @Global()
@@ -7,7 +8,7 @@ import { UtilsService } from "./utils.service";
 
     imports: [],
     controllers: [],
-    providers: [UtilsService]
+    providers: [UtilsService,SocketQueryService]
 
 })
 export class UtilsModule {}

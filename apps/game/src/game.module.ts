@@ -34,7 +34,7 @@ import { SitHereHandlerService } from './services/room/sitHereHandler.service';
 import { TournamentActionHandlerService } from './services/room/tournamentActionHandler.service';
 import { DynamicTableHandlerService } from './services/room/dynamicTableHandler.service';
 import { HandleTipDealerService } from './services/room/handleTipDealer.service';
-import { walletQueryService } from './utils/walletQuery.service';
+import { WalletQueryService } from './utils/walletQuery.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { AddonManagementService } from './services/database/addonManagement.service';
 import { AdjustActiveIndexService } from './services/database/adjustActiveIndex.service';
@@ -127,7 +127,7 @@ import { ConnectorModule } from './services/connector/connector.module';
     TournamentActionHandlerService,
     DynamicTableHandlerService,
     HandleTipDealerService,
-    walletQueryService,
+    WalletQueryService,
 
     // DATABASE SERVICES START
     AddonManagementService,
@@ -171,6 +171,6 @@ import { ConnectorModule } from './services/connector/connector.module';
     // DATABASE SERVICES END
 
   ],
-  exports:[RedisService, DbRemoteService, UserRemoteService, ResponseHandlerService, walletQueryService]
+  exports:[RedisService, DbRemoteService, UserRemoteService, ResponseHandlerService, WalletQueryService]
 })
 export class GameModule {}
