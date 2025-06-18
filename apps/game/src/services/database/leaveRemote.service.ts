@@ -4,7 +4,7 @@ import _ from 'underscore';
 import { stateOfX, popupTextManager, systemConfig } from "shared/common";
 import { SetMoveService } from "./setMove.service";
 import { HandleGameOverService } from "./handleGameOver.service";
-import { ResponseHandlerService } from "./responseHandler.service";
+import { ResponseHandlerDbService } from "./responseHandlerDb.service";
 import { AdjustActiveIndexService } from "./adjustActiveIndex.service";
 import { TableManagerService } from "./tableManager.service";
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
@@ -54,7 +54,7 @@ export class LeaveRemoteService {
         private readonly adjustIndex: AdjustActiveIndexService,
         private readonly handleGameOver: HandleGameOverService,
         private readonly tableManager: TableManagerService,
-        private readonly responseHandler: ResponseHandlerService,
+        private readonly responseHandler: ResponseHandlerDbService,
         private readonly tournamentLeave: TournamentLeaveService,
         private readonly wallet: WalletQueryService,
         private readonly activity: ActivityService,

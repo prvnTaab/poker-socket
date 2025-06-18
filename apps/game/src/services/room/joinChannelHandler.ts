@@ -14,7 +14,7 @@ import { JoinRequestUtilService } from "./joinRequestUtil.service";
 import { CommonHandlerService } from "./commonHandler.service";
 import { ChannelTimerHandlerService } from "./channelTimerHandler.service";
 import { BroadcastHandlerService } from "./broadcastHandler.service";
-import { ResponseHandlerService } from "./responseHandler.service";
+import { ResponseHandlerRoomService } from "./responseHandlerRoom.service";
 import { validateKeySets } from "shared/common/utils/activity";
 
 
@@ -34,7 +34,7 @@ export class JoinChannelHandler {
         private readonly commonHandler: CommonHandlerService,
         private readonly channelTimerHandler: ChannelTimerHandlerService,
         private readonly broadcastHandler: BroadcastHandlerService,
-        private readonly responseHandler: ResponseHandlerService
+        private readonly responseHandler: ResponseHandlerRoomService
     ) { }
 
 

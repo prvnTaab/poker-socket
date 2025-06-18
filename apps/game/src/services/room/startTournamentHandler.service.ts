@@ -6,7 +6,7 @@ import popupTextManager from "../../../../../libs/common/src/popupTextManager";
 import { validateKeySets } from "shared/common/utils/activity";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
-import { ResponseHandlerService } from "./responseHandler.service";
+import { ResponseHandlerRoomService } from "./responseHandlerRoom.service";
 import { CommonHandlerService } from "./commonHandler.service";
 import { BroadcastHandlerService } from "./broadcastHandler.service";
 import { TournamentJoinHandlerService } from "./tournamentJoinHandler.service";
@@ -26,7 +26,7 @@ export class StartTournamentHandlerService {
     private readonly db: PokerDatabaseService,
     private readonly imdb: ImdbDatabaseService,
     private readonly tournamentJoinHandler: TournamentJoinHandlerService,
-    private readonly responseHandler: ResponseHandlerService,
+    private readonly responseHandler: ResponseHandlerRoomService,
     private readonly commonHandler: CommonHandlerService,
     private readonly broadcastHandler: BroadcastHandlerService,
     private readonly satelliteTournament: SatelliteTournamentService,

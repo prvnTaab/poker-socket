@@ -1,6 +1,5 @@
 import { Injectable } from "@nestjs/common";
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import stateOfX from "shared/common/stateOfX.sevice";
 
 
@@ -14,7 +13,6 @@ let pomelo:any;
 export class DisconnectionHandlerService {
 
     constructor(
-        private db: PokerDatabaseService,
         private imdb: ImdbDatabaseService
     ) { }
 

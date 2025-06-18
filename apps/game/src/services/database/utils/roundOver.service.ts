@@ -5,7 +5,7 @@ import _ from "underscore";
 import { HandleGameOverService } from "../handleGameOver.service";
 import { PostsplitService } from "../potsplit.service";
 import { TableManagerService } from "../tableManager.service";
-import { ResponseHandlerService } from "../responseHandler.service";
+import { ResponseHandlerDbService } from "../responseHandlerDb.service";
 import stateOfX from "shared/common/stateOfX.sevice";
 import { validateKeySets } from "shared/common/utils/activity";
 
@@ -19,7 +19,7 @@ export class RoundOverService {
         private readonly handleGameOver: HandleGameOverService,
         private readonly potsplit: PostsplitService,
         private readonly tableManager: TableManagerService,
-        private readonly responseHandler: ResponseHandlerService
+        private readonly responseHandler: ResponseHandlerDbService
     ) { }
 
 

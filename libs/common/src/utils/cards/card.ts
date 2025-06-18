@@ -1,24 +1,24 @@
 import { Injectable } from "@nestjs/common";
 
 
-@Injectable()
-export class CardsService {
+// @Injectable()
+export class Card {
 
   type: string;
-  rank: number;
+  rank: any;
   name: string;
   priority: number;
   id:number;
 
 
-  constructor(type: string, rank: number) {
+  constructor(type: any, rank: any) {
     this.type = type;
     this.rank = rank;
-    this.name = this.getName();
     this.priority = this.getPriority();
+    this.name = this.getName();
   }
 
-  private getName(): string {
+   getName(): string {
     switch (this.rank) {
       case 1:
         return 'A';
@@ -29,11 +29,11 @@ export class CardsService {
       case 13:
         return 'K';
       default:
-        return this.rank.toString();
+        return this.rank?.toString();
     }
   }
 
-  private getPriority(): number {
+   getPriority(): number {
     return this.rank === 1 ? 14 : this.rank;
   }
 }

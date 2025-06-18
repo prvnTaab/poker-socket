@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Global, Module } from '@nestjs/common';
 import { PokerDatabaseService } from './pokerdatabase.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule } from '@nestjs/config';
 import { ImdbDatabaseService } from './Imdbdatabase.service';
+import { CommonModule } from '../common.module';
 
 @Module({
   imports: [

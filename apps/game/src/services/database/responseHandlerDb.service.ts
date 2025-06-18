@@ -9,7 +9,7 @@ import { UtilsService } from "../../utils/utils.service";
 
 
 @Injectable()
-export class ResponseHandlerService {
+export class ResponseHandlerDbService {
     
     constructor(
         private readonly tableManager:TableManagerService,

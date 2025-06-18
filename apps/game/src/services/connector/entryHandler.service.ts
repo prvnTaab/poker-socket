@@ -64,7 +64,7 @@ import { EntryService } from "shared/common/utils/winner-algo/entry.service";
 @Injectable()
 export class EntryHandlerService {
 
-
+app:any
 
   constructor(
     private readonly db: PokerDatabaseService,
@@ -88,7 +88,7 @@ export class EntryHandlerService {
     private readonly panCardController: PanCardHandlerService,
     private readonly spinTheWheelHandler: SpinTheWheelHandlerService,
     private readonly bonusCodeHandler: BonusHandlerService,
-    private readonly app: any, // This is where your Pomelo-like `app` instance would be injected if needed
+    // private readonly app: any, // This is where your Pomelo-like `app` instance would be injected if needed
     private readonly utilsService:UtilsService,
     private readonly contest:ContestService,
     private readonly winnerMgmt:EntryService,

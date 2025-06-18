@@ -25,7 +25,7 @@ export class EntryService {
 
 
     constructor(
-        private readonly card: Card,
+        // private readonly card: Card,
         private readonly cardComparer: CardComparerService,
         private readonly shortDeckCardCompare: ShortDeckCardCompareService,
         private readonly comb: CombinationService,

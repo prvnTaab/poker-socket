@@ -20,7 +20,7 @@ import { TimeBankRemoteService } from "./timeBankRemote.service";
 import { AutoAddonRemoteService } from "./autoAddonRemote.service";
 import { PostsplitService } from "./potsplit.service";
 import { TableManagerService } from "./tableManager.service";
-import { ResponseHandlerService } from "./responseHandler.service";
+import { ResponseHandlerDbService } from "./responseHandlerDb.service";
 import { WinnerRemoteService } from "./winnerRemote.service";
 import { TableConfigManagerService } from "./tableConfigManager.service";
 import { RewardRakeService } from "./rewardRake.service";
@@ -56,7 +56,7 @@ export class HandleGameOverService {
         private readonly timeBankRemote: TimeBankRemoteService,
         private readonly potsplit: PostsplitService,
         private readonly tableManager: TableManagerService,
-        private readonly responseHandler: ResponseHandlerService,
+        private readonly responseHandler: ResponseHandlerDbService,
         private readonly winnerRemote: WinnerRemoteService,
         private readonly tableConfigManager: TableConfigManagerService,
         private readonly rewardRake: RewardRakeService,

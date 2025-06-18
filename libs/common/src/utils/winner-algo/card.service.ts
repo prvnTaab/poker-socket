@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 export type CardType = 'Spade' | 'Heart' | 'Diamond' | 'Club';
 
-@Injectable()
+// @Injectable()
 export class Card {
     
   type: CardType;

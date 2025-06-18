@@ -1,14 +1,8 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { GameService } from './game.service';
-import { ConfigModule } from '@nestjs/config';
 import { GameGateway } from './game/game.gateway';
 import { RedisService } from './redis/redis.service';
-import { DatabaseModule } from 'shared/common';
-import { GameController } from './game.controller';
 import { DbRemoteService } from './services/database/dbRemote.service';
 import { UserRemoteService } from './services/database/userRemote.service';
-import { ResponseHandlerService } from './services/database/responseHandler.service';
 import { JoinChannelHandler } from './services/room/joinChannelHandler';
 import { ActionLoggerService } from './services/room/actionLogger.service';
 import { JoinRequestUtilService } from './services/room/joinRequestUtil.service';
@@ -74,13 +68,37 @@ import { DeductRakefromTableService } from './services/database/utils/deductRake
 import { PrizeDistributionService } from './services/database/utils/prizeDistribution.service';
 import { RoundOverService } from './services/database/utils/roundOver.service';
 import { SummaryGeneratorService } from './services/database/utils/summaryGenerator.service';
-import { ConnectorModule } from './services/connector/connector.module';
+import { DatabaseModule } from 'shared/common/datebase/database.module';
+import { CommonModule } from 'shared/common/common.module';
+import { DisconnectionHandlerService } from './services/connector/disconnectionHandler.service';
+import { EntryHandlerService } from './services/connector/entryHandler.service';
+import { UpdateProfileHandlerService } from './services/connector/updateProfileHandler.service';
+import { LogoutHandlerService } from './services/connector/logoutHandler.service';
+import { RetryHandlerService } from './services/connector/retryHandler.service';
+import { RebuyHandlerService } from './services/connector/rebuyHandler.service';
+import { GetFiltersFromDbService } from './services/connector/getFiltersFromDb.service';
+import { AddOnHandlerService } from './services/connector/addOnHandler.service';
+import { TopupHandlerService } from './services/connector/topupHandler.service';
+import { TournamentLeaveHandlerService } from './services/connector/tournamentLeaveHandler.service';
+import { PromotionalDataHandlerService } from './services/connector/promotionalDataHandler.service';
+import { CashOutHandlerFromAppService } from './services/connector/cashOutHandlerFromApp.service';
+import { PanCardHandlerService } from './services/connector/panCardHandler.service';
+import { SpinTheWheelHandlerService } from './services/connector/spinTheWheelHandler.service';
+import { BonusHandlerService } from './services/connector/bonusHandler.service';
+import { SocketQueryService } from './utils/socketQuery.service';
+import { UtilsService } from './utils/utils.service';
+import { MegaPointsManagerService } from './services/database/megaPointsManager.service';
+import { TableManagerService } from './services/database/tableManager.service';
+import { ResponseHandlerRoomService } from './services/room/responseHandlerRoom.service';
+import { ResponseHandlerDbService } from './services/database/responseHandlerDb.service';
+import { DynamicRanksService } from './services/database/dynamicRanks.service';
+import { SharedModuleServie } from 'shared/common/utils/sharedModule.service';
 
 @Module({
   imports: [
     DatabaseModule,
     UtilsModule,
-    ConnectorModule,
+    CommonModule,
 
     ClientsModule.register([
       {
@@ -93,22 +111,20 @@ import { ConnectorModule } from './services/connector/connector.module';
     // MongooseModule.forRoot(process.env.IMDB, {connectionName: 'inMemoryDb'}),
     // MongooseModule.forRoot(process.env.DB, {connectionName: 'db'}),
   ],
-  controllers: [GameController],
+  controllers: [],
   providers: [
-    GameService, 
-    GameGateway, 
-    RedisService, 
-    UserRemoteService, 
-    ResponseHandlerService,
+    GameGateway,
+    RedisService,
+    UserRemoteService,
+    ResponseHandlerRoomService,
     JoinChannelHandler,
     ActionLoggerService,
     JoinRequestUtilService,
     ChannelTimerHandlerService,
     BroadcastHandlerService,
     CommonHandlerService,
-    ResponseHandlerService,
     SubscriptionHandlerService,
-    StartGameHandlerService,
+StartGameHandlerService,
     StartTournamentHandlerService,
     TournamentJoinHandlerService,
     AutoSitHandlerService,
@@ -128,6 +144,9 @@ import { ConnectorModule } from './services/connector/connector.module';
     DynamicTableHandlerService,
     HandleTipDealerService,
     WalletQueryService,
+    MegaPointsManagerService,
+    DynamicRanksService,
+    SharedModuleServie,
 
     // DATABASE SERVICES START
     AddonManagementService,
@@ -168,9 +187,35 @@ import { ConnectorModule } from './services/connector/connector.module';
     PrizeDistributionService,
     RoundOverService,
     SummaryGeneratorService,
+    TableManagerService,
+    ResponseHandlerDbService,
     // DATABASE SERVICES END
 
+
+
+    DisconnectionHandlerService,
+    EntryHandlerService,
+    BroadcastHandlerService,
+    SessionHandlerService,
+    UpdateProfileHandlerService,
+    LogoutHandlerService,
+    RetryHandlerService,
+    RebuyHandlerService,
+    AddOnHandlerService,
+    GetFiltersFromDbService,
+    OnlinePlayersService,
+    CommonHandlerService,
+    TournamentLeaveHandlerService,
+    TopupHandlerService,
+    PromotionalDataHandlerService,
+    CashOutHandlerFromAppService,
+    PanCardHandlerService,
+    SpinTheWheelHandlerService,
+    BonusHandlerService,
+    UtilsService,
+    SocketQueryService,
+
   ],
-  exports:[RedisService, DbRemoteService, UserRemoteService, ResponseHandlerService, WalletQueryService]
+  exports: [RedisService, DbRemoteService, UserRemoteService, WalletQueryService]
 })
-export class GameModule {}
+export class GameModule { }

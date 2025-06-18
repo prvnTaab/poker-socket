@@ -4,7 +4,7 @@ import async from "async";
 import _ld from "lodash";
 import _ from "underscore";
 import { stateOfX , systemConfig, popupTextManager} from "shared/common";
-import { ResponseHandlerService } from "./responseHandler.service";
+import { ResponseHandlerDbService } from "./responseHandlerDb.service";
 import { validateKeySets } from "shared/common/utils/activity";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
@@ -21,7 +21,7 @@ export class TableRemoteService {
     constructor(
         private readonly db: PokerDatabaseService,
         private readonly imdb : ImdbDatabaseService,
-        private readonly responseHandler : ResponseHandlerService,
+        private readonly responseHandler : ResponseHandlerDbService,
         private readonly lockTable : LockTableService,
         private readonly tableManager:TableManagerService,
         private readonly cardAlgo:DeckService,

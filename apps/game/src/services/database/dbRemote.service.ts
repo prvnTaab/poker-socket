@@ -9,7 +9,7 @@ import async from 'async';
 import { v4 as uuid } from "uuid";
 import { stateOfX, systemConfig , popupTextManager, UtilityService} from "shared/common";
 import { UserRemoteService } from "./userRemote.service";
-import { ResponseHandlerService } from "./responseHandler.service";
+import { ResponseHandlerDbService } from "./responseHandlerDb.service";
 
 // import shortid from 'shortid32';
 import { validateKeySets } from "shared/common/utils/activity";
@@ -24,7 +24,7 @@ export class DbRemoteService {
     constructor(private db : PokerDatabaseService,
         private imdb : ImdbDatabaseService,
         private userRemote : UserRemoteService,
-        private responseHandler : ResponseHandlerService, 
+        private responseHandler : ResponseHandlerDbService, 
         private wallet : WalletQueryService,
         private readonly utilsService:UtilityService,
         private readonly passwordencrytpdecryptService:PasswordencrytpdecryptService,

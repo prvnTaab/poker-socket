@@ -24,8 +24,7 @@ export class ChannelTimerHandlerService {
         private readonly db: PokerDatabaseService,
         private readonly imdb: ImdbDatabaseService,
         private readonly broadcastHandler: BroadcastHandlerService,
-        private readonly subscriptionHandler: SubscriptionHandlerService,
-        private readonly channelTimerHandler:ChannelTimerHandlerService
+        private readonly subscriptionHandler: SubscriptionHandlerService
     ) { }
 
 
@@ -3216,7 +3215,7 @@ export class ChannelTimerHandlerService {
         console.error("reserver kill sit fired");
 
         if (!params.channel) {
-            this.channelTimerHandler.killKickToLobbyTimer(params);
+            this.killKickToLobbyTimer(params);
             return;
         }
 
@@ -3239,7 +3238,7 @@ export class ChannelTimerHandlerService {
         }
 
         // Also kill timer to kick player on lobby if player took a seat
-        this.channelTimerHandler.killKickToLobbyTimer(params);
+        this.killKickToLobbyTimer(params);
     };
 
     // Old

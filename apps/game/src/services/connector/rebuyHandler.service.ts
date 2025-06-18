@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import _ from 'underscore';
-import { StartGameHandlerService } from "../../room/startGameHandler.service";
+import { StartGameHandlerService } from "./../room/startGameHandler.service";
 import popupTextManager from "shared/common/popupTextManager";
 import stateOfX from "shared/common/stateOfX.sevice";
 

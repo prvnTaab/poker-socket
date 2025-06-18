@@ -3,7 +3,7 @@ import { stateOfX } from 'shared/common';
 import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import { validateKeySets } from "shared/common/utils/activity";
-import { EntryHandlerService } from "../connector/services/entryHandler.service";
+import { EntryHandlerService } from "../connector/entryHandler.service";
 
 
 

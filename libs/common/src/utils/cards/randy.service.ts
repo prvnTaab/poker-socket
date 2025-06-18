@@ -1,11 +1,7 @@
-
-
-
 import { Injectable } from '@nestjs/common';
 import * as os from 'os';
 import * as crypto from 'crypto';
-import { well1024a } from 'prng-well1024a';
-
+import * as well1024a from 'prng-well1024a'; // use namespace import ✅
 
 @Injectable()
 export class RandyService {
@@ -13,7 +9,7 @@ export class RandyService {
 
   constructor() {
     const entropy = this.getEntropy();
-    const generator = well1024a(entropy);
+    const generator = well1024a(entropy); // no 'new' ✅
     this.randy = this.attachFunctions(generator);
   }
 
@@ -47,7 +43,7 @@ export class RandyService {
   }
 
   private attachFunctions(generator: any) {
-    const getUInt32 = generator.getUInt32;
+    const getUInt32 = generator.getUInt32.bind(generator);
 
     const randInt32 = (max?: number): number => {
       const r = getUInt32();
@@ -71,7 +67,7 @@ export class RandyService {
         return min + randInt32(span) * step;
       },
       choice: (arr: any[]): any => {
-        if (!arr.length) throw new Error("arr not an array of length > 0");
+        if (!arr.length) throw new Error('arr not an array of length > 0');
         return arr[randInt32(arr.length)];
       },
       shuffle: (arr: any[]): any[] => {

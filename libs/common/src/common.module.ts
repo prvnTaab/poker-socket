@@ -1,4 +1,4 @@
-import { Global, Module } from '@nestjs/common';
+import { forwardRef, Global, Module } from '@nestjs/common';
 import { ActivityService } from './activity/activity.service';
 import { ServerDownManagerService } from './server-down-manager/server-down-manager.service';
 import { ProfileMgmtService } from './utils/profileMgmt.service';
@@ -8,9 +8,9 @@ import { RandyService } from './utils/cards/randy.service';
 import { CardService } from './utils/cards/shortDeckCard.service';
 import { ShortDeckService } from './utils/cards/shortDeck.service';
 import { DeckService } from './utils/cards/deck.service';
-import { CardsService } from './utils/cards/cards.service';
+// import { CardsService } from './utils/cards/card.service';
 import { EntryService } from './utils/winner-algo/entry.service';
-import { Card } from './utils/winner-algo/card.service';
+// import { Card } from './utils/winner-algo/card.service';
 import { CardComparerService } from './utils/winner-algo/cardComparer.service';
 import { ShortDeckCardCompareService } from './utils/winner-algo/shortDeckCardCompare.service';
 import { CombinationService } from './utils/winner-algo/combination.service';
@@ -26,12 +26,16 @@ import { ContestService } from './utils/contest.service';
 import { DatabaseModule } from './datebase/database.module';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { UtilityService } from './utils/utils.service';
 
 @Global()
 @Module({
   imports: [
 
+    forwardRef(() => DatabaseModule),
+
     // DatabaseModule
+    
   ],
   providers: [
     ActivityService,
@@ -41,11 +45,11 @@ import { MongooseModule } from '@nestjs/mongoose';
     CreateTournamentTableService,
     RandyService,
     ShortDeckService,
-    CardService,
+    // CardService,
     DeckService,
-    CardsService,
+    // CardsService,
     EntryService,
-    Card,
+    // Card,
     CardComparerService,
     ShortDeckCardCompareService,
     CombinationService,
@@ -58,12 +62,35 @@ import { MongooseModule } from '@nestjs/mongoose';
     OutsScriptService,
     PasswordencrytpdecryptService,
     ContestService,
+    UtilityService
 
   ],
   exports: [
-    
-    ActivityService,
-    ServerDownManagerService
+    ServerDownManagerService,
+    ProfileMgmtService,
+    PrizeAlgoService,
+    CreateTournamentTableService,
+    RandyService,
+    ShortDeckService,
+    // CardService,
+    DeckService,
+    // CardsService,
+    EntryService,
+    // Card,
+    CardComparerService,
+    ShortDeckCardCompareService,
+    CombinationService,
+    CardConfigurationService,
+    PointsService,
+    WinnerRankingService,
+    CardsConfigService,
+    CustomLibraryService,
+    LinkedListService,
+    OutsScriptService,
+    PasswordencrytpdecryptService,
+    ContestService,
+    UtilityService,
+        ActivityService,
   ],
 })
 export class CommonModule { }

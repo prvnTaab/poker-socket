@@ -4,7 +4,7 @@ import _ from "underscore";
 import { SetMoveService } from "./setMove.service";
 import { HandleGameOverService } from "./handleGameOver.service";
 import { TableManagerService } from "./tableManager.service";
-import { ResponseHandlerService } from "./responseHandler.service";
+import { ResponseHandlerDbService } from "./responseHandlerDb.service";
 import { AdjustActiveIndexService } from "./adjustActiveIndex.service";
 import { PostsplitService } from "./potsplit.service";
 import { validateKeySets } from "shared/common/utils/activity";
@@ -32,7 +32,7 @@ export class TournamentLeaveService {
         private readonly adjustIndex: AdjustActiveIndexService,
         private readonly handleGameOver: HandleGameOverService,
         private readonly tableManager: TableManagerService,
-        private readonly responseHandler: ResponseHandlerService,
+        private readonly responseHandler: ResponseHandlerDbService,
         private readonly roundOver: RoundOverService,
 
     ) { }

@@ -8,7 +8,7 @@ import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service
 
 
 import { BroadcastHandlerService } from "./broadcastHandler.service";
-import { ResponseHandlerService } from "./responseHandler.service";
+import { ResponseHandlerRoomService } from "./responseHandlerRoom.service";
 import { CommonHandlerService } from "./commonHandler.service";
 import { JoinRequestUtilService } from "./joinRequestUtil.service";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
@@ -32,7 +32,7 @@ export class AutoSitHandlerService {
         private db: PokerDatabaseService,
         private imdb: ImdbDatabaseService,
         private readonly broadcastHandler: BroadcastHandlerService,
-        private readonly responseHandler: ResponseHandlerService,
+        private readonly responseHandler: ResponseHandlerRoomService,
         private readonly commonHandler: CommonHandlerService,
         private readonly joinRequestUtil: JoinRequestUtilService,
         private readonly activity:ActivityService

@@ -3,7 +3,7 @@ import _ld from "lodash";
 import _ from 'underscore';
 import { stateOfX, popupTextManager } from "shared/common";
 import { SetMoveService } from "./setMove.service";
-import { ResponseHandlerService } from "./responseHandler.service";
+import { ResponseHandlerDbService } from "./responseHandlerDb.service";
 import { ActivityService } from "shared/common/activity/activity.service";
 
 import { systemConfig } from "shared/common";
@@ -18,7 +18,7 @@ export class DeductBlindsService {
     constructor(
         private readonly setMove: SetMoveService,
         private readonly tableManager: TableManagerService,
-        private readonly responseHandler: ResponseHandlerService,
+        private readonly responseHandler: ResponseHandlerDbService,
         private readonly activity: ActivityService,
 
     ) { }

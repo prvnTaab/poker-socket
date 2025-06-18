@@ -10,7 +10,7 @@ declare const pomelo: any; // In this place we have add socket.io
 
 
 @Injectable()
-export class ResponseHandlerService {
+export class ResponseHandlerRoomService {
 
 
     constructor(

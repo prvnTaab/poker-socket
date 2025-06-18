@@ -7,7 +7,7 @@ import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.servi
 import { SetMoveService } from "./setMove.service";
 import { AdjustActiveIndexService } from "./adjustActiveIndex.service";
 import { HandleGameOverService } from "./handleGameOver.service";
-import { ResponseHandlerService } from "./responseHandler.service";
+import { ResponseHandlerDbService } from "./responseHandlerDb.service";
 import { TableManagerService } from "./tableManager.service";
 import { validateKeySets } from "shared/common/utils/activity";
 import { ActivityService } from "shared/common/activity/activity.service";
@@ -31,7 +31,7 @@ import { UtilsService } from "../../utils/utils.service";
             private readonly adjustIndex: AdjustActiveIndexService,
             private readonly potsplit: PostsplitService,
             private readonly handleGameOver: HandleGameOverService,
-            private readonly responseHandler: ResponseHandlerService,
+            private readonly responseHandler: ResponseHandlerDbService,
             private readonly tableManager: TableManagerService,
             private readonly activity: ActivityService,
             private readonly roundOver: RoundOverService,
