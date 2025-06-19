@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { forwardRef, Inject, Injectable } from "@nestjs/common";
 import _ from "underscore";
 import _ld from "lodash";
 import {systemConfig} from "../../../../../libs/common/src/systemConfig";
@@ -10,7 +10,7 @@ import { ResponseHandlerRoomService } from "./responseHandlerRoom.service";
 import { CommonHandlerService } from "./commonHandler.service";
 import { BroadcastHandlerService } from "./broadcastHandler.service";
 import { TournamentJoinHandlerService } from "./tournamentJoinHandler.service";
-import { SharedModuleServie } from "shared/common/utils/sharedModule.service";
+import { SharedModuleService } from "shared/common/utils/sharedModule.service";
 import { SatelliteTournamentService } from "../database/satelliteTournament.service";
 import { stateOfX } from "shared/common";
 import { StartGameHandlerService } from "./startGameHandler.service";
@@ -30,8 +30,8 @@ export class StartTournamentHandlerService {
     private readonly commonHandler: CommonHandlerService,
     private readonly broadcastHandler: BroadcastHandlerService,
     private readonly satelliteTournament: SatelliteTournamentService,
-    private readonly sharedModule:SharedModuleServie,
-    private readonly startGameHandler:StartGameHandlerService,
+    private readonly sharedModule:SharedModuleService,
+    @Inject(forwardRef(() => StartGameHandlerService)) private readonly startGameHandler: StartGameHandlerService,
   ) { }
 
 

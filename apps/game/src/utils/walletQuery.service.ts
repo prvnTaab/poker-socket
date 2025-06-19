@@ -4,13 +4,14 @@ import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class WalletQueryService {
-  constructor(@Inject('WALLET_SERVICE') private wallet: ClientProxy,
+    constructor(
+        @Inject('WALLET_SERVICE') private wallet: ClientProxy,
     ) { }
 
-    async sendWalletBroadCast (data :any) {
+    async sendWalletBroadCast(data: any) {
         console.log("Got one request to send to wallet")
         try {
-            let walletReponse = await firstValueFrom(this.wallet.send('wallet',data))
+            let walletReponse = await firstValueFrom(this.wallet.send('wallet', data))
             return walletReponse;
         }
         catch (err) {

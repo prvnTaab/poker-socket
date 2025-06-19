@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { systemConfig } from "shared/common";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
-import { SharedModuleServie } from "shared/common/utils/sharedModule.service";
+import { SharedModuleService } from "shared/common/utils/sharedModule.service";
 import _ from 'underscore';
 
 
@@ -11,7 +11,7 @@ export class SpinTheWheelHandlerService {
 
     constructor(
         private readonly db: PokerDatabaseService,
-        private readonly sharedModule: SharedModuleServie
+        private readonly sharedModule: SharedModuleService
     ) { }
 
 

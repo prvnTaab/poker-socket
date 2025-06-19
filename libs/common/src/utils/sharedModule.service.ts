@@ -6,7 +6,7 @@ import stateOfX from '../stateOfX.sevice';
 import { systemConfig } from '..';
 
 @Injectable()
-export class SharedModuleServie {
+export class SharedModuleService {
 
   private templateIds = {
     default: 'fc9685d8-5526-4fb9-b3b4-770d0d5fe287',

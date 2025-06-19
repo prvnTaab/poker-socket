@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { forwardRef, Inject, Injectable } from "@nestjs/common";
 import _ld from "lodash";
 import _ from 'underscore';
 import { stateOfX, systemConfig } from "shared/common";
@@ -24,7 +24,7 @@ export class MegaPointsManagerService {
         private readonly db: PokerDatabaseService,
         private readonly profileMgmt: ProfileMgmtService,
         private readonly wallet: WalletQueryService,
-        private readonly userRemote: UserRemoteService,
+        @Inject(forwardRef(() => UserRemoteService)) private readonly userRemote: UserRemoteService,
 
     ) { }
 

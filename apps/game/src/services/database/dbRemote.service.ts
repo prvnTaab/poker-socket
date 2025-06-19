@@ -15,7 +15,7 @@ import { ResponseHandlerDbService } from "./responseHandlerDb.service";
 import { validateKeySets } from "shared/common/utils/activity";
 import { WalletQueryService } from "../../utils/walletQuery.service";
 import { PasswordencrytpdecryptService } from "shared/common/utils/passwordencrytpdecrypt.service";
-import { SharedModuleServie } from "shared/common/utils/sharedModule.service";
+import { SharedModuleService } from "shared/common/utils/sharedModule.service";
 // shortid.characters('QWERTYUIOPASDFGHJKLZXCVBNM012345');
 
 
@@ -28,7 +28,7 @@ export class DbRemoteService {
         private wallet : WalletQueryService,
         private readonly utilsService:UtilityService,
         private readonly passwordencrytpdecryptService:PasswordencrytpdecryptService,
-        private readonly sharedModule:SharedModuleServie
+        private readonly sharedModule:SharedModuleService
     ){
     }
 

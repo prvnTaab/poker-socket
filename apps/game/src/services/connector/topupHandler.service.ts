@@ -4,7 +4,7 @@ import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.servi
 import { BroadcastHandlerService } from "./broadcastHandler.service";
 import shortid = require('shortid32');
 import { stateOfX, systemConfig } from "shared/common";
-import { SharedModuleServie } from "shared/common/utils/sharedModule.service";
+import { SharedModuleService } from "shared/common/utils/sharedModule.service";
 import { WalletQueryService } from "apps/game/src/utils/walletQuery.service";
 
 // Set your custom character set
@@ -43,7 +43,7 @@ export class TopupHandlerService {
         private readonly db:PokerDatabaseService,
         private readonly imd:ImdbDatabaseService,
         private readonly broadcastHandler:BroadcastHandlerService,
-        private readonly sharedModule:SharedModuleServie,
+        private readonly sharedModule:SharedModuleService,
         private readonly wallet:WalletQueryService,
 
     ) {}

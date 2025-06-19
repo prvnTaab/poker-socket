@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { forwardRef, Inject, Injectable } from "@nestjs/common";
 import _ from "underscore";
 import _ld from "lodash";
 import {systemConfig} from "../../../../../libs/common/src/systemConfig";
@@ -31,6 +31,7 @@ export class StartGameHandlerService {
         private readonly db: PokerDatabaseService,
         private readonly imdb: ImdbDatabaseService,
         private readonly channelTimerHandler: ChannelTimerHandlerService,
+        @Inject(forwardRef(() => StartTournamentHandlerService))
         private readonly startTournamentHandler: StartTournamentHandlerService,
         private readonly broadcastHandler: BroadcastHandlerService,
         private readonly tournamentActionHandler: TournamentActionHandlerService,

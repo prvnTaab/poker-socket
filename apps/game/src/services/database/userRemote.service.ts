@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { forwardRef, Inject, Injectable } from "@nestjs/common";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import { MegaPointsManagerService } from "./megaPointsManager.service";
 
@@ -7,7 +7,7 @@ import { MegaPointsManagerService } from "./megaPointsManager.service";
 export class UserRemoteService {
     constructor(
         private db: PokerDatabaseService,
-        private readonly megaPointsManager:MegaPointsManagerService
+        @Inject(forwardRef(()=>MegaPointsManagerService))private readonly megaPointsManager:MegaPointsManagerService
     ){}
 
 

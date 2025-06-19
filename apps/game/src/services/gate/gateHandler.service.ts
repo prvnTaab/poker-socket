@@ -6,7 +6,7 @@ import { systemConfig, stateOfX, popupTextManager, UtilityService } from 'shared
 import { ServerDownManagerService } from 'shared/common/server-down-manager/server-down-manager.service';
 import { DbRemoteService } from '../database/dbRemote.service';
 import { PokerDatabaseService } from 'shared/common/datebase/pokerdatabase.service';
-import { SharedModuleServie } from 'shared/common/utils/sharedModule.service';
+import { SharedModuleService } from 'shared/common/utils/sharedModule.service';
 
 
 
@@ -18,7 +18,7 @@ export class GateHandler {
         private readonly serverDownManager: ServerDownManagerService,
         private readonly dbRemote: DbRemoteService,
         private readonly utilsService:UtilityService,
-        private readonly sharedModule:SharedModuleServie
+        private readonly sharedModule:SharedModuleService
     ) { }
 
 

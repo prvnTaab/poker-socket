@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { GameGateway } from './game/game.gateway';
 import { RedisService } from './redis/redis.service';
 import { DbRemoteService } from './services/database/dbRemote.service';
@@ -92,13 +92,21 @@ import { TableManagerService } from './services/database/tableManager.service';
 import { ResponseHandlerRoomService } from './services/room/responseHandlerRoom.service';
 import { ResponseHandlerDbService } from './services/database/responseHandlerDb.service';
 import { DynamicRanksService } from './services/database/dynamicRanks.service';
-import { SharedModuleServie } from 'shared/common/utils/sharedModule.service';
+import { SharedModuleService } from 'shared/common/utils/sharedModule.service';
+import { ActionHandlerService } from './services/room/actionHandler.service';
+import { HttpModule } from '@nestjs/axios';
+import { WaitingListHandlerService } from './services/room/waitingListHandler.service';
+import { HandleGameOverService } from './services/database/handleGameOver.service';
+import { PerformActionService } from './services/database/performAction.service';
+import { MoveRemoteService } from './services/database/moveRemote.service';
+import { ManageBountyService } from './services/database/manageBounty.service';
 
 @Module({
   imports: [
-    DatabaseModule,
+    HttpModule,
+    forwardRef(()=>DatabaseModule),
     UtilsModule,
-    CommonModule,
+    forwardRef(()=>CommonModule),
 
     ClientsModule.register([
       {
@@ -106,13 +114,13 @@ import { SharedModuleServie } from 'shared/common/utils/sharedModule.service';
         transport: Transport.TCP,
         options: { host: 'localhost', port: Number(4005) },
       },
-    ]),
-    // ConfigModule.forRoot({isGlobal: true}),
-    // MongooseModule.forRoot(process.env.IMDB, {connectionName: 'inMemoryDb'}),
-    // MongooseModule.forRoot(process.env.DB, {connectionName: 'db'}),
+    ])
   ],
   controllers: [],
   providers: [
+    
+    
+    StartGameHandlerService,
     GameGateway,
     RedisService,
     UserRemoteService,
@@ -124,7 +132,7 @@ import { SharedModuleServie } from 'shared/common/utils/sharedModule.service';
     BroadcastHandlerService,
     CommonHandlerService,
     SubscriptionHandlerService,
-StartGameHandlerService,
+  
     StartTournamentHandlerService,
     TournamentJoinHandlerService,
     AutoSitHandlerService,
@@ -146,7 +154,9 @@ StartGameHandlerService,
     WalletQueryService,
     MegaPointsManagerService,
     DynamicRanksService,
-    SharedModuleServie,
+    SharedModuleService,
+    ActionHandlerService,
+    WaitingListHandlerService,
 
     // DATABASE SERVICES START
     AddonManagementService,
@@ -189,6 +199,10 @@ StartGameHandlerService,
     SummaryGeneratorService,
     TableManagerService,
     ResponseHandlerDbService,
+    HandleGameOverService,
+    PerformActionService,
+    MoveRemoteService,,
+    ManageBountyService,
     // DATABASE SERVICES END
 
 
@@ -215,7 +229,9 @@ StartGameHandlerService,
     UtilsService,
     SocketQueryService,
 
+    
+
   ],
-  exports: [RedisService, DbRemoteService, UserRemoteService, WalletQueryService]
+  exports: [RedisService, DbRemoteService, UserRemoteService,]
 })
 export class GameModule { }

@@ -3,7 +3,7 @@ import _ from 'underscore';
 import { stateOfX, UtilityService } from "shared/common";
 import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
 import { WalletService } from "apps/wallet/src/wallet.service";
-import { SharedModuleServie } from "shared/common/utils/sharedModule.service";
+import { SharedModuleService } from "shared/common/utils/sharedModule.service";
 import { WalletQueryService } from "../../utils/walletQuery.service";
 
 
@@ -23,7 +23,7 @@ export class CashOutForPlayerService {
     constructor(
         private readonly db: PokerDatabaseService,
         private readonly wallet: WalletQueryService,
-        private readonly sharedModule:SharedModuleServie,
+        private readonly sharedModule:SharedModuleService,
         private readonly utilsService:UtilityService
     ) { }
 

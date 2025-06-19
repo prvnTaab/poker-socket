@@ -5,7 +5,7 @@ import popupTextManager from "shared/common/popupTextManager";
 import stateOfX from "shared/common/stateOfX.sevice";
 import { systemConfig } from "shared/common";
 import { ProfileMgmtService } from "shared/common/utils/profileMgmt.service";
-import { SharedModuleServie } from "shared/common/utils/sharedModule.service";
+import { SharedModuleService } from "shared/common/utils/sharedModule.service";
 
 
 
@@ -30,7 +30,7 @@ export class TourStartRemoteService {
         private readonly db: PokerDatabaseService,
         private readonly broadcastHandler: BroadcastHandlerService,
         private readonly profileMgmt:ProfileMgmtService,
-        private readonly sharedModule:SharedModuleServie
+        private readonly sharedModule:SharedModuleService
     ) { }
 
 
