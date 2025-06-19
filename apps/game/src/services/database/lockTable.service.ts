@@ -6,8 +6,8 @@ import async from "async";
 // import mongodb from "../../../../../shared/mongodbConnection";
 import { systemConfig, stateOfX, popupTextManager } from "shared/common";
 import { validateKeySets } from "shared/common/utils/activity";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { PerformActionService } from "./performAction.service";
 import { LinkedListService } from "shared/common/utils/linkedList.service";
 

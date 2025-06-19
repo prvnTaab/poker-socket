@@ -3,7 +3,7 @@ import _ld from "lodash";
 import _ from 'underscore';
 import { AdjustActiveIndexService } from "./adjustActiveIndex.service";
 import { TableManagerService } from "./tableManager.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { stateOfX, popupTextManager, systemConfig } from "shared/common";
 import { validateKeySets } from "shared/common/utils/activity";
 import { ActivityService } from "shared/common/activity/activity.service";

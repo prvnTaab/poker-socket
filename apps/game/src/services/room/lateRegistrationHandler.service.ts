@@ -3,8 +3,8 @@ import * as _ from 'underscore';
 import { systemConfig, stateOfX, popupTextManager } from 'shared/common';
 import { BroadcastHandlerService } from "./broadcastHandler.service";
 import { StartGameHandlerService } from "./startGameHandler.service";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { TournamentJoinHandlerService } from "./tournamentJoinHandler.service";
 import { CreateTournamentTableService } from "shared/common/utils/createTournamentTable.service";
 

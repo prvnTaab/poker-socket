@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import _ld from "lodash";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
 import _ from "underscore";
 import { v4 as uuid } from "uuid";
 import { TableManagerService } from "./tableManager.service";
@@ -10,7 +10,7 @@ import { UtilsService } from "../../utils/utils.service";
 import { validateKeySets } from "shared/common/utils/activity";
 import { systemConfig } from "shared/common";
 import { VideoRemoteService } from "./videoRemote.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { RandyService } from "shared/common/utils/cards/randy.service";
 import { ShortDeckService } from "shared/common/utils/cards/shortDeck.service";
 import { DeckService } from "shared/common/utils/cards/deck.service";

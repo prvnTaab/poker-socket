@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { systemConfig, stateOfX } from 'shared/common';
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { ActionHandlerService } from "./actionHandler.service";
 import { BroadcastHandlerService } from "./broadcastHandler.service";
 import { ChannelTimerHandlerService } from "./channelTimerHandler.service";

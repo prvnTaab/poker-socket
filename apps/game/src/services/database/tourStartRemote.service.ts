@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { BroadcastHandlerService } from "../room/broadcastHandler.service";
 import popupTextManager from "shared/common/popupTextManager";
 import stateOfX from "shared/common/stateOfX.sevice";

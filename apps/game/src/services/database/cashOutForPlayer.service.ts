@@ -1,10 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import _ from 'underscore';
-import { stateOfX, UtilityService } from "shared/common";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { stateOfX } from "shared/common";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { WalletService } from "apps/wallet/src/wallet.service";
 import { SharedModuleService } from "shared/common/utils/sharedModule.service";
 import { WalletQueryService } from "../../utils/walletQuery.service";
+import { UtilityService } from "shared/common/utils/utils.service";
 
 
 

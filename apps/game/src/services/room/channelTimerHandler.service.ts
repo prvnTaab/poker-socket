@@ -5,8 +5,8 @@ import {systemConfig} from "../../../../../libs/common/src/systemConfig";
 import popupTextManager from "../../../../../libs/common/src/popupTextManager";
 import stateOfX from "shared/common/stateOfX.sevice";
 
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
 import { BroadcastHandlerService } from "./broadcastHandler.service";
 import { SubscriptionHandlerService } from "./subscriptionHandler.service";
 import { validateKeySets } from "shared/common/utils/activity";

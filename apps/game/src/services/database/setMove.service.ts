@@ -1,10 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import _ld from "lodash";
 import _ from 'underscore';
-import { stateOfX, popupTextManager, UtilityService } from "shared/common";
+import { stateOfX, popupTextManager } from "shared/common";
 import async from "async";
 import { validateKeySets } from "shared/common/utils/activity";
 import { TableManagerService } from "./tableManager.service";
+import { UtilityService } from "shared/common/utils/utils.service";
 
 @Injectable()
 export class SetMoveService {

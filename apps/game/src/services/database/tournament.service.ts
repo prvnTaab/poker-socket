@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import _ from 'underscore';
 import { CalculateChannelDetailsService } from "./calculateChannelDetails.service";
 import popupTextManager from "shared/common/popupTextManager";

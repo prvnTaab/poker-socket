@@ -3,7 +3,7 @@ import _ from "underscore";
 import _ld from "lodash";
 import popupTextManager from "../../../../../libs/common/src/popupTextManager";
 import stateOfX from "shared/common/stateOfX.sevice";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
 import { validateKeySets } from "shared/common/utils/activity";
 
 

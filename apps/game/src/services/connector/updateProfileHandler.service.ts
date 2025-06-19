@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { ActivityService } from "shared/common/activity/activity.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import _ from 'underscore';
-import { BroadcastHandlerService } from "./broadcastHandler.service";
+import { BroadcastHandlerService1 } from "./broadcastHandler.service";
 import popupTextManager from "shared/common/popupTextManager";
 import { validateKeySets } from "shared/common/utils/activity";
 import { stateOfX } from "shared/common";
@@ -19,7 +19,7 @@ export class UpdateProfileHandlerService {
     constructor(
         private readonly db: PokerDatabaseService,
         private readonly activity: ActivityService,
-        private readonly broadcastHandler: BroadcastHandlerService,
+        private readonly broadcastHandler: BroadcastHandlerService1,
         private readonly encryptDecrypt: PasswordencrytpdecryptService
     ) { }
 

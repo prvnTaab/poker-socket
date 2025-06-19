@@ -2,7 +2,7 @@ import { forwardRef, Inject, Injectable } from "@nestjs/common";
 import _ld from "lodash";
 import _ from 'underscore';
 import { stateOfX, systemConfig } from "shared/common";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { UserRemoteService } from "./userRemote.service";
 import { WalletQueryService } from "../../utils/walletQuery.service";
 import { ProfileMgmtService } from "shared/common/utils/profileMgmt.service";

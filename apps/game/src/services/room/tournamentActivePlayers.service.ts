@@ -3,7 +3,7 @@ import _ from "underscore";
 import { systemConfig, stateOfX } from 'shared/common';
 
 import { BroadcastHandlerService } from "./broadcastHandler.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 
 
 

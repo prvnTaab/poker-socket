@@ -1,12 +1,13 @@
 import { Injectable } from "@nestjs/common";
 import _ld from "lodash";
 import _ from 'underscore';
-import { stateOfX, popupTextManager, UtilityService } from "shared/common";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
+import { stateOfX, popupTextManager } from "shared/common";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
 import { TableManagerService } from "./tableManager.service";
 import { DynamicRanksService } from "./dynamicRanks.service";
 import { CustomLibraryService } from "shared/common/utils/custumLibrary.service";
+import { UtilityService } from "shared/common/utils/utils.service";
 
 
 

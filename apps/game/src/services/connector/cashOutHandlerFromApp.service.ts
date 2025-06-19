@@ -1,8 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { UtilsService } from "apps/game/src/utils/utils.service";
 import { systemConfig } from "shared/common";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { SharedModuleService } from "shared/common/utils/sharedModule.service";
+import { WalletQueryService } from "../../utils/walletQuery.service";
 
 
 
@@ -27,7 +28,7 @@ export class CashOutHandlerFromAppService {
 
     constructor(
         private readonly db: PokerDatabaseService,
-        private readonly wallet,
+        private readonly wallet:WalletQueryService,
         private readonly utilsService: UtilsService,
         private readonly sharedModule:SharedModuleService
     ) { }

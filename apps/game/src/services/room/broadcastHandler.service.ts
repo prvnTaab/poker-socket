@@ -6,8 +6,8 @@ import popupTextManager from "../../../../../libs/common/src/popupTextManager";
 import stateOfX from "shared/common/stateOfX.sevice";
 import { validateKeySets } from "shared/common/utils/activity";
 
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
 
 
 declare const pomelo: any; // In this place we have add socket.io

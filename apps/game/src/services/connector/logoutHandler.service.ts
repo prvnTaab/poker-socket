@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
-import { SessionHandlerService } from "./sessionHandler.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
+import { SessionHandlerService1 } from "./sessionHandler.service";
 import popupTextManager from "shared/common/popupTextManager";
 
 
@@ -16,7 +16,7 @@ export class LogoutHandlerService {
     constructor(
         private readonly db: PokerDatabaseService,
         private readonly imdb: ImdbDatabaseService,
-        private readonly sessionHandler: SessionHandlerService,
+        private readonly sessionHandler: SessionHandlerService1,
     ) { }
 
 

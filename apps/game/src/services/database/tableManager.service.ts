@@ -6,14 +6,15 @@ import { Injectable } from "@nestjs/common";
 import _ld from "lodash";
 import _ from "underscore";
 import async from "async";
-import { stateOfX, systemConfig, popupTextManager, UtilityService } from "shared/common";
+import { stateOfX, systemConfig, popupTextManager } from "shared/common";
 import { ActivityService } from "shared/common/activity/activity.service";
 import { validateKeySets } from "shared/common/utils/activity";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { WalletQueryService } from "../../utils/walletQuery.service";
 import { EntryService } from "shared/common/utils/winner-algo/entry.service";
 import { BroadcastHandlerService } from "../room/broadcastHandler.service";
+import { UtilityService } from "shared/common/utils/utils.service";
 
 
 declare const pomelo: any;

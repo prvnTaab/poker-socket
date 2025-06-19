@@ -3,7 +3,7 @@ import { DynamicRanksService } from "./dynamicRanks.service";
 import _ from "underscore";
 import popupTextManager from "shared/common/popupTextManager";
 import { stateOfX } from "shared/common";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { ProfileMgmtService } from "shared/common/utils/profileMgmt.service";
 import { WalletQueryService } from "../../utils/walletQuery.service";
 

@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import _ld from "lodash";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import _ from "underscore";
 import { HandleGameOverService } from "../handleGameOver.service";
 import { PostsplitService } from "../potsplit.service";

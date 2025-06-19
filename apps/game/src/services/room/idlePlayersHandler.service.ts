@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import * as _ from 'underscore';
 import { systemConfig, stateOfX, popupTextManager } from 'shared/common';
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
 import { BroadcastHandlerService } from "./broadcastHandler.service";
 
 

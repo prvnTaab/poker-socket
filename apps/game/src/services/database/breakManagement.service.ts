@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import _ld from "lodash";
 import _ from 'underscore';
 import { stateOfX, popupTextManager, systemConfig } from "shared/common";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
 
 
 

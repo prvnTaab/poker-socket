@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
-import { BroadcastHandlerService } from "./broadcastHandler.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
+import { BroadcastHandlerService1 } from "./broadcastHandler.service";
 import shortid = require('shortid32');
 import { stateOfX, systemConfig } from "shared/common";
 import { SharedModuleService } from "shared/common/utils/sharedModule.service";
@@ -42,7 +42,7 @@ export class TopupHandlerService {
     constructor(
         private readonly db:PokerDatabaseService,
         private readonly imd:ImdbDatabaseService,
-        private readonly broadcastHandler:BroadcastHandlerService,
+        private readonly broadcastHandler:BroadcastHandlerService1,
         private readonly sharedModule:SharedModuleService,
         private readonly wallet:WalletQueryService,
 

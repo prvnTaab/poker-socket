@@ -2,11 +2,12 @@
 import * as _ from 'underscore';
 import { validateKeySets } from 'shared/common/utils/activity';
 import { ActivityService } from 'shared/common/activity/activity.service';
-import { systemConfig, stateOfX, popupTextManager, UtilityService } from 'shared/common';
+import { systemConfig, stateOfX, popupTextManager } from 'shared/common';
 import { ServerDownManagerService } from 'shared/common/server-down-manager/server-down-manager.service';
 import { DbRemoteService } from '../database/dbRemote.service';
-import { PokerDatabaseService } from 'shared/common/datebase/pokerdatabase.service';
+import { PokerDatabaseService } from 'shared/common/utils/pokerdatabase.service';
 import { SharedModuleService } from 'shared/common/utils/sharedModule.service';
+import { UtilityService } from 'shared/common/utils/utils.service';
 
 
 

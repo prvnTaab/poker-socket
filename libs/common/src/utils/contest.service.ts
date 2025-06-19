@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { writeFile, readFile } from 'fs/promises';
 import { join } from 'path';
 import * as _ from 'underscore';
-import { PokerDatabaseService } from '../datebase/pokerdatabase.service';
+import { PokerDatabaseService } from './pokerdatabase.service';
 
 @Injectable()
 export class ContestService {

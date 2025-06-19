@@ -22,7 +22,7 @@ let pomelo: any;
 //  pomelo to socket connection 
 
 @Injectable()
-export class BroadcastHandlerService {
+export class BroadcastHandlerService1 {
 
 
 

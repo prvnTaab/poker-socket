@@ -1,13 +1,13 @@
 import { Injectable } from "@nestjs/common";
 
 
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
 import _ from "underscore";
 import _ld from "lodash";
 import async from 'async';
 import { v4 as uuid } from "uuid";
-import { stateOfX, systemConfig , popupTextManager, UtilityService} from "shared/common";
+import { stateOfX, systemConfig , popupTextManager} from "shared/common";
 import { UserRemoteService } from "./userRemote.service";
 import { ResponseHandlerDbService } from "./responseHandlerDb.service";
 
@@ -16,6 +16,7 @@ import { validateKeySets } from "shared/common/utils/activity";
 import { WalletQueryService } from "../../utils/walletQuery.service";
 import { PasswordencrytpdecryptService } from "shared/common/utils/passwordencrytpdecrypt.service";
 import { SharedModuleService } from "shared/common/utils/sharedModule.service";
+import { UtilityService } from "shared/common/utils/utils.service";
 // shortid.characters('QWERTYUIOPASDFGHJKLZXCVBNM012345');
 
 

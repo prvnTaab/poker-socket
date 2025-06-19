@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import _ld from "lodash";
 import _ from "underscore";
 import { ActivityService } from "shared/common/activity/activity.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 
 import { TableManagerService } from "../tableManager.service";
 import stateOfX from "shared/common/stateOfX.sevice";

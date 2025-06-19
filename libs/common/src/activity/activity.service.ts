@@ -4,8 +4,9 @@ import { Injectable } from '@nestjs/common';
 
 import _ from "underscore";
 import stateOfX from '../stateOfX.sevice';
-import { systemConfig, UtilityService } from 'shared/common';
-import { PokerDatabaseService } from '../datebase/pokerdatabase.service';
+import { systemConfig } from 'shared/common';
+import { PokerDatabaseService } from '../utils/pokerdatabase.service';
+import { UtilityService } from '../utils/utils.service';
 
 // const logDB = require("./model/logDbQuery.js");
 

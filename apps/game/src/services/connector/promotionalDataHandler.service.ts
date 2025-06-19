@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import _ from 'underscore';
 import _ld from "lodash";
 import shortid = require('shortid32');
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { systemConfig } from "shared/common";
 shortid.characters('QWERTYUIOPASDFGHJKLZXCVBNM012345');
 

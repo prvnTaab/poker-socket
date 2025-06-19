@@ -1,21 +1,21 @@
 import { Injectable } from "@nestjs/common";
 import { popupTextManager, stateOfX, systemConfig } from "shared/common";
 import { ActivityService } from "shared/common/activity/activity.service";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { validateKeySets } from "shared/common/utils/activity";
 import _ from 'underscore';
-import { BroadcastHandlerService } from "./broadcastHandler.service";
-import { SessionHandlerService } from "./sessionHandler.service";
+import { BroadcastHandlerService1 } from "./broadcastHandler.service";
+import { SessionHandlerService1 } from "./sessionHandler.service";
 import { UpdateProfileHandlerService } from "./updateProfileHandler.service";
 import { LogoutHandlerService } from "./logoutHandler.service";
 import { RetryHandlerService } from "./retryHandler.service";
 import { RebuyHandlerService } from "./rebuyHandler.service";
 import { AddOnHandlerService } from "./addOnHandler.service";
 import { GetFiltersFromDbService } from "./getFiltersFromDb.service";
-import { OnlinePlayersService } from "./onlinePlayers.service";
+import { OnlinePlayersService1 } from "./onlinePlayers.service";
 import { DisconnectionHandlerService } from "./disconnectionHandler.service";
-import { CommonHandlerService } from "./commonHandler.service";
+import { CommonHandlerService1 } from "./commonHandler.service";
 import { TournamentLeaveHandlerService } from "./tournamentLeaveHandler.service";
 import { TopupHandlerService } from "./topupHandler.service";
 import { PromotionalDataHandlerService } from "./promotionalDataHandler.service";
@@ -70,17 +70,17 @@ app:any
     private readonly db: PokerDatabaseService,
     private readonly imdb: ImdbDatabaseService,
     private readonly activity: ActivityService,
-    private readonly broadcastHandler: BroadcastHandlerService,
-    private readonly sessionHandler: SessionHandlerService,
+    private readonly broadcastHandler: BroadcastHandlerService1,
+    private readonly sessionHandler: SessionHandlerService1,
     private readonly updateProfileHandler: UpdateProfileHandlerService,
     private readonly logoutHandler: LogoutHandlerService,
     private readonly retryHandler: RetryHandlerService,
     private readonly rebuyHandler: RebuyHandlerService,
     private readonly addOnHandler: AddOnHandlerService,
     private readonly getFiltersFromDb: GetFiltersFromDbService,
-    private readonly onlinePlayers: OnlinePlayersService,
+    private readonly onlinePlayers: OnlinePlayersService1,
     private readonly disconnectionHandler: DisconnectionHandlerService,
-    private readonly commonHandler: CommonHandlerService,
+    private readonly commonHandler: CommonHandlerService1,
     private readonly tournamentLeaveHandler: TournamentLeaveHandlerService,
     private readonly topupHandler: TopupHandlerService,
     private readonly promotionalDataHandler: PromotionalDataHandlerService,

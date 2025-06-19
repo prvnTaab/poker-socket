@@ -1,5 +1,5 @@
 import { forwardRef, Inject, Injectable } from "@nestjs/common";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { MegaPointsManagerService } from "./megaPointsManager.service";
 
 

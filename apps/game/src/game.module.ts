@@ -68,7 +68,7 @@ import { DeductRakefromTableService } from './services/database/utils/deductRake
 import { PrizeDistributionService } from './services/database/utils/prizeDistribution.service';
 import { RoundOverService } from './services/database/utils/roundOver.service';
 import { SummaryGeneratorService } from './services/database/utils/summaryGenerator.service';
-import { DatabaseModule } from 'shared/common/datebase/database.module';
+// import { DatabaseModule } from 'shared/common/datebase/database.module';
 import { CommonModule } from 'shared/common/common.module';
 import { DisconnectionHandlerService } from './services/connector/disconnectionHandler.service';
 import { EntryHandlerService } from './services/connector/entryHandler.service';
@@ -100,14 +100,24 @@ import { HandleGameOverService } from './services/database/handleGameOver.servic
 import { PerformActionService } from './services/database/performAction.service';
 import { MoveRemoteService } from './services/database/moveRemote.service';
 import { ManageBountyService } from './services/database/manageBounty.service';
+import { LeaveRemoteService } from './services/database/leaveRemote.service';
+import { StartGameRemoteService } from './services/database/startGameRemote.service';
+import { LogRemoteService } from './services/database/logRemote.service';
+import { PlayerShufflingService } from './services/database/playerShuffling.service';
+import { DeductBlindsService } from './services/database/deductBlinds.service';
+import { DistributeCardsService } from './services/database/distributeCards.service';
+import { BroadcastHandlerService1 } from './services/connector/broadcastHandler.service';
+import { SessionHandlerService1 } from './services/connector/sessionHandler.service';
+import { OnlinePlayersService1 } from './services/connector/onlinePlayers.service';
+import { CommonHandlerService1 } from './services/connector/commonHandler.service';
+import { ContestService } from 'shared/common/utils/contest.service';
 
 @Module({
   imports: [
     HttpModule,
-    forwardRef(()=>DatabaseModule),
+    // forwardRef(()=>DatabaseModule),
     UtilsModule,
-    forwardRef(()=>CommonModule),
-
+    forwardRef(() => CommonModule),
     ClientsModule.register([
       {
         name: 'POKER_WALLET',
@@ -118,50 +128,17 @@ import { ManageBountyService } from './services/database/manageBounty.service';
   ],
   controllers: [],
   providers: [
-    
-    
-    StartGameHandlerService,
+    // CORE SERVICES FIRST (no dependencies on other services in this module)
     GameGateway,
     RedisService,
-    UserRemoteService,
-    ResponseHandlerRoomService,
-    JoinChannelHandler,
-    ActionLoggerService,
-    JoinRequestUtilService,
-    ChannelTimerHandlerService,
-    BroadcastHandlerService,
-    CommonHandlerService,
-    SubscriptionHandlerService,
-  
-    StartTournamentHandlerService,
-    TournamentJoinHandlerService,
-    AutoSitHandlerService,
-    CalculateDynamicBountyHandlerService,
-    TournamentActionHandlerService,
-    DisconnectedPlayersHandlerService,
-    IdlePlayersHandlerService,
-    LateRegistrationHandlerService,
-    OnlinePlayersService,
-    SendMessageToSessionsService,
-    PrizePoolHandlerService,
-    ResumeHandlerService,
-    RevertLockedHandlerService,
-    SessionHandlerService,
-    SitHereHandlerService,
-    TournamentActionHandlerService,
-    DynamicTableHandlerService,
-    HandleTipDealerService,
     WalletQueryService,
-    MegaPointsManagerService,
-    DynamicRanksService,
-    SharedModuleService,
-    ActionHandlerService,
-    WaitingListHandlerService,
-
-    // DATABASE SERVICES START
+    UtilsService,
+    SocketQueryService,
+    
+    // DATABASE FOUNDATION SERVICES
+    DbRemoteService,
     AddonManagementService,
     AdjustActiveIndexService,
-    DbRemoteService,
     HandleGameStartCaseService,
     LockTableService,
     SetMoveService,
@@ -201,24 +178,61 @@ import { ManageBountyService } from './services/database/manageBounty.service';
     ResponseHandlerDbService,
     HandleGameOverService,
     PerformActionService,
-    MoveRemoteService,,
+    MoveRemoteService, // FIXED: Removed extra comma
     ManageBountyService,
-    // DATABASE SERVICES END
+    DynamicRanksService,
+    SharedModuleService,
+    LeaveRemoteService,
+    StartGameRemoteService,
+    PlayerShufflingService,
+    LogRemoteService,
+    DeductBlindsService,
+    DistributeCardsService,
+    // SERVICES WITH CIRCULAR DEPENDENCIES (register after their dependencies)
+    UserRemoteService, // This depends on MegaPointsManagerService
+    MegaPointsManagerService, // This depends on UserRemoteService
 
+    // ROOM/HANDLER SERVICES
+    ActionLoggerService,
+    JoinRequestUtilService,
+    ChannelTimerHandlerService,
+    BroadcastHandlerService1,
+    CommonHandlerService,
+    SubscriptionHandlerService,
+    ResponseHandlerRoomService,
+    JoinChannelHandler,
+    AutoSitHandlerService,
+    CalculateDynamicBountyHandlerService,
+    TournamentActionHandlerService,
+    DisconnectedPlayersHandlerService,
+    IdlePlayersHandlerService,
+    LateRegistrationHandlerService,
+    OnlinePlayersService,
+    SendMessageToSessionsService,
+    PrizePoolHandlerService,
+    ResumeHandlerService,
+    RevertLockedHandlerService,
+    SessionHandlerService,
+    SitHereHandlerService,
+    DynamicTableHandlerService,
+    HandleTipDealerService,
+    ActionHandlerService,
+    WaitingListHandlerService,
+    TournamentJoinHandlerService,
 
+    // CIRCULAR DEPENDENCY SERVICES (register last)
+    StartGameHandlerService, // This depends on StartTournamentHandlerService
+    StartTournamentHandlerService, // This depends on StartGameHandlerService
 
+    // CONNECTOR SERVICES
     DisconnectionHandlerService,
     EntryHandlerService,
-    BroadcastHandlerService,
-    SessionHandlerService,
     UpdateProfileHandlerService,
     LogoutHandlerService,
     RetryHandlerService,
     RebuyHandlerService,
     AddOnHandlerService,
     GetFiltersFromDbService,
-    OnlinePlayersService,
-    CommonHandlerService,
     TournamentLeaveHandlerService,
     TopupHandlerService,
     PromotionalDataHandlerService,
@@ -226,12 +240,24 @@ import { ManageBountyService } from './services/database/manageBounty.service';
     PanCardHandlerService,
     SpinTheWheelHandlerService,
     BonusHandlerService,
-    UtilsService,
-    SocketQueryService,
-
-    
+    BroadcastHandlerService,
+    SessionHandlerService1,
+    OnlinePlayersService1,
+    CommonHandlerService1,
 
   ],
-  exports: [RedisService, DbRemoteService, UserRemoteService,]
+  exports: [
+    RedisService, 
+    DbRemoteService, 
+    UserRemoteService,
+    // ADDED: Export other services that might be needed by other modules
+    MegaPointsManagerService,
+    StartGameHandlerService,
+    StartTournamentHandlerService,
+    BroadcastHandlerService,
+    CommonHandlerService,
+    TournamentActionHandlerService,
+    SharedModuleService,
+  ]
 })
 export class GameModule { }

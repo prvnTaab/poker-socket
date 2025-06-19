@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import _ from "underscore";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 
 
 

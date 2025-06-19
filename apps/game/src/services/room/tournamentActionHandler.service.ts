@@ -5,8 +5,8 @@ import { systemConfig, stateOfX } from 'shared/common';
 
 import { PrizePoolHandlerService } from "./prizePoolHandler.service";
 import { BroadcastHandlerService } from "./broadcastHandler.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
 import { CalculateDynamicBountyHandlerService } from "./calculateDynamicBountyHandler.service";
 
 

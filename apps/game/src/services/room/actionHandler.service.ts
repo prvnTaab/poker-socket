@@ -5,7 +5,7 @@ import * as _ from 'underscore';
 import { systemConfig, stateOfX } from 'shared/common';
 import { BroadcastHandlerService } from './broadcastHandler.service';
 import { ActionLoggerService } from './actionLogger.service';
-import { ImdbDatabaseService } from 'shared/common/datebase/Imdbdatabase.service';
+import { ImdbDatabaseService } from 'shared/common/utils/Imdbdatabase.service';
 import { ChannelTimerHandlerService } from './channelTimerHandler.service';
 import { StartGameHandlerService } from './startGameHandler.service';
 import { WaitingListHandlerService } from './waitingListHandler.service';

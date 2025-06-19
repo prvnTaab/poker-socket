@@ -19,15 +19,25 @@ import { CustomLibraryService } from './utils/custumLibrary.service';
 import { LinkedListService } from './utils/linkedList.service';
 import { OutsScriptService } from './utils/outsScript.service';
 import { PasswordencrytpdecryptService } from './utils/passwordencrytpdecrypt.service';
-import { ContestService } from './utils/contest.service';
-import { DatabaseModule } from './datebase/database.module';
+// import { ContestService } from './utils/contest.service';
 import { UtilityService } from './utils/utils.service';
+import { ConfigModule } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
+import { PokerDatabaseService } from './utils/pokerdatabase.service';
+import { ImdbDatabaseService } from './utils/Imdbdatabase.service';
+import { ContestService } from './utils/contest.service';
 
 @Global()
 @Module({
   imports: [
+  ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
 
-    forwardRef(() => DatabaseModule),
+    MongooseModule.forRoot(process.env.IMDB, { connectionName: 'inMemoryDb' }),
+    MongooseModule.forRoot(process.env.DB, { connectionName: 'db' }),
+    // forwardRef(() => DatabaseModule),
 
     // DatabaseModule
     
@@ -40,6 +50,8 @@ import { UtilityService } from './utils/utils.service';
     CreateTournamentTableService,
     RandyService,
     ShortDeckService,
+    PokerDatabaseService,
+    ImdbDatabaseService,
     DeckService,
     EntryService,
     CardComparerService,
@@ -79,7 +91,9 @@ import { UtilityService } from './utils/utils.service';
     PasswordencrytpdecryptService,
     ContestService,
     UtilityService,
-    ActivityService
+    ActivityService,
+    PokerDatabaseService,
+    ImdbDatabaseService,
   ],
 })
 export class CommonModule { }

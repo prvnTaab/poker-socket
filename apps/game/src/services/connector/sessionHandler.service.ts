@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import stateOfX from "shared/common/stateOfX.sevice";
 import { validateKeySets } from "shared/common/utils/activity";
 
@@ -16,7 +16,7 @@ import { validateKeySets } from "shared/common/utils/activity";
 
 
 @Injectable()
-export class SessionHandlerService {
+export class SessionHandlerService1 {
 
 
     constructor(

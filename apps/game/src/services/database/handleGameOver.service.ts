@@ -1,9 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import _ from 'underscore';
 import _ld from "lodash";
-import { stateOfX, popupTextManager, UtilityService } from "shared/common";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { stateOfX, popupTextManager } from "shared/common";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { WalletQueryService } from "../../utils/walletQuery.service";
 import { ActivityService } from "shared/common/activity/activity.service";
 import { DeductRakeService } from "./utils/deductRake.service";
@@ -28,6 +28,7 @@ import { AutoRebuyRemoteService } from "./autoRebuyRemote.service";
 import * as PokerOddsCalc from 'poker-odds-calc';
 import { validateKeySets } from "shared/common/utils/activity";
 import { OutsScriptService } from "shared/common/utils/outsScript.service";
+import { UtilityService } from "shared/common/utils/utils.service";
 
 declare const pomelo: any;
 

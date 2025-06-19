@@ -4,14 +4,14 @@ import _ld from "lodash";
 import popupTextManager from "../../../../../libs/common/src/popupTextManager";
 import { systemConfig, stateOfX } from 'shared/common';
 
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
 
 
 import { BroadcastHandlerService } from "./broadcastHandler.service";
 import { ResponseHandlerRoomService } from "./responseHandlerRoom.service";
 import { CommonHandlerService } from "./commonHandler.service";
 import { JoinRequestUtilService } from "./joinRequestUtil.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { validateKeySets } from "shared/common/utils/activity";
 import { ActivityService } from "shared/common/activity/activity.service";
 

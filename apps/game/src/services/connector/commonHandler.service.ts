@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { systemConfig } from "shared/common";
-import { ImdbDatabaseService } from "shared/common/datebase/Imdbdatabase.service";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { SharedModuleService } from "shared/common/utils/sharedModule.service";
 import _ from 'underscore';
 
@@ -22,7 +22,7 @@ import _ from 'underscore';
 
 
 @Injectable()
-export class CommonHandlerService {
+export class CommonHandlerService1 {
 
 
 

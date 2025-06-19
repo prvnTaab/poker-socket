@@ -8,8 +8,8 @@ import { Injectable } from '@nestjs/common';
 * @Last Modified time: 2018-04-20 21:25:14
 */
 import { systemConfig } from '..';
-import { PokerDatabaseService } from '../datebase/pokerdatabase.service';
-import { ImdbDatabaseService } from '../datebase/Imdbdatabase.service';
+import { PokerDatabaseService } from '../utils/pokerdatabase.service';
+import { ImdbDatabaseService } from '../utils/Imdbdatabase.service';
 
 const confServerDown: any = systemConfig.serverDown || {};
 

@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { popupTextManager, stateOfX } from "shared/common";
-import { PokerDatabaseService } from "shared/common/datebase/pokerdatabase.service";
+import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import _ from 'underscore';
 import shortid from 'shortid32';
 import { UtilsService } from "../../utils/utils.service";
