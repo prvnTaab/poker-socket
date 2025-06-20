@@ -1,5 +1,5 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { GameGateway } from './game/game.gateway';
+import {  SocketGateway } from './socket-gateway/socket.gateway';
 import { RedisService } from './redis/redis.service';
 import { DbRemoteService } from './services/database/dbRemote.service';
 import { UserRemoteService } from './services/database/userRemote.service';
@@ -68,7 +68,6 @@ import { DeductRakefromTableService } from './services/database/utils/deductRake
 import { PrizeDistributionService } from './services/database/utils/prizeDistribution.service';
 import { RoundOverService } from './services/database/utils/roundOver.service';
 import { SummaryGeneratorService } from './services/database/utils/summaryGenerator.service';
-// import { DatabaseModule } from 'shared/common/datebase/database.module';
 import { CommonModule } from 'shared/common/common.module';
 import { DisconnectionHandlerService } from './services/connector/disconnectionHandler.service';
 import { EntryHandlerService } from './services/connector/entryHandler.service';
@@ -85,7 +84,6 @@ import { CashOutHandlerFromAppService } from './services/connector/cashOutHandle
 import { PanCardHandlerService } from './services/connector/panCardHandler.service';
 import { SpinTheWheelHandlerService } from './services/connector/spinTheWheelHandler.service';
 import { BonusHandlerService } from './services/connector/bonusHandler.service';
-import { SocketQueryService } from './utils/socketQuery.service';
 import { UtilsService } from './utils/utils.service';
 import { MegaPointsManagerService } from './services/database/megaPointsManager.service';
 import { TableManagerService } from './services/database/tableManager.service';
@@ -110,12 +108,10 @@ import { BroadcastHandlerService1 } from './services/connector/broadcastHandler.
 import { SessionHandlerService1 } from './services/connector/sessionHandler.service';
 import { OnlinePlayersService1 } from './services/connector/onlinePlayers.service';
 import { CommonHandlerService1 } from './services/connector/commonHandler.service';
-import { ContestService } from 'shared/common/utils/contest.service';
 
 @Module({
   imports: [
     HttpModule,
-    // forwardRef(()=>DatabaseModule),
     UtilsModule,
     forwardRef(() => CommonModule),
     ClientsModule.register([
@@ -129,11 +125,11 @@ import { ContestService } from 'shared/common/utils/contest.service';
   controllers: [],
   providers: [
     // CORE SERVICES FIRST (no dependencies on other services in this module)
-    GameGateway,
+    SocketGateway,
     RedisService,
     WalletQueryService,
     UtilsService,
-    SocketQueryService,
+    // SocketQueryService,
     
     // DATABASE FOUNDATION SERVICES
     DbRemoteService,

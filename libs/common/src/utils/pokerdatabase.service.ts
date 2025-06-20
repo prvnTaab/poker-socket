@@ -1661,9 +1661,7 @@ export class PokerDatabaseService {
   // User updates
   async updateUser(query: any, updateKeys: any): Promise<any> {
     try {
-      return await this.db
-        .collection('users')
-        .updateOne(query, { $set: updateKeys });
+      return await this.db.collection('users').updateOne(query, { $set: updateKeys });
     } catch (err) {
       throw err;
     }
@@ -3655,7 +3653,7 @@ export class PokerDatabaseService {
 
   async findUserDataForMth(playerId: any) {
 
-    let result = await this.db.collection('masterTansactionHistory').findOne({ playerId: playerId });
+    let result = await this.db.collection('MasterTransactionHistories').findOne({ playerId: playerId });
 
     return result;
 
@@ -3663,7 +3661,7 @@ export class PokerDatabaseService {
 
   async insertIntoMTH(data) {
 
-    let result = await this.db.collection('masterTansactionHistory').insertOne(data);
+    let result = await this.db.collection('MasterTransactionHistories').insertOne(data);
 
     return result;
 
@@ -3681,6 +3679,17 @@ export class PokerDatabaseService {
 
 
     return query;
+
+
+  }
+
+  async insertingDataInMTH(data) {
+
+
+    let result = await this.db.collection('MasterTransactionHistories').insertOne(data);
+
+    return result;
+
 
 
   }

@@ -1,9 +1,15 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { WalletController } from './wallet.controller';
 import { WalletService } from './wallet.service';
+import { CommonModule } from 'shared/common/common.module';
+import { UtilsModule } from 'apps/game/src/utils/utils.module';
 
 @Module({
-  imports: [],
+  imports: [
+
+    forwardRef(()=>UtilsModule),
+    forwardRef(() => CommonModule),
+  ],
   controllers: [WalletController],
   providers: [WalletService],
 })

@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import { SocketQueryService } from "apps/game/src/utils/socketQuery.service";
-import { stateOfX, systemConfig } from "shared/common";
+import { systemConfig } from "shared/common";
 import { validateKeySets } from "shared/common/utils/activity";
+import { SocketGateway } from "../../socket-gateway/socket.gateway";
 
 
 
@@ -9,17 +9,7 @@ import { validateKeySets } from "shared/common/utils/activity";
 
 
 let pomelo: any;
-//  pomelo to socket connection 
-// let socket = require('../../socketQuery');
 
-
-// let sendPlayerBroadCast = (data) => {
-//     return socket.sendPlayerBroadCast(data)
-// }
-// let sendGeneralBroadCast = (data) => {
-//     return socket.sendGeneralBroadCast(data)
-// }
-//  pomelo to socket connection 
 
 @Injectable()
 export class BroadcastHandlerService1 {
@@ -27,12 +17,57 @@ export class BroadcastHandlerService1 {
 
 
     constructor(
-        private readonly socketQuery:SocketQueryService
+        private readonly gameGateway: SocketGateway
     ) { }
 
 
 
+    /**
+     * Send a direct broadcast to a specific player.
+     */
+    async sendPlayerBroadCast(data: any): Promise<boolean> {
+        console.log('Got one request to send player broadcast in broadcastHandler', data);
 
+        try {
+            const playerId = data.playerId;
+            const message = data.msg;
+            const eventName = 'lobbyPlayerResponse';
+
+            if (!playerId || !message) {
+                console.warn('Invalid data:', data);
+                return false;
+            }
+
+            this.gameGateway.sendMessageToPlayer(playerId, eventName, message);
+            return true;
+        } catch (err) {
+            console.error('Error sending player broadcast via socket:', err);
+            return false;
+        }
+    }
+
+    /**
+     * Send a general broadcast to the whole lobby (room: allPlayers).
+     */
+    async sendGeneralBroadCast(data: any): Promise<boolean> {
+        console.log('Got one request to send general broadcast in broadcastHandler', data);
+
+        try {
+            const message = data.msg;
+            const eventName = 'lobbyGeneralResponse';
+
+            if (!message) {
+                console.warn('Missing msg in data:', data);
+                return false;
+            }
+
+            this.gameGateway.broadcastToLobby(eventName, message);
+            return true;
+        } catch (err) {
+            console.error('Error sending general broadcast via socket:', err);
+            return false;
+        }
+    }
 
 
     /**
@@ -41,31 +76,33 @@ export class BroadcastHandlerService1 {
  * @param  {Object}          params contains route data playerId
  */
     async userLoggedIn(msg: any): Promise<void> {
-        this.socketQuery.sendPlayerBroadCast(msg);
+        this.sendPlayerBroadCast(msg);
     }
 
     async sendMessageToUser(params: any): Promise<void> {
         if (params.route === "tournamentCancelled") {
-            params.route = "playerInfo";
+            params.route = "playerInfo"; // fallback route
         }
 
         const validated = await validateKeySets("Request", "connector", "sendMessageToUser", params);
-        if (validated.success) {
-            await pomelo.app.rpcInvoke(
-                'connector-server-1',
-                {
-                    namespace: "user",
-                    service: "entryRemote",
-                    method: "sendMessageToUser",
-                    args: [params.playerId, params.msg, params.route],
-                }
-            );
+        if (!validated.success) return;
 
-            // sending player broadcast using socket
-            params.msg.action = params.route;
-            this.socketQuery.sendPlayerBroadCast(params.msg);
-        }
+        const eventName = params.route;
+        const message = params.msg;
+
+        // Send direct message to specific player via Socket.IO
+        this.gameGateway.sendMessageToPlayer(params.playerId, eventName, message);
+
+        // Optionally send a broadcast (if needed globally)
+        this.sendPlayerBroadCast({
+            playerId: params.playerId,
+            msg: {
+                ...message,
+                action: eventName, // attach route info for listeners
+            },
+        });
     }
+
 
 
     /**
@@ -76,25 +113,48 @@ export class BroadcastHandlerService1 {
      */
     async fireBroadcastOnSession(params: any): Promise<void> {
         const validated = await validateKeySets("Request", "connector", "fireBroadcastOnSession", params);
-
         if (!validated.success) return;
 
-        const sessionChannels = params.session.get("channels") || [];
+        const sessionChannels = params.session?.get("channels") || [];
         if (sessionChannels.length === 0) return;
 
         for (const sessionChannelId of sessionChannels) {
-            params.broadcastData.channelId = sessionChannelId;
-
-            await pomelo.app.rpc.room.broadcastRemote.pushMessage(params.session, {
+            // Prepare the data
+            const message = {
+                ...params.broadcastData,
                 channelId: sessionChannelId,
-                route: params.broadcastName,
-                msg: params.broadcastData,
-            });
+                action: params.broadcastName,
+            };
 
-            params.broadcastData.action = params.broadcastName;
-            this.socketQuery.sendGeneralBroadCast(params.broadcastData);
+            // ✅ Broadcast to the room (e.g. "game-123")
+            this.gameGateway.broadcastToRoom(sessionChannelId, params.broadcastName, message);
+
+            // ✅ Optional: also send a general broadcast to all players
+            this.sendGeneralBroadCast(message);
         }
     }
+
+    // async fireBroadcastOnSession(params: any): Promise<void> {
+    //     const validated = await validateKeySets("Request", "connector", "fireBroadcastOnSession", params);
+
+    //     if (!validated.success) return;
+
+    //     const sessionChannels = params.session.get("channels") || [];
+    //     if (sessionChannels.length === 0) return;
+
+    //     for (const sessionChannelId of sessionChannels) {
+    //         params.broadcastData.channelId = sessionChannelId;
+
+    //         await pomelo.app.rpc.room.broadcastRemote.pushMessage(params.session, {
+    //             channelId: sessionChannelId,
+    //             route: params.broadcastName,
+    //             msg: params.broadcastData,
+    //         });
+
+    //         params.broadcastData.action = params.broadcastName;
+    //         this.sendGeneralBroadCast(params.broadcastData);
+    //     }
+    // }
 
     async fireBroadcastForStartTournament(params: any): Promise<{ success: boolean }> {
         const validated = await validateKeySets("Request", "connector", "fireBroadcastForStartTournament", params);
@@ -270,7 +330,7 @@ export class BroadcastHandlerService1 {
         // });
 
         data.action = 'sit';
-        this.socketQuery.sendGeneralBroadCast(data);
+        this.sendGeneralBroadCast(data);
     }
 
     // ### Player state broadcast to player only
@@ -288,7 +348,7 @@ export class BroadcastHandlerService1 {
         };
 
         pomelo.app.rpc.room.broadcastRemote.pushMessage("playerState", data);
-        this.socketQuery.sendGeneralBroadCast(data);
+        this.sendGeneralBroadCast(data);
     }
 
 
@@ -323,7 +383,7 @@ export class BroadcastHandlerService1 {
             action: "playerCoins"
         };
         params.channel.pushMessage("playerCoins", data);
-        this.socketQuery.sendGeneralBroadCast(data);
+        this.sendGeneralBroadCast(data);
     }
 
 
@@ -392,7 +452,7 @@ export class BroadcastHandlerService1 {
         channelService.broadcast(pomelo.app.get("frontendType"), params.route, params.data);
 
         params.data.action = params.route;
-        this.socketQuery.sendGeneralBroadCast(params.data);
+        this.sendGeneralBroadCast(params.data);
     }
     ///////////////////////////////////////////////////////////////////
     // General broadcast function to broadcast data on channel level //
@@ -404,7 +464,7 @@ export class BroadcastHandlerService1 {
 
         params.channel.pushMessage(params.route, params.data);
         params.data.action = params.route;
-        this.socketQuery.sendGeneralBroadCast(params.data);
+        this.sendGeneralBroadCast(params.data);
     }
 
 
@@ -416,7 +476,7 @@ export class BroadcastHandlerService1 {
 
         params.channel.pushMessage("updateBlind", params.data);
         params.data.action = "updateBlind";
-        this.socketQuery.sendGeneralBroadCast(params.data);
+        this.sendGeneralBroadCast(params.data);
     }
 
 
@@ -425,7 +485,7 @@ export class BroadcastHandlerService1 {
         channelService.broadcast(pomelo.app.get("frontendType"), "playerDisconnected", params);
 
         params.action = "playerDisconnected";
-        this.socketQuery.sendGeneralBroadCast(params);
+        this.sendGeneralBroadCast(params);
     }
 
     async isKYCBroadcast(params: any): Promise<void> {
