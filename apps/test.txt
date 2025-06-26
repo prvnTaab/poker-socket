@@ -1,0 +1,45 @@
+
+
+const connectors = self.app.getServersByType('connector');
+
+response :-
+[
+  {
+    main: '/home/ec2-user/repo/game-server/old/game-server/app.js',
+    env: 'development',
+    id: 'connector-server-1',
+    host: 'staging.gamebadlo.com',
+    port: 4050,
+    connectHost: 'staging.gamebadlo.com',
+    clientPort: 3050,
+    frontend: 'true',
+    'auto-restart': 'true',
+    serverType: 'connector',
+    pid: 6424
+  }
+]
+
+
+
+getHostAndPort response{ success: true, host: 'staging.gamebadlo.com', port: 3050 }
+
+
+
+{
+  loginType: 'login',
+  deviceType: 'browser',
+  loginMode: 'normal',
+  userName: 'i4',
+  emailId: '',
+  password: '123456',
+  ipV4Address: '::ffff:110.227.188.53',
+  ipV6Address: '::ffff:110.227.188.53',
+  regotp: '',
+  mobileNumber: '',
+  appVersion: '1.0',
+  firstName: '',
+  lastName: '',
+  isLoggedIn: false,
+  securityHash: 'e2f63b1a375b0bd1aebc373e0776c1ed1dd99534',
+  __route__: 'gate.gateHandler.getConnector'
+}

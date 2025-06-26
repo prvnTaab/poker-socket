@@ -108,6 +108,8 @@ import { BroadcastHandlerService1 } from './services/connector/broadcastHandler.
 import { SessionHandlerService1 } from './services/connector/sessionHandler.service';
 import { OnlinePlayersService1 } from './services/connector/onlinePlayers.service';
 import { CommonHandlerService1 } from './services/connector/commonHandler.service';
+import { SocketGatewayService } from './socket-gateway/socket-gateway.service';
+import { GateHandler } from './services/gate/gateHandler.service';
 
 @Module({
   imports: [
@@ -120,12 +122,17 @@ import { CommonHandlerService1 } from './services/connector/commonHandler.servic
         transport: Transport.TCP,
         options: { host: 'localhost', port: Number(4005) },
       },
-    ])
+    ]),
+    
   ],
   controllers: [],
   providers: [
     // CORE SERVICES FIRST (no dependencies on other services in this module)
     SocketGateway,
+    GateHandler,
+    // Socket
+    SocketGatewayService,
+
     RedisService,
     WalletQueryService,
     UtilsService,

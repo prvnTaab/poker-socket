@@ -1706,44 +1706,38 @@ export class PokerDatabaseService {
 
   async findAndModifyUser(query: any, updateKeys: any): Promise<any> {
     try {
-      const result = await this.db
-        .collection('users')
-        .findOneAndUpdate(
-          query,
-          { $set: updateKeys },
-          { returnDocument: 'after' },
-        );
-
-      if (result?.value?.points) {
-        const coinType1 = result.value.points.find(
+      
+      const result = await this.db.collection('users').findOneAndUpdate(query,{ $set: updateKeys },{ returnDocument: 'after' });
+      console.log('findAndModifyUser', result.value)
+      if (result?.points) {
+        const coinType1 = result.points.find(
           ({ coinType }: any) => coinType === 1,
         );
-        result.value.realChips = coinType1.deposit + coinType1.win;
-        result.value.realChipBonus = coinType1.promo;
+        result.realChips = coinType1.deposit + coinType1.win;
+        result.realChipBonus = coinType1.promo;
 
-        const coinType2 = result.value.points.find(
+        const coinType2 = result.points.find(
           ({ coinType }: any) => coinType === 2,
         );
-        result.value.freeChips = coinType2.totalBalance;
+        result.freeChips = coinType2.totalBalance;
 
-        const coinType3 = result.value.points.find(
+        const coinType3 = result.points.find(
           ({ coinType }: any) => coinType === 3,
         );
-        result.value.unClaimedChipBonus = coinType3.promo;
+        result.unClaimedChipBonus = coinType3.promo;
 
-        const coinType4 = result.value.points.find(
+        const coinType4 = result.points.find(
           ({ coinType }: any) => coinType === 4,
         );
-        result.value.touneyChips = coinType4.deposit + coinType4.win;
+        result.touneyChips = coinType4.deposit + coinType4.win;
 
-        delete result.value.points;
-        result.value.realChips = Math.floor(result.value.realChips) || 0;
-        result.value.freeChips = Math.floor(result.value.freeChips) || 0;
-        result.value.realChipBonus =
-          Math.floor(result.value.realChipBonus) || 0;
+        delete result.points;
+        result.realChips = Math.floor(result.realChips) || 0;
+        result.freeChips = Math.floor(result.freeChips) || 0;
+        result.realChipBonus =
+          Math.floor(result.realChipBonus) || 0;
       }
-
-      return result.value;
+      return result;
     } catch (err) {
       throw err;
     }
@@ -2249,7 +2243,7 @@ export class PokerDatabaseService {
   async findUserSessionInDB(params: string): Promise<any> {
     try {
       return await this.db
-        .collection('userSession')
+        .collection('playerSessions')
         .findOne({ playerId: params });
     } catch (err) {
       throw err;
@@ -2258,7 +2252,7 @@ export class PokerDatabaseService {
 
   async findUserSessionCountInDB(params: any): Promise<number> {
     try {
-      return await this.db.collection('userSession').countDocuments(params);
+      return await this.db.collection('playerSessions').countDocuments(params);
     } catch (err) {
       throw err;
     }
@@ -2267,7 +2261,7 @@ export class PokerDatabaseService {
   async removeUserSessionFromDB(params: string): Promise<any> {
     try {
       return await this.db
-        .collection('userSession')
+        .collection('playerSessions')
         .deleteOne({ playerId: params });
     } catch (err) {
       throw err;

@@ -581,7 +581,7 @@ export class ServerDownManagerService {
   }
 
   // check client version status by db
-  async checkClientStatus(event: string, msg: any, app: any): Promise<any> {
+  async checkClientStatus(event: string, msg: any): Promise<any> {
     if ((!msg.deviceType) || (!msg.appVersion)) {
       return { success: false };
     }

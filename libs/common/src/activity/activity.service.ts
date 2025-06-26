@@ -39,7 +39,7 @@ export class ActivityService {
     console.log("db error in creating activities");
     throw Error('db error in creating activities');
   }
-}
+  }
 
 // saves in given collection
 // here used for "winAmount" collection

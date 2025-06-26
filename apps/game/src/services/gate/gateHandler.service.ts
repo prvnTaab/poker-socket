@@ -8,9 +8,10 @@ import { DbRemoteService } from '../database/dbRemote.service';
 import { PokerDatabaseService } from 'shared/common/utils/pokerdatabase.service';
 import { SharedModuleService } from 'shared/common/utils/sharedModule.service';
 import { UtilityService } from 'shared/common/utils/utils.service';
+import { Injectable } from '@nestjs/common';
 
 
-
+@Injectable()
 export class GateHandler {
 
     constructor(
@@ -23,21 +24,22 @@ export class GateHandler {
     ) { }
 
 
-    async getConnector(msg: any, session: any, next: (err: any, data?: any) => void): Promise<void> {
-        const self: any = this;
+    async getConnector(msg: any): Promise<any> {
+
+        console.log("--------msg-0----",msg)
+
         try {
-            const clientStatus = await this.serverDownManager.checkClientStatus('login', msg, self.app);
+            // const clientStatus = await this.serverDownManager.checkClientStatus('login', msg);
 
-            if (!clientStatus) {
-                next(null, {
-                    success: false,
-                    info: "This installation is corrupted. Please try again.",
-                    errorType: "5012"
-                });
-                return;
-            }
+            // if (!clientStatus) {
+            //     return {
+            //         success: false,
+            //         info: "This installation is corrupted. Please try again.",
+            //         errorType: "5012"
+            //     };
+            // }
 
-            const connectors = self.app.getServersByType('connector');
+            // const connectors = self.app.getServersByType('connector');
             const activityParams: any = {
                 data: {},
                 rawInput: msg
@@ -47,14 +49,13 @@ export class GateHandler {
 
             const keyValidation = await validateKeySets(
                 "Request",
-                self.app.serverType,
+                "gate",
                 "getConnector",
                 msg
             );
 
             if (!keyValidation.success) {
-                next(null, keyValidation);
-                return;
+                return keyValidation;
             }
 
             msg.emailId = msg.emailId.trim().toLowerCase();
@@ -62,62 +63,74 @@ export class GateHandler {
 
             const usernamePattern = /^[a-zA-Z0-9_]*$/;
             if (!msg.userName || !usernamePattern.test(msg.userName)) {
-                next(null, {
+                return {
                     success: false,
                     isRetry: false,
                     isDisplay: false,
                     channelId: "",
                     info: popupTextManager.falseMessages.GETCONNECTOR_USERNAMEERROR_GATEHANDLER
-                });
-                return;
+                };
             }
 
             if (msg.loginType.toLowerCase() === 'login') {
-                await this.handleLogin(msg, self, connectors, activityParams, activityCategory, activitySubCategory, next);
+
+
+                return await this.handleLogin(msg, activityParams, activityCategory, activitySubCategory);
+
             } else if (msg.loginType.toLowerCase() === 'registration') {
-                await this.handleRegistration(msg, self, connectors, activityParams, activityCategory, activitySubCategory, next);
+
+                await this.handleRegistration(msg,activityParams, activityCategory, activitySubCategory);
+
             } else {
-                next(null, {
+                return {
                     success: false,
                     isRetry: false,
                     isDisplay: false,
                     channelId: "",
                     info: popupTextManager.falseMessages.GETCONNECTOR_UNKOWNLOGINTYPEERROR_GATEHANDLER
-                });
+                };
             }
         } catch (err) {
-            next(null, {
+            console.trace("-------Error- gateHandlerService----",err.message)
+            return {
                 success: false,
                 info: err.info || "This installation is corrupted. Please try again.",
                 errorType: err.errorType || "5012"
-            });
+            };
         }
     }
 
-    private async handleLogin(msg: any, self:any, connectors: any[], activityParams: any, activityCategory: string, activitySubCategory: string, next: any): Promise<any> {
+    private async handleLogin(msg: any, activityParams: any, activityCategory: string, activitySubCategory: string): Promise<any> {
+
+
         if (msg.loginMode.toLowerCase() === 'normal') {
+
+            
+
             const filterForUser: any = {};
             if (msg.userName) filterForUser.userName = msg.userName;
             if (msg.emailId) filterForUser.emailId = msg.emailId;
             filterForUser.password = msg.password;
-
-            const validateUserResponse = await this.dbRemote.validateUser( msg);
+            
+            const validateUserResponse = await this.dbRemote.validateUser(msg);
+            
 
             if (!validateUserResponse) {
                 activityParams.comment = "not able to find data from db";
                 activityParams.rawResponse = { success: false, info: "not able to find data from db" };
                 this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
-                next(null, { success: false, info: "not able to find data from db" });
-                return;
+                return { success: false, info: "not able to find data from db" };
             }
 
             if (validateUserResponse.success) {
-                const hostPortData = await this.getHostAndPort({
-                    self: self,
-                    deviceType: msg.deviceType,
-                    connector: connectors,
-                    playerId: validateUserResponse.user.playerId
-                });
+                // const hostPortData = await this.getHostAndPort({
+                //     self: self,
+                //     deviceType: msg.deviceType,
+                //     connector: connectors,
+                //     playerId: validateUserResponse.user.playerId
+                // });
+
+                const hostPortData = { success: true, host: 'staging.gamebadlo.com', port: 3050 }
 
                 if (hostPortData.success) {
                     activityParams.playerId = validateUserResponse.user.playerId;
@@ -147,9 +160,11 @@ export class GateHandler {
                         playerId: validateUserResponse.user?.playerId || 'N/A'
                     };
 
+                    console.log("--------login-----",userData)
+
                     await this.db.dailyLoggedInUser(userData);
 
-                    next(null, {
+                    return {
                         success: true,
                         serverVersion: systemConfig.serverVersion,
                         user: validateUserResponse.user,
@@ -157,18 +172,21 @@ export class GateHandler {
                         isLeaderBoard: systemConfig.isLeaderBoard,
                         isSpinTheWheel: systemConfig.spinTheWheel,
                         isNewYearBanner: systemConfig.isNewYearBanner
-                    });
+                    };
                 } else {
                     activityParams.comment = "user not found";
                     activityParams.rawResponse = hostPortData;
                     this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
-                    next(null, hostPortData);
+                    return hostPortData;
                 }
             } else {
+
+                console.log("------log-------kl")
+
                 activityParams.comment = validateUserResponse.info;
                 activityParams.rawResponse = validateUserResponse.info;
                 this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
-                next(null, { success: false, isDisplay: false, info: validateUserResponse.info });
+                return { success: false, isDisplay: false, info: validateUserResponse.info };
             }
         } else if (msg.loginMode.toLowerCase() === 'facebook' || msg.loginMode.toLowerCase() === 'google') {
             const profile = await this.dbRemote.createProfile(msg);
@@ -177,17 +195,18 @@ export class GateHandler {
                 activityParams.comment = "not able to find data from db for socialLogin";
                 activityParams.rawResponse = { success: false, info: "not able to find data from db for socialLogin" };
                 this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
-                next(null, { success: false, info: "not able to find data from db for socialLogin" });
-                return;
+                return { success: false, info: "not able to find data from db for socialLogin" };
             }
 
             if (profile.success) {
-                const hostPortData = await this.getHostAndPort({
-                    self: self,
-                    deviceType: msg.deviceType,
-                    connector: connectors,
-                    playerId: profile.user.playerId
-                });
+                // const hostPortData = await this.getHostAndPort({
+                //     self: self,
+                //     deviceType: msg.deviceType,
+                //     connector: connectors,
+                //     playerId: profile.user.playerId
+                // });
+
+                const hostPortData = { success: true, host: 'staging.gamebadlo.com', port: 3050 }
 
                 if (hostPortData.success) {
                     profile.user.host = hostPortData.host;
@@ -197,84 +216,77 @@ export class GateHandler {
                     activityParams.playerId = profile.user.playerId;
                     activityParams.data = profile.user;
                     this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.completed);
-                    next(null, { success: true, serverVersion: systemConfig.serverVersion, user: profile.user });
+                    return { success: true, serverVersion: systemConfig.serverVersion, user: profile.user };
                 } else {
                     activityParams.comment = "error in creating user";
                     activityParams.rawResponse = hostPortData;
                     this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
-                    next(null, hostPortData);
+                    return hostPortData;
                 }
             } else {
                 activityParams.comment = "error in creating user";
                 activityParams.rawResponse = profile;
                 this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
-                next(null, { success: false, info: profile.info });
+                return { success: false, info: profile.info };
             }
         } else {
             activityParams.comment = "unknown loginMode";
             activityParams.rawResponse = { success: false, info: "unknown loginMode" };
             this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
-            next(null, {
+            return {
                 success: false,
                 isRetry: false,
                 isDisplay: false,
                 channelId: "",
                 info: popupTextManager.falseMessages.GETCONNECTOR_UNKNOWNLOGIN_GATEHANDLER
-            });
+            };
         }
     }
 
     private async handleRegistration(
         msg: any,
-        self: GateHandler,
-        connectors: any[],
         activityParams: any,
         activityCategory: string,
-        activitySubCategory: string,
-        next: (err: any, data?: any) => void
-    ): Promise<void> {
+        activitySubCategory: string
+    ): Promise<any> {
         if (!msg.userName && !msg.emailId || !msg.password) {
-            next(null, {
+            return{
                 success: false,
                 isRetry: false,
                 isDisplay: false,
                 channelId: "",
                 info: popupTextManager.falseMessages.GETCONNECTOR_MINREQFIELDERROR_GATEHANDLER
-            });
-            return;
+            };
         }
 
         if (!this.validatePassword(msg.password)) {
-            next(null, {
+            return {
                 success: false,
                 isRetry: false,
                 isDisplay: false,
                 channelId: "",
                 info: popupTextManager.falseMessages.GETCONNECTOR_INVALIDPASSWORD_GATEHANDLER
-            });
-            return;
+            };
         }
 
         if (!this.validateUserName(msg.userName)) {
-            next(null, {
+            return {
                 success: false,
                 isRetry: false,
                 isDisplay: false,
                 channelId: "",
                 info: popupTextManager.falseMessages.GETCONNECTOR_USERNAMEERROR_GATEHANDLER
-            });
-            return;
+            };
         }
 
         if (!this.validateEmail(msg.emailId)) {
-            next(null, {
+            return {
                 success: false,
                 isRetry: false,
                 isDisplay: false,
                 channelId: "",
                 info: popupTextManager.falseMessages.GETCONNECTOR_INVALIDEMAIL_GATEHANDLER
-            });
-            return;
+            };
         }
 
         const createdProfile = await this.dbRemote.createProfile( msg);
@@ -283,14 +295,13 @@ export class GateHandler {
             activityParams.comment = "not able to create user in db";
             activityParams.rawResponse = { success: false, info: "not able to create user in db" };
             this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
-            next({
+            return {
                 success: false,
                 isRetry: false,
                 isDisplay: false,
                 channelId: "",
                 info: popupTextManager.falseMessages.GETCONNECTOR_UNABLETOCREATEUSER_GATEHANDLER
-            });
-            return;
+            };
         }
 
         if (createdProfile.success) {
@@ -309,12 +320,14 @@ export class GateHandler {
                 let mailSentResponse = this.sharedModule.sendMailWithHtml(params);
             }
 
-            const hostPortData = await this.getHostAndPort({
-                self: self,
-                deviceType: msg.deviceType,
-                connector: connectors,
-                playerId: createdProfile.user.playerId
-            });
+            // const hostPortData = await this.getHostAndPort({
+            //     self: self,
+            //     deviceType: msg.deviceType,
+            //     connector: connectors,
+            //     playerId: createdProfile.user.playerId
+            // });
+
+            const hostPortData = { success: true, host: 'staging.gamebadlo.com', port: 3050 };
 
             if (hostPortData.success) {
                 createdProfile.user.host = hostPortData.host;
@@ -338,7 +351,7 @@ export class GateHandler {
                     playerId: createdProfile.user?.playerId || 'N/A'
                 });
 
-                next(null, {
+                return {
                     success: true,
                     serverVersion: systemConfig.serverVersion,
                     user: createdProfile.user,
@@ -346,23 +359,23 @@ export class GateHandler {
                     isLeaderBoard: systemConfig.isLeaderBoard,
                     isSpinTheWheel: systemConfig.spinTheWheel,
                     isNewYearBanner: systemConfig.isNewYearBanner
-                });
+                };
             } else {
                 activityParams.comment = "not able to find suitable connector";
                 activityParams.rawResponse = { success: false, info: hostPortData };
                 this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
-                next(null, hostPortData);
+                return hostPortData;
             }
         } else {
             activityParams.comment = createdProfile.info;
             activityParams.rawResponse = { success: false, info: createdProfile.info };
             this.activity.logUserActivity(activityParams, activityCategory, activitySubCategory, stateOfX.profile.activityStatus.error);
-            next(null, {
+            return {
                 success: false,
                 info: createdProfile.info,
                 suggestions: createdProfile.suggestions,
                 code: 409
-            });
+            };
         }
     }
 
@@ -374,7 +387,7 @@ export class GateHandler {
 
         const validated = await validateKeySets(
             "Request",
-            params.self.app.serverType,
+            'connector',
             "getHostAndPort",
             params
         );

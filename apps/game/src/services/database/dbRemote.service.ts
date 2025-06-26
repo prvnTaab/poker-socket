@@ -239,14 +239,18 @@ export class DbRemoteService {
    * decrypt password, if same password in request then able to login
    */
    async findAndModifyUserForValidateUser(msg: any, filterForUser: any, userUpdateKeys: any): Promise<any> {
+    
     try {
+      console.log("--------line ---",filterForUser)
       const result = await this.db.findAndModifyUser(filterForUser, userUpdateKeys);
+
+      console.log("--------line ---",result)
       
-      if (!result.value) {
+      if (!result) {
         return { success: false, isRetry: false, isDisplay: false, channelId: "", info: popupTextManager.dbQyeryInfo.DB_USERNAME_PASSWORD_INCORRECT };
       }
 
-      const user = result.value;
+      const user = result;
 
       if (user.isBlocked) {
         if (!user.isEmailVerified) {
@@ -285,6 +289,7 @@ export class DbRemoteService {
 
   // This function will called only when normal users are trying to logged in not for social login
   async validateUser(msg: any): Promise<any> {
+
     if (!msg) return;
 
     const userUpdateKeys: any = {
@@ -301,7 +306,7 @@ export class DbRemoteService {
       filterForUser.emailId = msg.emailId;
     }
 
-    return this.findAndModifyUserForValidateUser(msg, filterForUser, userUpdateKeys);
+    return await this.findAndModifyUserForValidateUser(msg, filterForUser, userUpdateKeys);
   }
 
   // Helper functions for user creation

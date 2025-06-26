@@ -542,7 +542,9 @@ handlerFunctions["auth"] = ["forgotPassword", "verifyEmail"];
 
 // Validate keys and generate proper response
 export async function validate(type: string, serverType: string, methodName: string, clientKeys: any): Promise<any> {
+
     let routeFromDict = null;
+
     if (type.toUpperCase() === "REQUEST") {
         routeFromDict = keySets[serverType][methodName];
         responsibleText = " in request ";
@@ -550,6 +552,7 @@ export async function validate(type: string, serverType: string, methodName: str
         routeFromDict = responseSet[serverType][methodName];
         responsibleText = " in response ";
     }
+    
     const missingKeys = [];
     
     if (internalFunctions[serverType].indexOf(methodName) >= 0) {
