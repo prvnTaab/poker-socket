@@ -2,6 +2,8 @@ import { Injectable } from "@nestjs/common";
 import { route } from "./socket-routes";
 import { GateHandler } from "../services/gate/gateHandler.service";
 
+import { EntryHandlerService } from "../services/connector/entryHandler.service";
+
 
 
 
@@ -10,26 +12,37 @@ import { GateHandler } from "../services/gate/gateHandler.service";
 export class SocketGatewayService {
 
     constructor(
-        private readonly gateHandlerService: GateHandler
+        private readonly gateHandlerService: GateHandler,
+        private readonly entryHandler:EntryHandlerService
     ) { }
 
 
 
     async processRequest(params) {
 
+        const { data, action } = params;
 
-        let isRoutesExist = route(params.action);
+
+        let session:any;
+
+
+        let isRoutesExist = route(action);
 
 
         if (isRoutesExist.success) {
 
 
-            switch (params.action) {
+            switch (action) {
                 case "login":
-                    return await this.gateHandlerService.getConnector(params.data);
+                    return await this.gateHandlerService.getConnector(data);
 
-                case "updateProfile": return { success: true, route: 'connector.entryHandler.updateProfile' }
-                case "getTables": return { success: true, route: 'connector.entryHandler.getLobbyTables' }
+                case "updateProfile": 
+                    return await this.entryHandler.updateProfile(params.data,session); // Pending
+
+
+                case "getTables": 
+                    return await this.entryHandler.getLobbyTables(data);
+                    // return { success: true, route: 'connector.entryHandler.getLobbyTables' }
                 case "checkForMultiClient": return { success: true, route: 'connector.entryHandler.enter' }
                 case "joinChannel": return { success: true, route: 'room.channelHandler.joinChannel' }
                 case "autoSit": return { success: true, route: 'room.channelHandler.autoSit' }

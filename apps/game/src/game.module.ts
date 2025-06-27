@@ -1,5 +1,5 @@
 import { forwardRef, Module } from '@nestjs/common';
-import {  SocketGateway } from './socket-gateway/socket.gateway';
+import {  SocketGateway } from './socket/socket.gateway';
 import { RedisService } from './redis/redis.service';
 import { DbRemoteService } from './services/database/dbRemote.service';
 import { UserRemoteService } from './services/database/userRemote.service';
@@ -108,7 +108,7 @@ import { BroadcastHandlerService1 } from './services/connector/broadcastHandler.
 import { SessionHandlerService1 } from './services/connector/sessionHandler.service';
 import { OnlinePlayersService1 } from './services/connector/onlinePlayers.service';
 import { CommonHandlerService1 } from './services/connector/commonHandler.service';
-import { SocketGatewayService } from './socket-gateway/socket-gateway.service';
+import { SocketGatewayService } from './socket/socket-gateway.service';
 import { GateHandler } from './services/gate/gateHandler.service';
 
 @Module({
@@ -261,6 +261,7 @@ import { GateHandler } from './services/gate/gateHandler.service';
     CommonHandlerService,
     TournamentActionHandlerService,
     SharedModuleService,
+    SocketGateway
   ]
 })
 export class GameModule { }

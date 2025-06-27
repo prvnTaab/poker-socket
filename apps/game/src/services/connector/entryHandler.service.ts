@@ -26,6 +26,7 @@ import { BonusHandlerService } from "./bonusHandler.service";
 import { UtilsService } from "apps/game/src/utils/utils.service";
 import { ContestService } from "shared/common/utils/contest.service";
 import { EntryService } from "shared/common/utils/winner-algo/entry.service";
+import { DbRemoteService } from "../database/dbRemote.service";
 
 
 
@@ -92,6 +93,7 @@ app:any
     private readonly utilsService:UtilsService,
     private readonly contest:ContestService,
     private readonly winnerMgmt:EntryService,
+    private readonly dbRemote:DbRemoteService
   ) { }
 
 
@@ -631,8 +633,7 @@ app:any
 
 
   // ### Handler to get list of tables on lobby
-  async getLobbyTables(msg: any, session: any): Promise<any> {
-    const self = this;
+  async getLobbyTables(msg: any): Promise<any> {
 
     const validated = await validateKeySets("Request", "connector", "getLobbyTables", msg);
     if (!validated.success) {
@@ -646,6 +647,7 @@ app:any
       return validated;
     }
 
+
     const tempObj = {
       isActive: true,
       isOrganic: msg.isOrganic,
@@ -655,7 +657,12 @@ app:any
       playerId: msg.playerId,
     };
 
-    const lobbyResponse = await self.app.rpc.database.dbRemote.getTablesForGames(session, tempObj);
+    
+
+    const lobbyResponse = await this.dbRemote.getTablesForGames(tempObj);
+
+    console.log("-----abc----",lobbyResponse)
+
     this.activity.getLobbyTables(
       msg,
       stateOfX.profile.category.lobby,
@@ -663,6 +670,7 @@ app:any
       lobbyResponse,
       stateOfX.logType.success
     );
+
     return lobbyResponse;
   }
 

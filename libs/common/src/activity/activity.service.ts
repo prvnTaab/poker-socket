@@ -316,7 +316,7 @@ async insertInDbGame (activityObject: any) {
   }
 }
 
-async init (category: any, subCategory: any, logType: any) {
+init (category: any, subCategory: any, logType: any) {
   const activityObject: any = {};
   activityObject.category = category;
   activityObject.subCategory = subCategory;

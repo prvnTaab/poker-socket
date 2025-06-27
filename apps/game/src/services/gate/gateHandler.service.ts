@@ -26,7 +26,7 @@ export class GateHandler {
 
     async getConnector(msg: any): Promise<any> {
 
-        console.log("--------msg-0----",msg)
+        // console.log("--------msg-0----",msg)
 
         try {
             // const clientStatus = await this.serverDownManager.checkClientStatus('login', msg);
@@ -160,7 +160,7 @@ export class GateHandler {
                         playerId: validateUserResponse.user?.playerId || 'N/A'
                     };
 
-                    console.log("--------login-----",userData)
+                    // console.log("--------login-----",userData)
 
                     await this.db.dailyLoggedInUser(userData);
 
@@ -180,8 +180,6 @@ export class GateHandler {
                     return hostPortData;
                 }
             } else {
-
-                console.log("------log-------kl")
 
                 activityParams.comment = validateUserResponse.info;
                 activityParams.rawResponse = validateUserResponse.info;

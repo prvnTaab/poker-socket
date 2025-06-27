@@ -76,7 +76,7 @@ export class DbRemoteService {
 
   // Format user response at the time of login/signUp
    async formatUser(user: any): Promise<any> {
-    console.log('formattedUser', user);
+    // console.log('formattedUser', user);
 
     if (typeof user.realMoneyFlag == 'undefined') {
       user.realMoneyFlag = true;
@@ -241,10 +241,8 @@ export class DbRemoteService {
    async findAndModifyUserForValidateUser(msg: any, filterForUser: any, userUpdateKeys: any): Promise<any> {
     
     try {
-      console.log("--------line ---",filterForUser)
-      const result = await this.db.findAndModifyUser(filterForUser, userUpdateKeys);
 
-      console.log("--------line ---",result)
+      const result = await this.db.findAndModifyUser(filterForUser, userUpdateKeys);
       
       if (!result) {
         return { success: false, isRetry: false, isDisplay: false, channelId: "", info: popupTextManager.dbQyeryInfo.DB_USERNAME_PASSWORD_INCORRECT };
@@ -259,7 +257,11 @@ export class DbRemoteService {
         return { success: false, isRetry: false, isDisplay: true, channelId: "", info: popupTextManager.dbQyeryInfo.DB_BLOCK_USER_BY_ADMIN };
       }
 
+      // console.log("---user-d---",user)
+
       const decryptPassword = this.passwordencrytpdecryptService.decrypt(user.password);
+
+
       if (!decryptPassword.success) {
         return { success: false, info: "error in decrypting password", isRetry: false, isDisplay: false, channelId: "" };
       }

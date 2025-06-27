@@ -1,7 +1,7 @@
-import { Injectable } from "@nestjs/common";
+import { forwardRef, Inject, Injectable } from "@nestjs/common";
 import { systemConfig } from "shared/common";
 import { validateKeySets } from "shared/common/utils/activity";
-import { SocketGateway } from "../../socket-gateway/socket.gateway";
+import { SocketGateway } from "../../socket/socket.gateway";
 
 
 
@@ -17,6 +17,7 @@ export class BroadcastHandlerService1 {
 
 
     constructor(
+           @Inject(forwardRef(() => SocketGateway)) 
         private readonly gameGateway: SocketGateway
     ) { }
 

@@ -161,7 +161,7 @@ export class PokerDatabaseService {
 
   // Daily logged in user model
   async dailyLoggedInUser(userData: any): Promise<any> {
-    console.log('i got data in dailyLoggedInUser', userData);
+    // console.log('i got data in dailyLoggedInUser', userData);
     try {
       return await this.db.collection('dailyLoggedInUser').insertOne(userData);
     } catch (err) {
@@ -425,7 +425,7 @@ export class PokerDatabaseService {
 
   // Lobby text
   async listLobbyText(query: any): Promise<any[]> {
-    console.log('Inside listLobbyText adminDB Query ', query);
+    // console.log('Inside listLobbyText adminDB Query ', query);
     try {
       return await this.db.collection('lobbyHeaderText').find(query).toArray();
     } catch (err) {
@@ -1708,7 +1708,7 @@ export class PokerDatabaseService {
     try {
       
       const result = await this.db.collection('users').findOneAndUpdate(query,{ $set: updateKeys },{ returnDocument: 'after' });
-      console.log('findAndModifyUser', result.value)
+      // console.log('findAndModifyUser', result.value)
       if (result?.points) {
         const coinType1 = result.points.find(
           ({ coinType }: any) => coinType === 1,
@@ -3270,6 +3270,9 @@ export class PokerDatabaseService {
   /*----------------- User Activity Related Queries START ---------------------*/
 
   async createUserActivity(activity: any): Promise<any> {
+
+    
+
     activity.expireAt = new Date();
     activity.createdAt = Date.now();
 
@@ -3277,7 +3280,8 @@ export class PokerDatabaseService {
       const result: any = await this.db
         .collection('userActivity')
         .insertOne(activity);
-      return result?.ops?.[0]; // error - result may be null
+
+      return result; // error - result may be null
     } catch (err) {
       throw err;
     }
