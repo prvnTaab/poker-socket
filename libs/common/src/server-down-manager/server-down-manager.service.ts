@@ -576,7 +576,7 @@ export class ServerDownManagerService {
   }
 
   // check service state in app context
-  checkServerState(event: string, app: any): boolean {
+  checkServerState(event: string): boolean {
     return false;
   }
 

@@ -57,29 +57,6 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     }
   }
 
-  // @SubscribeMessage('aka')
-  // initalize(@ConnectedSocket() client: Socket) {
-
-  //   console.log("--------aka-----", client.id);
-
-  //   client.emit('aka1', 'hello');
-
-  //   return 'gghgh';
-  // }
-
-
-
-  // // When a player logs in
-  // @SubscribeMessage('login')
-  // handleLogin(@MessageBody() playerId: string, @ConnectedSocket() client: Socket) {
-
-  //   this.users.set(playerId, client);
-
-  //   client.join('allPlayers');
-
-  //   this.server.to('allPlayers').emit('playerLoggedIn', { playerId });
-  // }
-
   // Public Method: Broadcast message to all players in a specific game room
   public broadcastToRoom(gameId: string, event: string, message: any) {
     this.server.to(`game-${gameId}`).emit(event, message);
@@ -96,20 +73,6 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   public broadcastToLobby(event: string, message: any) {
     this.server.to('allPlayers').emit(event, message);
   }
-
-
-
-  // // SubscribeMessage: Send message to a room (used within WebSocket)
-  // @SubscribeMessage('roomBroadcast')
-  // handleRoomBroadcast(@MessageBody() data: { gameId: string; message: string }) {
-  //   this.broadcastToRoom(data.gameId, 'newRoomMessage', data.message);
-  // }
-
-  // // SubscribeMessage: Send a direct message to a player (used within WebSocket)
-  // @SubscribeMessage('directMessage')
-  // handleDirectMessage(@MessageBody() data: { playerId: string; message: string }) {
-  //   this.sendMessageToPlayer(data.playerId, 'newPrivateMessage', data.message);
-  // }
 
 
   @SubscribeMessage('request')
@@ -181,7 +144,7 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       // Default: Forward to socketService
       const res:any = await this.socketGatewayService.processRequest(params);
 
-      console.log("-------Final Output---",res)
+      console.log("-------Final Output---",res.length)
 
 
       res.returnedAt = Date.now();

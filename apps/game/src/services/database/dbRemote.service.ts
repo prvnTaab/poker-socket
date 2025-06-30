@@ -7,7 +7,7 @@ import _ from "underscore";
 import _ld from "lodash";
 import async from 'async';
 import { v4 as uuid } from "uuid";
-import { stateOfX, systemConfig , popupTextManager} from "shared/common";
+import { stateOfX, systemConfig, popupTextManager } from "shared/common";
 import { UserRemoteService } from "./userRemote.service";
 import { ResponseHandlerDbService } from "./responseHandlerDb.service";
 
@@ -22,16 +22,16 @@ import { UtilityService } from "shared/common/utils/utils.service";
 
 @Injectable()
 export class DbRemoteService {
-    constructor(private db : PokerDatabaseService,
-        private imdb : ImdbDatabaseService,
-        private userRemote : UserRemoteService,
-        private responseHandler : ResponseHandlerDbService, 
-        private wallet : WalletQueryService,
-        private readonly utilsService:UtilityService,
-        private readonly passwordencrytpdecryptService:PasswordencrytpdecryptService,
-        private readonly sharedModule:SharedModuleService
-    ){
-    }
+  constructor(private db: PokerDatabaseService,
+    private imdb: ImdbDatabaseService,
+    private userRemote: UserRemoteService,
+    private responseHandler: ResponseHandlerDbService,
+    private wallet: WalletQueryService,
+    private readonly utilsService: UtilityService,
+    private readonly passwordencrytpdecryptService: PasswordencrytpdecryptService,
+    private readonly sharedModule: SharedModuleService
+  ) {
+  }
 
   /**
    * create unique id of given length
@@ -49,10 +49,10 @@ export class DbRemoteService {
    * create suggestions for user ids
    * @deprecated old feature
    */
-    async generateUserIds(playerId: string): Promise<any>{
+  async generateUserIds(playerId: string): Promise<any> {
     const userIds = [];
     const uniqueUserIds: string[] = [];
-    
+
     for (let i = 0; i < 50; i++) {
       const tempUserId = {
         playerId: playerId + this.createUniqueId(4)
@@ -75,7 +75,7 @@ export class DbRemoteService {
   }
 
   // Format user response at the time of login/signUp
-   async formatUser(user: any): Promise<any> {
+  async formatUser(user: any): Promise<any> {
     // console.log('formattedUser', user);
 
     if (typeof user.realMoneyFlag == 'undefined') {
@@ -140,11 +140,11 @@ export class DbRemoteService {
 
     await this.updateMegaPointsPercent(userData);
     await this.unclaimedBonusData(userData);
-    
+
     return userData;
   }
 
- async getTopupDetails(params: any): Promise<any> {
+  async getTopupDetails(params: any): Promise<any> {
     try {
       const creditResult = await this.findCreditTopup(params);
       const debitResult = await this.findDebitTopup(creditResult);
@@ -154,7 +154,7 @@ export class DbRemoteService {
     }
   }
 
-   async findCreditTopup(params: any): Promise<any> {
+  async findCreditTopup(params: any): Promise<any> {
     const query = { userName: params.userName, type: 'credit' };
     const res = await this.db.getTopupSum(query);
     if (res.length > 0 && res[0].totalAmount) {
@@ -163,7 +163,7 @@ export class DbRemoteService {
     return params;
   }
 
-   async findDebitTopup(params: any): Promise<any> {
+  async findDebitTopup(params: any): Promise<any> {
     const query = { userName: params.userName, type: 'debit' };
     const res = await this.db.getTopupSum(query);
     if (res.length > 0 && res[0].totalAmount) {
@@ -172,7 +172,7 @@ export class DbRemoteService {
     return params;
   }
 
-   topUpCalculation(params: any): any {
+  topUpCalculation(params: any): any {
     if (params.topupLimit) {
       params.totalDrAmount = params.totalDrAmount || 0;
       params.totalCrAmount = params.totalCrAmount || 0;
@@ -186,22 +186,22 @@ export class DbRemoteService {
    * update players megapoint percent acc to new/old user
    * may be start with 0 megapoints, hence first level bronze
    */
-   async updateMegaPointsPercent(userData: any): Promise<void> {
+  async updateMegaPointsPercent(userData: any): Promise<void> {
     try {
       const res = await this.db.findAllLoyaltyPoints({});
       userData.statistics.megaPointsPercent = this.getLevelPercent(userData.statistics.megaPoints, res);
       userData.statistics.megaPointLevel = this.getLevelName(userData.statistics.megaPointLevel, res);
     } catch (err) {
-        console.log('response of findAllMegaPointLevels', err);
+      console.log('response of findAllMegaPointLevels', err);
     }
   }
 
-   getLevelName(levelId: number, levels: any[]): string {
+  getLevelName(levelId: number, levels: any[]): string {
     const t = _.findWhere(levels, { levelId: levelId }) || levels[0];
     return t && t.loyaltyLevel || "Bronze";
   }
 
-   getLevelPercent(points: number, levels: any[]): number {
+  getLevelPercent(points: number, levels: any[]): number {
     if (points <= 0 || levels.length <= 0) return 0;
 
     function calculator(arr: any[], value: number): number {
@@ -220,7 +220,7 @@ export class DbRemoteService {
   /**
    * get total unclaimed bonus data
    */
-   async unclaimedBonusData(userData: any): Promise<void> {
+  async unclaimedBonusData(userData: any): Promise<void> {
     try {
       const query = { playerId: userData.playerId };
       const res = await this.db.findBounsData(query);
@@ -238,12 +238,12 @@ export class DbRemoteService {
    * find user, check if banned or email not verified,
    * decrypt password, if same password in request then able to login
    */
-   async findAndModifyUserForValidateUser(msg: any, filterForUser: any, userUpdateKeys: any): Promise<any> {
-    
+  async findAndModifyUserForValidateUser(msg: any, filterForUser: any, userUpdateKeys: any): Promise<any> {
+
     try {
 
       const result = await this.db.findAndModifyUser(filterForUser, userUpdateKeys);
-      
+
       if (!result) {
         return { success: false, isRetry: false, isDisplay: false, channelId: "", info: popupTextManager.dbQyeryInfo.DB_USERNAME_PASSWORD_INCORRECT };
       }
@@ -272,7 +272,7 @@ export class DbRemoteService {
 
       const topupDetails = await this.getTopupDetails(user);
       const formattedUser = await this.formatUser(topupDetails);
-      
+
       // Added for lobby header text for IOS instant play
       const LobbyTextQuery = {};
       formattedUser.captionText = null;
@@ -285,7 +285,7 @@ export class DbRemoteService {
     }
   }
 
-   getRandomInt(max: number): number {
+  getRandomInt(max: number): number {
     return Math.ceil(Math.random() * Math.floor(max));
   }
 
@@ -312,22 +312,22 @@ export class DbRemoteService {
   }
 
   // Helper functions for user creation
-    setFirstName(dataOfUser: any): string { return dataOfUser?.firstName || ""; }
-    setLastName(dataOfUser: any): string { return dataOfUser?.lastName || ""; }
-    setGender(dataOfUser: any): string { return dataOfUser?.gender || ""; }
-    setDateOfBirth(dataOfUser: any): any { return dataOfUser?.dateOfBirth || ""; }
-    setEmailId(dataOfUser: any): string { return dataOfUser?.emailId || ""; }
-    setMobileNumber(dataOfUser: any): string { return dataOfUser?.mobileNumber || ""; }
-    setUserName(dataOfUser: any): string { return dataOfUser?.userName || ""; }
-    setIpV4Address(dataOfUser: any): string { return dataOfUser?.ipV4Address || ""; }
-    setIpV6Address(dataOfUser: any): string { return dataOfUser?.ipV6Address || ""; }
-    setProfileImage(dataOfUser: any): number { return dataOfUser?.profileImage || this.getRandomInt(15); }
-    setDeviceType(dataOfUser: any): string { return dataOfUser?.deviceType || ""; }
-    setLoginMode(dataOfUser: any): string { return dataOfUser?.loginMode || ""; }
-    setGoogleObject(dataOfUser: any): any { return dataOfUser?.googleObject || ""; }
-    setFacebookObject(dataOfUser: any): any { return dataOfUser?.facebookObject || ""; }
+  setFirstName(dataOfUser: any): string { return dataOfUser?.firstName || ""; }
+  setLastName(dataOfUser: any): string { return dataOfUser?.lastName || ""; }
+  setGender(dataOfUser: any): string { return dataOfUser?.gender || ""; }
+  setDateOfBirth(dataOfUser: any): any { return dataOfUser?.dateOfBirth || ""; }
+  setEmailId(dataOfUser: any): string { return dataOfUser?.emailId || ""; }
+  setMobileNumber(dataOfUser: any): string { return dataOfUser?.mobileNumber || ""; }
+  setUserName(dataOfUser: any): string { return dataOfUser?.userName || ""; }
+  setIpV4Address(dataOfUser: any): string { return dataOfUser?.ipV4Address || ""; }
+  setIpV6Address(dataOfUser: any): string { return dataOfUser?.ipV6Address || ""; }
+  setProfileImage(dataOfUser: any): number { return dataOfUser?.profileImage || this.getRandomInt(15); }
+  setDeviceType(dataOfUser: any): string { return dataOfUser?.deviceType || ""; }
+  setLoginMode(dataOfUser: any): string { return dataOfUser?.loginMode || ""; }
+  setGoogleObject(dataOfUser: any): any { return dataOfUser?.googleObject || ""; }
+  setFacebookObject(dataOfUser: any): any { return dataOfUser?.facebookObject || ""; }
 
-   async checkAffiliateDetails(paramsData: any): Promise<any> {
+  async checkAffiliateDetails(paramsData: any): Promise<any> {
     if (!paramsData.isParentUserName) return paramsData;
 
     try {
@@ -352,20 +352,20 @@ export class DbRemoteService {
     }
   }
 
-   async checkSignUPBonus(params: any): Promise<any> {
+  async checkSignUPBonus(params: any): Promise<any> {
     if (!params.bonusCode) return params;
 
     try {
       const query = { codeName: params.bonusCode, type: 'signUp', 'status': 'true' };
       const result = await this.db.findBonus(query);
-      
+
       if (result.length === 0) {
         return { success: false, info: 'Bonus code does not exist.', isDisplay: true };
       }
 
       const currentTime = Number(new Date());
       const expiresOndate = result[0].validTill;
-      
+
       if (this.convertDateToMidnight(expiresOndate) < this.convertDateToMidnight(currentTime)) {
         return { success: false, info: 'Bonus Code Expired', isDisplay: true };
       }
@@ -379,13 +379,13 @@ export class DbRemoteService {
     }
   }
 
-   async updateBonusUsed(bonusCode: string): Promise<void> {
+  async updateBonusUsed(bonusCode: string): Promise<void> {
     if (!bonusCode) return;
 
     try {
       const query = { codeName: bonusCode, type: 'signUp', 'status': 'true' };
       const result = await this.db.findBonus(query);
-      
+
       if (result.length > 0 && result[0].codeName === bonusCode) {
         const updateQuery = { codeName: bonusCode };
         const dataForUpdate = { totalUsed: result[0].totalUsed + 1 };
@@ -396,19 +396,19 @@ export class DbRemoteService {
     }
   }
 
-   setPercent(dataOfBonus: any): number {
+  setPercent(dataOfBonus: any): number {
     return dataOfBonus || 0;
   }
 
-   convertDateToMidnight(dateToConvert: number): number {
+  convertDateToMidnight(dateToConvert: number): number {
     const date = new Date(dateToConvert);
     date.setHours(0, 0, 0, 0);
     return Number(date);
   }
 
   // Create data for user at signup
-   async createDataForUser(dataOfUser: any): Promise<any> {
-    
+  async createDataForUser(dataOfUser: any): Promise<any> {
+
     const userObject: any = {};
     const address = {
       pincode: "",
@@ -417,7 +417,7 @@ export class DbRemoteService {
       address2: "",
       address1: ""
     };
-    
+
     const statistics = {
       bestHand: "",
       handsPlayedRM: 0,
@@ -430,14 +430,14 @@ export class DbRemoteService {
       countPointsToChips: 0,
       countPointsForBonus: 0
     };
-    
+
     const prefrences = {
       tableLayout: "",
       autoBuyIn: "",
       autoBuyInAmountInPercent: "",
       cardColor: false
     };
-    
+
     const settings = {
       seatPrefrence: 1,
       seatPrefrenceTwo: 1,
@@ -449,7 +449,7 @@ export class DbRemoteService {
       avatarId: 1,
       tableColor: ""
     };
-    
+
     const chipsManagement = {
       deposit: 0,
       withdrawl: 0,
@@ -476,11 +476,11 @@ export class DbRemoteService {
     userObject.profileImage = this.setProfileImage(dataOfUser);
     userObject.deviceType = this.setDeviceType(dataOfUser);
     userObject.realMoneyFlag = true;
-    
+
     if (userObject.deviceType == 'iosApp') {
       userObject.realMoneyFlag = false;
     }
-    
+
     userObject.loginMode = this.setLoginMode(dataOfUser);
     userObject.googleObject = this.setGoogleObject(dataOfUser);
     userObject.facebookObject = this.setFacebookObject(dataOfUser);
@@ -563,9 +563,9 @@ export class DbRemoteService {
     return { success: true, result: userObject };
   }
 
-   async existingUser(filter: any, filterForUser: any, user: any): Promise<any> {
+  async existingUser(filter: any, filterForUser: any, user: any): Promise<any> {
     let infoMessage;
-    
+
     if (filter.loginType.toLowerCase() === 'registration' && filter.loginMode.toLowerCase() === 'normal') {
       if (user.emailId && filterForUser.emailId === user.emailId) {
         infoMessage = "Email ID already exists. Please try with a different email address.";
@@ -612,7 +612,7 @@ export class DbRemoteService {
     }
   }
 
-   async newUser(filter: any, filterForUser: any, user: any): Promise<any> {
+  async newUser(filter: any, filterForUser: any, user: any): Promise<any> {
     try {
       const affiliateCheck = await this.checkAffiliateDetails(filter);
       if (!affiliateCheck.success) return affiliateCheck;
@@ -669,8 +669,8 @@ export class DbRemoteService {
           ucbExpiryDate: Number(new Date(year, month, day)),
           instantbonus: 0,
           amountDeposited: 0,
-          totalBonusAmount: this.utilsService.convertIntToDecimal(this.setPercent(filter.bonusData.bonusAmount) * this.setPercent(filter.bonusData.rcbPercent) / 100) + 
-          this.utilsService.convertIntToDecimal(this.setPercent(filter.bonusData.bonusAmount) * this.setPercent(filter.bonusData.ucbPercent) / 100) + 0,
+          totalBonusAmount: this.utilsService.convertIntToDecimal(this.setPercent(filter.bonusData.bonusAmount) * this.setPercent(filter.bonusData.rcbPercent) / 100) +
+            this.utilsService.convertIntToDecimal(this.setPercent(filter.bonusData.bonusAmount) * this.setPercent(filter.bonusData.ucbPercent) / 100) + 0,
           createdAt: Number(new Date()),
           status: "Active",
           ucbClaimed: 0
@@ -689,7 +689,7 @@ export class DbRemoteService {
           }
         };
 
-       let result = await this.sharedModule.sendMailWithHtml(mailData)
+        let result = await this.sharedModule.sendMailWithHtml(mailData)
       }
 
       const formattedUser = await this.formatUser(createdUser);
@@ -703,7 +703,7 @@ export class DbRemoteService {
     }
   }
 
-   async findUserOrOperation(filter: any, filterForUser: any): Promise<any> {
+  async findUserOrOperation(filter: any, filterForUser: any): Promise<any> {
     try {
       const user = await this.db.validateUserAtRegisteration(filterForUser);
       if (!user) {
@@ -719,7 +719,7 @@ export class DbRemoteService {
     }
   }
 
-   async checkMobileNumberOTP(mobileOTPResult: any): Promise<any> {
+  async checkMobileNumberOTP(mobileOTPResult: any): Promise<any> {
     try {
       const result = await this.db.findMobileNumber({ mobileNumber: mobileOTPResult.mobileNumber });
       if (!result) {
@@ -727,9 +727,9 @@ export class DbRemoteService {
       }
 
       const currentTime = Number(new Date());
-      if (mobileOTPResult.mobileNumber === result.mobileNumber && 
-          mobileOTPResult.regotp === result.otp.toString() && 
-          (currentTime - result.createdAt) <= (60 * 5000)) {
+      if (mobileOTPResult.mobileNumber === result.mobileNumber &&
+        mobileOTPResult.regotp === result.otp.toString() &&
+        (currentTime - result.createdAt) <= (60 * 5000)) {
         return { success: true };
       }
       return { success: false, info: "OTP doesn't match." };
@@ -761,7 +761,7 @@ export class DbRemoteService {
     }
   }
 
-   async getTablesForNormalGamesWithCount(params: any): Promise<any> {
+  async getTablesForNormalGamesWithCount(params: any): Promise<any> {
     if (params.allTables[0]?.channelType === "NORMAL") {
       for (const table of params.allTables) {
         try {
@@ -781,21 +781,21 @@ export class DbRemoteService {
     return params;
   }
 
-   async getEnrolledPlayersInTounaments(params: any): Promise<any> {
+  async getEnrolledPlayersInTounaments(params: any): Promise<any> {
     if (params.allTables[0]?.channelType === "TOURNAMENT") {
       for (let i = 0; i < params.allTables.length; i++) {
         const room = params.allTables[i];
         try {
           const filter = { gameVersionCount: room.gameVersionCount, status: "Registered" };
           const result = await this.db.countTournamentusers(filter);
-          
+
           params.allTables[i]["enrolledPlayers"] = result;
-          params.allTables[i]["prizePool"] = room.isGuaranteed ? 
-            room.guaranteedAmount : 
+          params.allTables[i]["prizePool"] = room.isGuaranteed ?
+            room.guaranteedAmount :
             room.entryFees * room.maxPlayers;
-          
-          params.allTables[i]["runningFor"] = room.state === stateOfX.gameState.running ? 
-            Number(new Date()) - room.tournamentStartTime : 
+
+          params.allTables[i]["runningFor"] = room.state === stateOfX.gameState.running ?
+            Number(new Date()) - room.tournamentStartTime :
             0;
         } catch (err) {
           return { success: false, info: "Error in count tournament users", isRetry: false, isDisplay: false, channelId: "" };
@@ -805,9 +805,11 @@ export class DbRemoteService {
     return params;
   }
 
-   async listTable(params: any): Promise<any> {
+  async listTable(params: any): Promise<any> {
     try {
       const result = await this.db.listTable(_.omit(params, "playerId"));
+
+
       params.allTables = result;
       return params;
     } catch (err) {
@@ -815,7 +817,7 @@ export class DbRemoteService {
     }
   }
 
-   async resetAvgPotandFlopPercentValues(params: any): Promise<any> {
+  async resetAvgPotandFlopPercentValues(params: any): Promise<any> {
     for (const table of params.allTables) {
       table.avgStack = table.avgStack || 0;
       table.flopPercent = table.flopPercent || 0;
@@ -823,21 +825,21 @@ export class DbRemoteService {
     return params;
   }
 
-   async removeExtraKeys(params: any): Promise<any> {
+  async removeExtraKeys(params: any): Promise<any> {
     for (let i = 0; i < params.allTables.length; i++) {
       const table = params.allTables[i];
       if (table.channelVariation !== stateOfX.channelVariation.ofc) {
-        params.allTables[i] = _.omit(table, 
-          "isStraddleEnable", "numberOfRebuyAllowed", "hourLimitForRebuy", "rebuyHourFactor", 
-          "gameInfo", "gameInterval", "blindMissed", "rakeRule", "isActive", "totalGame", 
-          "totalPot", "avgPot", "totalPlayer", "totalFlopPlayer", "avgFlopPercent", 
+        params.allTables[i] = _.omit(table,
+          "isStraddleEnable", "numberOfRebuyAllowed", "hourLimitForRebuy", "rebuyHourFactor",
+          "gameInfo", "gameInterval", "blindMissed", "rakeRule", "isActive", "totalGame",
+          "totalPot", "avgPot", "totalPlayer", "totalFlopPlayer", "avgFlopPercent",
           "totalStack", "gameInfoString", "createdAt", "updatedBy", "updatedAt", "rake", "createdBy");
       } else {
         params.allTables[i] = _.omit(table,
-          "smallBlind", "bigBlind", "flopPercent", "avgStack", "minPlayers", 
-          "isStraddleEnable", "numberOfRebuyAllowed", "hourLimitForRebuy", "rebuyHourFactor", 
-          "gameInfo", "gameInterval", "blindMissed", "rakeRule", "isActive", "totalGame", 
-          "totalPot", "avgPot", "totalPlayer", "totalFlopPlayer", "avgFlopPercent", 
+          "smallBlind", "bigBlind", "flopPercent", "avgStack", "minPlayers",
+          "isStraddleEnable", "numberOfRebuyAllowed", "hourLimitForRebuy", "rebuyHourFactor",
+          "gameInfo", "gameInterval", "blindMissed", "rakeRule", "isActive", "totalGame",
+          "totalPot", "avgPot", "totalPlayer", "totalFlopPlayer", "avgFlopPercent",
           "totalStack", "gameInfoString", "createdAt", "updatedBy", "updatedAt", "rake", "createdBy");
       }
       params.allTables[i]._id = params.allTables[i].channelId;
@@ -845,7 +847,7 @@ export class DbRemoteService {
     return params;
   }
 
-   async getPlayerFavouriteTables(params: any): Promise<any> {
+  async getPlayerFavouriteTables(params: any): Promise<any> {
     try {
       const player = await this.db.findUser({ playerId: params.playerId });
       params.favouriteTables = player?.favourateTable || [];
@@ -855,7 +857,7 @@ export class DbRemoteService {
     }
   }
 
-   async processingFavouriteTables(params: any): Promise<any> {
+  async processingFavouriteTables(params: any): Promise<any> {
     for (const favTable of params.favouriteTables) {
       for (const table of params.allTables) {
         if (favTable.channelId === table.channelId) {
@@ -867,7 +869,7 @@ export class DbRemoteService {
     return params;
   }
 
-   async getTableData(params: any): Promise<any> {
+  async getTableData(params: any): Promise<any> {
     const validated = await validateKeySets("Request", "database", "getTableView", params);
     if (!validated.success) return validated;
 
@@ -885,7 +887,7 @@ export class DbRemoteService {
     }
   }
 
-   async insideLobbyData(params: any): Promise<any> {
+  async insideLobbyData(params: any): Promise<any> {
     params.insideData = {};
     for (const table of params.allTables) {
       try {
@@ -900,22 +902,26 @@ export class DbRemoteService {
   }
 
   async getTablesForGames(msg: any): Promise<any> {
-    console.log("got this params", msg);
+
     const validated = await validateKeySets("Request", "database", "getTablesForGames", msg);
     if (!validated.success) return validated;
 
     try {
-      const result = await async.waterfall([
-        async () => this.listTable(msg),
-        this.getTablesForNormalGamesWithCount,
-        this.getEnrolledPlayersInTounaments,
-        this.resetAvgPotandFlopPercentValues,
-        this.removeExtraKeys,
-        this.getPlayerFavouriteTables,
-        this.processingFavouriteTables
-      ]);
+      const list = await this.listTable(msg);
 
-      return { success: true, result: result.allTables, tableData: result.insideData };
+      const withCounts = await this.getTablesForNormalGamesWithCount(list);
+
+      const withEnrolledPlayers = await this.getEnrolledPlayersInTounaments(withCounts);
+
+      const withAvgPotAndFlop = await this.resetAvgPotandFlopPercentValues(withEnrolledPlayers);
+
+      const cleaned = await this.removeExtraKeys(withAvgPotAndFlop);
+
+      const withFavourites = await this.getPlayerFavouriteTables(cleaned);
+
+      const finalResult = await this.processingFavouriteTables(withFavourites);
+
+      return { success: true, result: finalResult.allTables, tableData: finalResult.insideData };
     } catch (err) {
       return err;
     }
@@ -961,7 +967,7 @@ export class DbRemoteService {
     }
   }
 
-   async addtoFav(playerId: string, channelId: string, favdata: any): Promise<any> {
+  async addtoFav(playerId: string, channelId: string, favdata: any): Promise<any> {
     try {
       await this.db.addFavourateSeat(playerId, favdata);
       return { success: true, isRetry: false, isDisplay: false, channelId: channelId || "", info: popupTextManager.falseMessages.SUCCESS_ADD_FAVOURATELIST };
@@ -1000,7 +1006,7 @@ export class DbRemoteService {
     }
   }
 
-   async addtoFavTable(playerId: string, channelId: string, favTableData: any): Promise<any> {
+  async addtoFavTable(playerId: string, channelId: string, favTableData: any): Promise<any> {
     try {
       await this.db.addFavourateTable(playerId, favTableData);
       return { success: true, isRetry: false, isDisplay: false, channelId: channelId || "", info: popupTextManager.falseMessages.SUCCESS_ADD_FAVOURATELIST };
@@ -1063,7 +1069,7 @@ export class DbRemoteService {
     }
   }
 
-   createTableStructureForTournament(result: any): any {
+  createTableStructureForTournament(result: any): any {
     const tempObj: any = {
       'isActive': true,
       'channelType': 'TOURNAMENT',

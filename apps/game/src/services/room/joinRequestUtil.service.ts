@@ -14,6 +14,8 @@ import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service"
 import { ActionLoggerService } from "./actionLogger.service";
 import { validateKeySets } from "shared/common/utils/activity";
 import { BroadcastHandlerService } from "./broadcastHandler.service";
+import { TableRemoteService } from "../database/tableRemote.service";
+import { ChannelRemoteService } from "../database/channelRemote.service";
 
 declare const pomelo: any; // In this place we have add socket.io
 
@@ -24,7 +26,9 @@ export class JoinRequestUtilService {
         private readonly db: PokerDatabaseService,
         private readonly imdb: ImdbDatabaseService,
         private readonly broadcastHandler: BroadcastHandlerService,
-        private readonly ActionLogger: ActionLoggerService
+        private readonly ActionLogger: ActionLoggerService,
+        private readonly tableRemote:TableRemoteService,
+        private readonly channelRemote:ChannelRemoteService,
     ) { }
 
 
@@ -36,33 +40,14 @@ export class JoinRequestUtilService {
 
     async getInMemoryTable(params: any): Promise<any> {
 
-        console.log(stateOfX.serverLogType.info, "in joinRequestUtil function getInMemoryTable");
-
         if (!!params.channelId) {
 
-            console.log(stateOfX.serverLogType.info, "Channel id present, check if table is available in Channel");
 
             if ((!!params.channel && params.channelType === 'TOURNAMENT') || (!!params.channel?.isTable)) {
 
-                console.log(stateOfX.serverLogType.info, 'Table for this channel is already in database!');
 
                 try {
-                    const getTableResponse = await new Promise<any>((resolve, reject) => {
-
-                        // Pomelo Connection
-                        pomelo.app.rpc.database.tableRemote.getTable(
-                            params.session,
-                            { channelId: params.channelId },
-                            (res: any) => {
-                                if (res?.success) {
-                                    resolve(res);
-                                } else {
-                                    reject(res);
-                                }
-                            }
-                        );
-                        // Pomelo Connection
-                    });
+                    const getTableResponse = await this.tableRemote.getTable({ channelId: params.channelId });
 
                     console.log(stateOfX.serverLogType.info, "getInMemoryTable getTable response - " + JSON.stringify(getTableResponse));
 
@@ -188,23 +173,15 @@ export class JoinRequestUtilService {
         }
 
         try {
-            const channelRemoteResponse = await new Promise<any>((resolve, reject) => {
-
-                // Pomelo Connection
-                pomelo.app.rpc.database.channelRemote.processSearch(
-                    params.session,
+            const channelRemoteResponse = await this.channelRemote.processSearch(
                     {
                         channelId: params.channelId,
                         channelType: params.channelType,
                         tableId: params.tableId,
                         playerId: params.playerId,
                         gameVersionCount: params.gameVersionCount,
-                    },
-                    (response: any) => resolve(response)
+                    }
                 );
-                // Pomelo Connection
-
-            });
 
             if (!channelRemoteResponse.success) {
                 params.success = false;
@@ -213,13 +190,7 @@ export class JoinRequestUtilService {
 
             channelRemoteResponse.channelDetails.serverId = pomelo.app.get('serverId');
 
-            const createTableResponse = await new Promise<any>((resolve, reject) => {
-                pomelo.app.rpc.database.tableRemote.createTable(
-                    params.session,
-                    channelRemoteResponse.channelDetails,
-                    (response: any) => resolve(response)
-                );
-            });
+            const createTableResponse = await this.tableRemote.createTable(channelRemoteResponse.channelDetails);
 
             if (!createTableResponse.success) {
                 params.success = false;
@@ -644,10 +615,7 @@ export class JoinRequestUtilService {
     // get table data for password validation
 
     async getTableDataForValidation(params: any): Promise<any> {
-
-        console.log(stateOfX.serverLogType.info, "in joinChannelHandler function getTableDataForValidation " + JSON.stringify(params));
-        console.log("in joinChannelHandler function getTableDataForValidation", params);
-      
+        
         if (params.data.tableFound) {
           params.success = true;
           return params;

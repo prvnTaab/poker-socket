@@ -27,6 +27,7 @@ import { UtilsService } from "apps/game/src/utils/utils.service";
 import { ContestService } from "shared/common/utils/contest.service";
 import { EntryService } from "shared/common/utils/winner-algo/entry.service";
 import { DbRemoteService } from "../database/dbRemote.service";
+import { EntryRemoteService } from "./remote/entryRemote.service";
 
 
 
@@ -93,7 +94,8 @@ app:any
     private readonly utilsService:UtilsService,
     private readonly contest:ContestService,
     private readonly winnerMgmt:EntryService,
-    private readonly dbRemote:DbRemoteService
+    private readonly dbRemote:DbRemoteService,
+    private readonly entryRemote:EntryRemoteService
   ) { }
 
 
@@ -281,7 +283,9 @@ app:any
   // ### Create session for this player with server ###
   // kill old session if found
   // find player's joined channels - return array of object containing channelId
-  async enter(msg: any, session: any): Promise<any> {
+  async enter(msg: any): Promise<any> {
+
+    
     if (!msg.isRequestedBySocket) {
       await this.broadcastHandler.userLoggedIn({ playerId: msg.playerId, action: 'pomeloLoggedIn' });
     }
@@ -310,9 +314,7 @@ app:any
       const userSession = await this.bindUserSession({
         playerId: msg.playerId,
         playerName: msg.playerName,
-        deviceType: msg.deviceType,
-        session,
-        self,
+        deviceType: msg.deviceType
       });
 
       const joinChannelResponse = await this.retryHandler.getJoinedChannles({ playerId: msg.playerId });
@@ -335,9 +337,7 @@ app:any
       const userSession = await this.bindUserSession({
         playerId: msg.playerId,
         playerName: msg.playerName,
-        deviceType: msg.deviceType,
-        session,
-        self,
+        deviceType: msg.deviceType
       });
 
       const joinChannelResponse = await this.retryHandler.getJoinedChannles({ playerId: msg.playerId });
@@ -636,6 +636,7 @@ app:any
   async getLobbyTables(msg: any): Promise<any> {
 
     const validated = await validateKeySets("Request", "connector", "getLobbyTables", msg);
+
     if (!validated.success) {
       this.activity.getLobbyTables(
         msg,
@@ -657,11 +658,13 @@ app:any
       playerId: msg.playerId,
     };
 
+    console.log("------MSG-----")
+
     
 
     const lobbyResponse = await this.dbRemote.getTablesForGames(tempObj);
 
-    console.log("-----abc----",lobbyResponse)
+    console.log("-----abc Lobby----")
 
     this.activity.getLobbyTables(
       msg,

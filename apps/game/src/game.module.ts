@@ -110,6 +110,11 @@ import { OnlinePlayersService1 } from './services/connector/onlinePlayers.servic
 import { CommonHandlerService1 } from './services/connector/commonHandler.service';
 import { SocketGatewayService } from './socket/socket-gateway.service';
 import { GateHandler } from './services/gate/gateHandler.service';
+import { RoomRemoteService } from './services/room/remote/roomRemote.service';
+import { ChannelHandlerService } from './services/room/channelHandler.service';
+import { EntryRemoteService } from './services/connector/remote/entryRemote.service';
+import { TableRemoteService } from './services/database/tableRemote.service';
+import { ChannelRemoteService } from './services/database/channelRemote.service';
 
 @Module({
   imports: [
@@ -191,6 +196,8 @@ import { GateHandler } from './services/gate/gateHandler.service';
     LogRemoteService,
     DeductBlindsService,
     DistributeCardsService,
+    TableRemoteService,
+    ChannelRemoteService,
     // SERVICES WITH CIRCULAR DEPENDENCIES (register after their dependencies)
     UserRemoteService, // This depends on MegaPointsManagerService
     MegaPointsManagerService, // This depends on UserRemoteService
@@ -222,6 +229,8 @@ import { GateHandler } from './services/gate/gateHandler.service';
     ActionHandlerService,
     WaitingListHandlerService,
     TournamentJoinHandlerService,
+    RoomRemoteService,
+    ChannelHandlerService,
 
     // CIRCULAR DEPENDENCY SERVICES (register last)
     StartGameHandlerService, // This depends on StartTournamentHandlerService
@@ -247,6 +256,8 @@ import { GateHandler } from './services/gate/gateHandler.service';
     SessionHandlerService1,
     OnlinePlayersService1,
     CommonHandlerService1,
+    
+    EntryRemoteService
 
   ],
   exports: [

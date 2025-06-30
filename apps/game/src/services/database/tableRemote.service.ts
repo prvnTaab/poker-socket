@@ -628,7 +628,7 @@ export class TableRemoteService {
             rebuyHourFactor: params.rebuyHourFactor,
             isEvChopTable: params.isEvChopTable || false,
             evEquityFee: params.evEquityFee || 0,
-            isPrivate: params.isPrivate,
+            isPrivate: params.isPrivate,params,
             password: params.password,
             evPopupTime: params.evPopupTime || 0,
             ritPopupTime: params.ritPopupTime || 0,

@@ -14,6 +14,7 @@ import { JoinRequestUtilService } from "./joinRequestUtil.service";
 import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { validateKeySets } from "shared/common/utils/activity";
 import { ActivityService } from "shared/common/activity/activity.service";
+import { RequestRemoteService } from "../database/requestRemote.service";
 
 
 
@@ -35,7 +36,8 @@ export class AutoSitHandlerService {
         private readonly responseHandler: ResponseHandlerRoomService,
         private readonly commonHandler: CommonHandlerService,
         private readonly joinRequestUtil: JoinRequestUtilService,
-        private readonly activity:ActivityService
+        private readonly activity:ActivityService,
+        private readonly requestRemote:RequestRemoteService
         
 
     ) {}
@@ -204,7 +206,7 @@ export class AutoSitHandlerService {
       }
     
       // Reject with an error if password does not match
-      throw {
+      return {
         success: false,
         isRetry: false,
         isDisplay: true,
@@ -258,7 +260,7 @@ export class AutoSitHandlerService {
     // New
     async sitPlayerOnTable(params: any): Promise<any> {
     
-      const processAutoSitResponse = await pomelo.app.rpc.database.requestRemote.processAutoSit({}, params.data);
+      const processAutoSitResponse = await this.requestRemote.processAutoSit(params.data);
     
     
       params.data.isTableFull = !!processAutoSitResponse.data && !!processAutoSitResponse.data.isTableFull ? processAutoSitResponse.data.isTableFull : false;
@@ -349,12 +351,12 @@ export class AutoSitHandlerService {
       params.session.set("channels", sessionChannels);
     
       // Using await to push session changes
-      try {
-        await params.session.pushAll(params.session.frontendId, params.session.id, params.session.settings);
-        console.log('pushed session changes to frontend session');
-      } catch (err) {
-        console.error('Error pushing session changes', err);
-      }
+      // try {
+      //   await params.session.pushAll(params.session.frontendId, params.session.id, params.session.settings);
+      //   console.log('pushed session changes to frontend session');
+      // } catch (err) {
+      //   console.error('Error pushing session changes', err);
+      // }
     
       return params;
     }
@@ -458,10 +460,7 @@ export class AutoSitHandlerService {
     // New
     async updatePlayerState(params: any): Promise<any> {
     
-      const changeDisconnPlayerStateResponse = await pomelo.app.rpc.database.requestRemote.changeDisconnPlayerState(
-        {},
-        { channelId: params.channelId, playerId: params.playerId }
-      );
+      const changeDisconnPlayerStateResponse = await this.requestRemote.changeDisconnPlayerState({ channelId: params.channelId, playerId: params.playerId });
     
     
       if (changeDisconnPlayerStateResponse.success) {

@@ -3,6 +3,7 @@ import { route } from "./socket-routes";
 import { GateHandler } from "../services/gate/gateHandler.service";
 
 import { EntryHandlerService } from "../services/connector/entryHandler.service";
+import { ChannelHandlerService } from "../services/room/channelHandler.service";
 
 
 
@@ -13,7 +14,8 @@ export class SocketGatewayService {
 
     constructor(
         private readonly gateHandlerService: GateHandler,
-        private readonly entryHandler:EntryHandlerService
+        private readonly entryHandler: EntryHandlerService,
+        private readonly channelHandler: ChannelHandlerService
     ) { }
 
 
@@ -23,7 +25,7 @@ export class SocketGatewayService {
         const { data, action } = params;
 
 
-        let session:any;
+        let session: any;
 
 
         let isRoutesExist = route(action);
@@ -36,16 +38,29 @@ export class SocketGatewayService {
                 case "login":
                     return await this.gateHandlerService.getConnector(data);
 
-                case "updateProfile": 
-                    return await this.entryHandler.updateProfile(params.data,session); // Pending
+                case "updateProfile":
+                    return await this.entryHandler.updateProfile(params.data, session); // Pending
 
 
-                case "getTables": 
+                case "getTables":
                     return await this.entryHandler.getLobbyTables(data);
-                    // return { success: true, route: 'connector.entryHandler.getLobbyTables' }
-                case "checkForMultiClient": return { success: true, route: 'connector.entryHandler.enter' }
-                case "joinChannel": return { success: true, route: 'room.channelHandler.joinChannel' }
-                case "autoSit": return { success: true, route: 'room.channelHandler.autoSit' }
+                // return { success: true, route: 'connector.entryHandler.getLobbyTables' }
+
+                
+                case "checkForMultiClient": 
+                    return await this.entryHandler.enter(data);
+                    // return { success: true, route: 'connector.entryHandler.enter' }
+
+
+                case "joinChannel":
+                    return await this.channelHandler.joinChannel(data);
+                // return { success: true, route: 'room.channelHandler.joinChannel' }
+
+                case "autoSit": 
+                    // return await this.channelHandler.autoSit(data)
+                    // return { success: true, route: 'room.channelHandler.autoSit' }
+
+
                 case "sitHere": return { success: true, route: 'room.channelHandler.sitHere' }
                 case "makeMove": return { success: true, route: 'room.channelHandler.makeMove' }
                 case "leaveTable": return { success: true, route: 'room.channelHandler.leaveTable' }

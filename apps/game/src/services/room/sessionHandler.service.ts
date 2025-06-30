@@ -202,15 +202,7 @@ async bindChannelInSession(params: any): Promise<any> {
                 params.session.set("lastActiveTime", Number(new Date()));
 
                 try {
-                    await new Promise<void>((resolve, reject) => {
-                        params.session.push("lastActiveTime", (err: Error | null) => {
-                            if (err) {
-                                reject(err);
-                            } else {
-                                resolve();
-                            }
-                        });
-                    });
+                    await params.session.push("lastActiveTime");
                 } catch (err) {
                     // Error already logged inside push callback
                 }
