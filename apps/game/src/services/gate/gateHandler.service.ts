@@ -9,6 +9,7 @@ import { PokerDatabaseService } from 'shared/common/utils/pokerdatabase.service'
 import { SharedModuleService } from 'shared/common/utils/sharedModule.service';
 import { UtilityService } from 'shared/common/utils/utils.service';
 import { Injectable } from '@nestjs/common';
+import { RedisSessionService } from '../../redis/redis-session.service';
 
 
 @Injectable()
@@ -19,8 +20,9 @@ export class GateHandler {
         private readonly activity: ActivityService,
         private readonly serverDownManager: ServerDownManagerService,
         private readonly dbRemote: DbRemoteService,
-        private readonly utilsService:UtilityService,
-        private readonly sharedModule:SharedModuleService
+        private readonly utilsService: UtilityService,
+        private readonly sharedModule: SharedModuleService,
+        private readonly redisSessionService:RedisSessionService
     ) { }
 
 
@@ -74,12 +76,17 @@ export class GateHandler {
 
             if (msg.loginType.toLowerCase() === 'login') {
 
+                let result = await this.handleLogin(msg, activityParams, activityCategory, activitySubCategory);
 
-                return await this.handleLogin(msg, activityParams, activityCategory, activitySubCategory);
+                if(result.success) {
+                    await this.redisSessionService.addUserSession(msg.playerId,msg.socketId);
+                }
+
+                return result;
 
             } else if (msg.loginType.toLowerCase() === 'registration') {
 
-                await this.handleRegistration(msg,activityParams, activityCategory, activitySubCategory);
+                return await this.handleRegistration(msg,activityParams, activityCategory, activitySubCategory);
 
             } else {
                 return {
@@ -105,15 +112,15 @@ export class GateHandler {
 
         if (msg.loginMode.toLowerCase() === 'normal') {
 
-            
+
 
             const filterForUser: any = {};
             if (msg.userName) filterForUser.userName = msg.userName;
             if (msg.emailId) filterForUser.emailId = msg.emailId;
             filterForUser.password = msg.password;
-            
+
             const validateUserResponse = await this.dbRemote.validateUser(msg);
-            
+
 
             if (!validateUserResponse) {
                 activityParams.comment = "not able to find data from db";
@@ -248,7 +255,7 @@ export class GateHandler {
         activitySubCategory: string
     ): Promise<any> {
         if (!msg.userName && !msg.emailId || !msg.password) {
-            return{
+            return {
                 success: false,
                 isRetry: false,
                 isDisplay: false,
@@ -287,7 +294,7 @@ export class GateHandler {
             };
         }
 
-        const createdProfile = await this.dbRemote.createProfile( msg);
+        const createdProfile = await this.dbRemote.createProfile(msg);
 
         if (!createdProfile) {
             activityParams.comment = "not able to create user in db";
@@ -408,7 +415,7 @@ export class GateHandler {
                 }
             }
 
-            const res:any = this.utilsService.dispatcher(params.playerId, params.connector);
+            const res: any = this.utilsService.dispatcher(params.playerId, params.connector);
 
             await this.dbRemote.insertUserSessionInDB(
                 { playerId: params.playerId, serverId: res.id }

@@ -27,12 +27,12 @@ export class BroadcastHandlerService1 {
      * Send a direct broadcast to a specific player.
      */
     async sendPlayerBroadCast(data: any): Promise<boolean> {
-        console.log('Got one request to send player broadcast in broadcastHandler', data);
 
         try {
             const playerId = data.playerId;
-            const message = data.msg;
+            const message = data;
             const eventName = 'lobbyPlayerResponse';
+
 
             if (!playerId || !message) {
                 console.warn('Invalid data:', data);
@@ -40,6 +40,7 @@ export class BroadcastHandlerService1 {
             }
 
             this.gameGateway.sendMessageToPlayer(playerId, eventName, message);
+
             return true;
         } catch (err) {
             console.error('Error sending player broadcast via socket:', err);
@@ -77,7 +78,9 @@ export class BroadcastHandlerService1 {
  * @param  {Object}          params contains route data playerId
  */
     async userLoggedIn(msg: any): Promise<void> {
+
         this.sendPlayerBroadCast(msg);
+
     }
 
     async sendMessageToUser(params: any): Promise<void> {

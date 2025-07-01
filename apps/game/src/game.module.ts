@@ -1,6 +1,6 @@
 import { forwardRef, Module } from '@nestjs/common';
 import {  SocketGateway } from './socket/socket.gateway';
-import { RedisService } from './redis/redis.service';
+// import { RedisService } from './redis/redis-session.service';
 import { DbRemoteService } from './services/database/dbRemote.service';
 import { UserRemoteService } from './services/database/userRemote.service';
 import { JoinChannelHandler } from './services/room/joinChannelHandler';
@@ -115,11 +115,13 @@ import { ChannelHandlerService } from './services/room/channelHandler.service';
 import { EntryRemoteService } from './services/connector/remote/entryRemote.service';
 import { TableRemoteService } from './services/database/tableRemote.service';
 import { ChannelRemoteService } from './services/database/channelRemote.service';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
     HttpModule,
     UtilsModule,
+    RedisModule,
     forwardRef(() => CommonModule),
     ClientsModule.register([
       {
@@ -138,7 +140,7 @@ import { ChannelRemoteService } from './services/database/channelRemote.service'
     // Socket
     SocketGatewayService,
 
-    RedisService,
+    // RedisService,
     WalletQueryService,
     UtilsService,
     // SocketQueryService,
@@ -261,7 +263,7 @@ import { ChannelRemoteService } from './services/database/channelRemote.service'
 
   ],
   exports: [
-    RedisService, 
+    // RedisService, 
     DbRemoteService, 
     UserRemoteService,
     // ADDED: Export other services that might be needed by other modules

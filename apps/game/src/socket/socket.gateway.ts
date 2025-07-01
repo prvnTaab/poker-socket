@@ -141,10 +141,14 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       //   return true;
       // }
 
+      console.log("-------------Client-----------",client)
+
+      params.socketId = client.id;
+
       // Default: Forward to socketService
       const res:any = await this.socketGatewayService.processRequest(params);
 
-      console.log("-------Final Output---",res.length)
+      console.log("-------Final Output---",res)
 
 
       res.returnedAt = Date.now();

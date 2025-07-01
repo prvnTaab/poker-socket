@@ -28,6 +28,7 @@ import { ContestService } from "shared/common/utils/contest.service";
 import { EntryService } from "shared/common/utils/winner-algo/entry.service";
 import { DbRemoteService } from "../database/dbRemote.service";
 import { EntryRemoteService } from "./remote/entryRemote.service";
+import { RedisSessionService } from "../../redis/redis-session.service";
 
 
 
@@ -66,7 +67,7 @@ import { EntryRemoteService } from "./remote/entryRemote.service";
 @Injectable()
 export class EntryHandlerService {
 
-app:any
+  app: any
 
   constructor(
     private readonly db: PokerDatabaseService,
@@ -91,11 +92,12 @@ app:any
     private readonly spinTheWheelHandler: SpinTheWheelHandlerService,
     private readonly bonusCodeHandler: BonusHandlerService,
     // private readonly app: any, // This is where your Pomelo-like `app` instance would be injected if needed
-    private readonly utilsService:UtilsService,
-    private readonly contest:ContestService,
-    private readonly winnerMgmt:EntryService,
-    private readonly dbRemote:DbRemoteService,
-    private readonly entryRemote:EntryRemoteService
+    private readonly utilsService: UtilsService,
+    private readonly contest: ContestService,
+    private readonly winnerMgmt: EntryService,
+    private readonly dbRemote: DbRemoteService,
+    private readonly entryRemote: EntryRemoteService,
+    private readonly redisSessionService:RedisSessionService
   ) { }
 
 
@@ -285,13 +287,13 @@ app:any
   // find player's joined channels - return array of object containing channelId
   async enter(msg: any): Promise<any> {
 
-    
+    console.log("--------MSG--------", msg)
+
     if (!msg.isRequestedBySocket) {
       await this.broadcastHandler.userLoggedIn({ playerId: msg.playerId, action: 'pomeloLoggedIn' });
     }
 
-    const self = this;
-    // self.session = session;
+    console.log("--------MSG 2--------", msg)
 
     const validated = await validateKeySets("Request", "connector", "enter", msg);
 
@@ -299,10 +301,13 @@ app:any
       return validated;
     }
 
-    const sessionExist = await self.app.rpc.connector.entryRemote.getUserSession( msg);
+    const sessionExist = await this.redisSessionService.getUserSession(msg.playerId);
 
     if (sessionExist.success) {
+
       const prevSession = self.app.sessionService.get(sessionExist.sessionId);
+
+      
       if (prevSession) {
         prevSession.set("isConnected", false);
         // self.session.set("waitingChannels", prevSession.get("waitingChannels"));
@@ -311,7 +316,7 @@ app:any
 
       // await self.app.rpc.connector.entryRemote.killUserSession(self.session, sessionExist.sessionId);
 
-      const userSession = await this.bindUserSession({
+      const userSession = await this.redisSessionService.addSession({
         playerId: msg.playerId,
         playerName: msg.playerName,
         deviceType: msg.deviceType
@@ -334,7 +339,9 @@ app:any
         };
       }
     } else {
-      const userSession = await this.bindUserSession({
+
+
+      const userSession = await this.redisSessionService.addSession({
         playerId: msg.playerId,
         playerName: msg.playerName,
         deviceType: msg.deviceType
@@ -343,10 +350,12 @@ app:any
       const joinChannelResponse = await this.retryHandler.getJoinedChannles({ playerId: msg.playerId });
 
       if (joinChannelResponse.success) {
+
         return {
           success: userSession.success,
           joinChannels: joinChannelResponse.joinedChannels,
         };
+
       } else {
         return {
           success: false,
@@ -658,13 +667,13 @@ app:any
       playerId: msg.playerId,
     };
 
-    console.log("------MSG-----")
+    // console.log("------MSG-----",tempObj)
 
-    
+
 
     const lobbyResponse = await this.dbRemote.getTablesForGames(tempObj);
 
-    console.log("-----abc Lobby----")
+    // console.log("-----abc Lobby----",lobbyResponse.result.length)
 
     this.activity.getLobbyTables(
       msg,
@@ -2096,7 +2105,7 @@ app:any
     params.response = response;
     return response;
   };
-  
+
 
 
   async getVideoData(msg, session, next) {

@@ -43,3 +43,23 @@ getHostAndPort response{ success: true, host: 'staging.gamebadlo.com', port: 305
   securityHash: 'e2f63b1a375b0bd1aebc373e0776c1ed1dd99534',
   __route__: 'gate.gateHandler.getConnector'
 }
+
+
+
+
+// Redis Structure looks like
+
+  const sessionData = {
+    id: socket-abc-123
+    uid: player123
+    settings: {
+      "playerId": "player123",
+      "playerName": "Ajay",
+      "deviceType": "cell",
+      "channels": [],
+      "waitingChannels": [],
+      "networkIp": "::ffff:127.0.0.1",
+      "lastActiveTime": 1721800542123,
+      "isDisconnectedForce": false
+    }
+  };
