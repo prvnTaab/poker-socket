@@ -11,7 +11,7 @@ import {
 import { Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
 import { Server } from 'socket.io';
-import { SocketGatewayService } from './socket-gateway.service';
+import { SocketGatewayService } from './socket.service';
 
 @WebSocketGateway({
   cors: {
@@ -141,12 +141,12 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       //   return true;
       // }
 
-      console.log("-------------Client-----------",client)
+      console.log("-------------Client-----------",client.id,params)
 
-      params.socketId = client.id;
+      params.data.socketId = client.id;
 
       // Default: Forward to socketService
-      const res:any = await this.socketGatewayService.processRequest(params);
+      const res:any = await this.socketGatewayService.processRequest(client,params);
 
       console.log("-------Final Output---",res)
 

@@ -5,18 +5,20 @@ import { LockTableService } from "./lockTable.service";
 import { BroadcastHandlerService } from "../room/broadcastHandler.service";
 import { HandleGameOverService } from "./handleGameOver.service";
 import { validateKeySets } from "shared/common/utils/activity";
+import { RoomManagerService } from "../../room-manager/room-manager.service";
 
 
 @Injectable()
 export class RequestRemoteService {
 
-    private app:any;
+    private app: any;
 
     constructor(
         private readonly imdb: ImdbDatabaseService,
         private readonly lockTable: LockTableService,
         private readonly broadcastHandler: BroadcastHandlerService,
-        private readonly handleGameOver: HandleGameOverService
+        private readonly handleGameOver: HandleGameOverService,
+        private readonly roomManagerService: RoomManagerService
     ) { }
 
 
@@ -296,7 +298,7 @@ export class RequestRemoteService {
     /*===============================  START ==========================*/
     // New
     async checkEvHappens(params: any): Promise<{ success: boolean }> {
-        const channel = this.app.get('channelService').getChannel(params.channelId, false);
+        const channel = this.roomManagerService.getRoom(params.channelId); // From RoomManagerService
 
         if (channel && (channel.evChopTimer || channel.evRITTimer)) {
             return { success: true };
@@ -368,147 +370,148 @@ export class RequestRemoteService {
 
     /*===============================  START ==========================*/
     // New
-    async playerLeftEv(params: any) {
-        const self = this;
+async playerLeftEv(params: any): Promise<void> {
+    
+  const channel = this.roomManagerService.getRoom(params.channelId); // Replaces Pomelo's getChannel
 
-        const channel = self.app.get('channelService').getChannel(params.channelId, false);
+  if (!channel || (!channel.evChopTimer && !channel.evRITTimer)) {
+    return;
+  }
 
-        if (channel && (channel.evChopTimer || channel.evRITTimer)) {
-            try {
-                // Wrap imdb.getTable into a promise to await it
-                const table = await this.imdb.getTable(params.channelId);
+  try {
+    const table = await this.imdb.getTable(params.channelId);
+    if (!table) return;
 
-                if (table) {
-                    this.broadcastHandler.fireAllInCards({
-                        playerId: params.playerId,
-                        channel: channel,
-                        channelId: params.channelId,
-                        data: { allInCards: table.allInPLayerCardsCards, channelId: params.channelId },
-                        sentFromReconnection: true,
-                    });
+    // 🔁 Fire all-in cards
+    this.broadcastHandler.fireAllInCards({
+      playerId: params.playerId,
+      channel,
+      channelId: params.channelId,
+      data: {
+        allInCards: table.allInPLayerCardsCards,
+        channelId: params.channelId
+      },
+      sentFromReconnection: true,
+    });
 
-                    this.broadcastHandler.fireRoundOverBroadcast({
-                        playerId: params.playerId,
-                        channelId: params.channelId,
-                        roundName: stateOfX.round.showdown,
-                        channel: channel,
-                        sentFromReconnection: true,
-                    });
+    // 🔁 Fire round over
+    this.broadcastHandler.fireRoundOverBroadcast({
+      playerId: params.playerId,
+      channel,
+      channelId: params.channelId,
+      roundName: stateOfX.round.showdown,
+      sentFromReconnection: true,
+    });
 
-                    if (table.turnEvData) {
-                        const turnData = {
-                            ...table.turnEvData,
-                            channel: channel,
-                            sentFromReconnection: true,
-                            originalPlayerId: params.playerId,
-                        };
+    // 🔁 Fire turn if needed
+    if (table.turnEvData) {
+      const turnData = {
+        ...table.turnEvData,
+        channel,
+        sentFromReconnection: true,
+        originalPlayerId: params.playerId,
+      };
 
-                        // Wrap fireOnTurnBroadcast callback in Promise to await
-                        await this.broadcastHandler.fireOnTurnBroadcast(turnData);
-                    }
+      await this.broadcastHandler.fireOnTurnBroadcast(turnData);
+    }
 
-                    const evChopDetails = table.evChopDetails || [];
-                    let playerData: any[] = [];
-                    const foundData = evChopDetails.find((e: any) => e.playerId === params.playerId);
-
-                    const evData = {
-                        channel: channel,
-                        evChop: evChopDetails,
-                        sentFromReconnection: true,
-                        channelId: params.channelId,
-                        playerId: params.playerId,
-                    };
-
-                    this.broadcastHandler.evChopPercent(evData);
-
-                    if (foundData) {
-                        playerData.push(foundData);
-                        console.log("playerData saved details", playerData);
-
-                        if (channel.evChopTimer) {
-                            for (let i = 0; i < evChopDetails.length; i++) {
-                                if (evChopDetails[i].equity === 0) {
-                                    evChopDetails.splice(i, 1);
-                                    i--;
-                                }
-                            }
-
-                            const tablePlayer = table.players.find((e: any) => e.playerId == params.playerId);
-                            console.log("got my player data", tablePlayer);
-
-                            if (!tablePlayer.hasOwnProperty('evChop')) {
-                                if (evChopDetails.length) {
-                                    this.broadcastHandler.evChop({
-                                        channelId: params.channelId,
-                                        playerId: params.playerId,
-                                        evChop: playerData,
-                                        sentFromReconnection: true,
-                                    });
-                                }
-                            } else {
-                                if (!!tablePlayer.evChop) {
-                                    const evTagData = {
-                                        channelId: params.channelId,
-                                        playerId: params.playerId,
-                                        sentFromReconnection: true,
-                                    };
-                                    this.broadcastHandler.setEvTag(evTagData);
-                                }
-                                this.sendPrivateMessage({
-                                    playerId: params.playerId,
-                                    channelId: params.channelId,
-                                    info: "Waiting for other player's decision on Ev Chop",
-                                    successId: 'successMessage.WAITING_EV_CHOP',
-                                });
-                            }
-                        } else if (channel.evRITTimer) {
-                            const tablePlayer = table.players.find((e: any) => e.playerId == params.playerId);
-
-                            if (tablePlayer.playerId == table.ritDetails.playerId) {
-                                const popUpTime = Math.floor(
-                                    table.ritPopupTime - (Number(new Date()) - channel.evRITTimer.startedAt) / 1000
-                                );
-                                table.ritDetails.timer = popUpTime;
-                                this.broadcastHandler.ritEvChop({
-                                    channel: channel,
-                                    channelId: params.channelId,
-                                    data: table.ritDetails,
-                                    sentFromReconnection: true,
-                                });
-                            } else {
-                                this.sendPrivateMessage({
-                                    playerId: params.playerId,
-                                    channelId: params.channelId,
-                                    info: "Waiting for other player decision on RIT",
-                                    isEvRIT: true,
-                                    successId: "successMessage.WAITING_RIT",
-                                });
-                            }
-                        }
-                    } else {
-                        if (channel.evChopTimer) {
-                            this.sendPrivateMessage({
-                                playerId: params.playerId,
-                                channelId: params.channelId,
-                                info: "Waiting for other player's decision on Ev Chop",
-                                successId: 'successMessage.WAITING_EV_CHOP',
-                            });
-                        } else if (channel.evRITTimer) {
-                            this.sendPrivateMessage({
-                                playerId: params.playerId,
-                                channelId: params.channelId,
-                                info: "Waiting for other player decision on RIT",
-                                isEvRIT: true,
-                                successId: "successMessage.WAITING_RIT",
-                            });
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error("Error getting table:", error);
-            }
-        }
+    const evChopDetails = table.evChopDetails || [];
+    const foundData = evChopDetails.find((e: any) => e.playerId === params.playerId);
+    const evData = {
+      channel,
+      evChop: evChopDetails,
+      sentFromReconnection: true,
+      channelId: params.channelId,
+      playerId: params.playerId,
     };
+
+    this.broadcastHandler.evChopPercent(evData);
+
+    if (foundData) {
+      const playerData = [foundData];
+
+      if (channel.evChopTimer) {
+        for (let i = 0; i < evChopDetails.length; i++) {
+          if (evChopDetails[i].equity === 0) {
+            evChopDetails.splice(i, 1);
+            i--;
+          }
+        }
+
+        const tablePlayer = table.players.find((e: any) => e.playerId === params.playerId);
+
+        if (!tablePlayer.hasOwnProperty('evChop')) {
+          if (evChopDetails.length) {
+            this.broadcastHandler.evChop({
+              channelId: params.channelId,
+              playerId: params.playerId,
+              evChop: playerData,
+              sentFromReconnection: true,
+            });
+          }
+        } else {
+          if (!!tablePlayer.evChop) {
+            this.broadcastHandler.setEvTag({
+              channelId: params.channelId,
+              playerId: params.playerId,
+              sentFromReconnection: true,
+            });
+          }
+
+          this.sendPrivateMessage({
+            playerId: params.playerId,
+            channelId: params.channelId,
+            info: "Waiting for other player's decision on Ev Chop",
+            successId: 'successMessage.WAITING_EV_CHOP',
+          });
+        }
+      } else if (channel.evRITTimer) {
+        const tablePlayer = table.players.find((e: any) => e.playerId === params.playerId);
+
+        if (tablePlayer.playerId === table.ritDetails.playerId) {
+          const popUpTime = Math.floor(
+            table.ritPopupTime - (Date.now() - channel.evRITTimer.startedAt) / 1000
+          );
+          table.ritDetails.timer = popUpTime;
+
+          this.broadcastHandler.ritEvChop({
+            channel,
+            channelId: params.channelId,
+            data: table.ritDetails,
+            sentFromReconnection: true,
+          });
+        } else {
+          this.sendPrivateMessage({
+            playerId: params.playerId,
+            channelId: params.channelId,
+            info: "Waiting for other player decision on RIT",
+            isEvRIT: true,
+            successId: "successMessage.WAITING_RIT",
+          });
+        }
+      }
+    } else {
+      if (channel.evChopTimer) {
+        this.sendPrivateMessage({
+          playerId: params.playerId,
+          channelId: params.channelId,
+          info: "Waiting for other player's decision on Ev Chop",
+          successId: 'successMessage.WAITING_EV_CHOP',
+        });
+      } else if (channel.evRITTimer) {
+        this.sendPrivateMessage({
+          playerId: params.playerId,
+          channelId: params.channelId,
+          info: "Waiting for other player decision on RIT",
+          isEvRIT: true,
+          successId: "successMessage.WAITING_RIT",
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Error getting table:", error);
+  }
+}
 
 
     // Old

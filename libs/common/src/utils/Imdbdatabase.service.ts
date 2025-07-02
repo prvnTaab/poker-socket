@@ -31,14 +31,21 @@ export class ImdbDatabaseService {
   }
 
   async saveTable(params: any): Promise<any> {
+
     try {
       return await this.inMemoryDb
         .collection('tables')
-        .updateOne({ channelId: params.channelId }, params, { upsert: true });
+        .updateOne(
+          { channelId: params.channelId },
+          { $set: params },
+          { upsert: true }
+        );
     } catch (err) {
+      console.error("Error saving table:", err);
       throw err;
     }
   }
+
 
   async setPlayerPoints(
     query: { channelId: string; playerId: string },

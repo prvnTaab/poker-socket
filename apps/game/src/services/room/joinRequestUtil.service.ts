@@ -5,7 +5,7 @@ import { systemConfig } from "shared/common";
 import { popupTextManager } from "shared/common";
 import stateOfX from "shared/common/stateOfX.sevice";
 import * as keyValidator from '../../../../../libs/common/src/utils/keysDictionary';
-import dbQyeryInfo   from "../../../../../libs/common/src/popupTextManager";
+import dbQyeryInfo from "../../../../../libs/common/src/popupTextManager";
 
 import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
 import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
@@ -27,8 +27,8 @@ export class JoinRequestUtilService {
         private readonly imdb: ImdbDatabaseService,
         private readonly broadcastHandler: BroadcastHandlerService,
         private readonly ActionLogger: ActionLoggerService,
-        private readonly tableRemote:TableRemoteService,
-        private readonly channelRemote:ChannelRemoteService,
+        private readonly tableRemote: TableRemoteService,
+        private readonly channelRemote: ChannelRemoteService,
     ) { }
 
 
@@ -49,10 +49,8 @@ export class JoinRequestUtilService {
                 try {
                     const getTableResponse = await this.tableRemote.getTable({ channelId: params.channelId });
 
-                    console.log(stateOfX.serverLogType.info, "getInMemoryTable getTable response - " + JSON.stringify(getTableResponse));
-
                     params.data.tableFound = true;
-                    params.table = getTableResponse.table;
+                    params.table = getTableResponse;
 
                     return { success: true, params };
                 } catch (error) {
@@ -173,24 +171,31 @@ export class JoinRequestUtilService {
         }
 
         try {
-            const channelRemoteResponse = await this.channelRemote.processSearch(
-                    {
-                        channelId: params.channelId,
-                        channelType: params.channelType,
-                        tableId: params.tableId,
-                        playerId: params.playerId,
-                        gameVersionCount: params.gameVersionCount,
-                    }
-                );
+
+            let queryData = {
+                channelId: params.channelId,
+                channelType: params.channelType,
+                tableId: params.tableId,
+                playerId: params.playerId,
+                gameVersionCount: params.gameVersionCount,
+            }
+
+            
+
+            const channelRemoteResponse = await this.channelRemote.processSearch(queryData);
 
             if (!channelRemoteResponse.success) {
                 params.success = false;
                 return channelRemoteResponse;
             }
 
-            channelRemoteResponse.channelDetails.serverId = pomelo.app.get('serverId');
+            // console.log("-------- Inside Join Request Util---",channelRemoteResponse)
+
+            // channelRemoteResponse.channelDetails.serverId = pomelo.app.get('serverId');
 
             const createTableResponse = await this.tableRemote.createTable(channelRemoteResponse.channelDetails);
+
+            
 
             if (!createTableResponse.success) {
                 params.success = false;
@@ -232,6 +237,8 @@ export class JoinRequestUtilService {
                 evEquityFee: table.evEquityFee || 0,
                 ritPopupTime: table.ritPopupTime || 0,
             });
+
+            console.log("----createChannelInDatabase---20000",channel)
 
             // Optionally broadcast:
             // broadcastTableData(pomelo.app, table);
@@ -478,56 +485,56 @@ export class JoinRequestUtilService {
     //         }
     //     });
     // }
-/*=============================  END  ========================*/
+    /*=============================  END  ========================*/
 
     /*=============================  START  ========================*/
-    async  closePlayerSession(params: any): Promise<any> {
-    const updateQuery = {
-        playerId: params.playerId,
-        channelId: params.channelId,
-        active: true,
-    };
-
-    try {
-        const res: any = await this.imdb.getPlayerBuyIn(updateQuery);
-
-        const updateParams = {
-            buyins: [],
-            score: 0,
-            endDate: new Date(),
-            active: false,
-            totalBuyins: 0,
+    async closePlayerSession(params: any): Promise<any> {
+        const updateQuery = {
+            playerId: params.playerId,
+            channelId: params.channelId,
+            active: true,
         };
 
-        if (res && res.length > 0) {
-            for (const entry of res) {
-                updateParams.buyins.push({
-                    amount: entry.amount,
-                    createdAt: entry.createdAt,
-                });
-                updateParams.totalBuyins += entry.amount;
-            }
-        }
+        try {
+            const res: any = await this.imdb.getPlayerBuyIn(updateQuery);
 
-        updateParams.score = params.data.antibankingAmount - updateParams.totalBuyins;
-
-        const updateResult = await this.db.updatePlayerSession(updateQuery, updateParams);
-
-        if (updateResult) {
-            return params;
-        } else {
-            throw {
-                success: false,
-                channelId: params.channelId || "",
-                info: popupTextManager.dbQyeryInfo.DB_REMOVEANTIBANKING_FAIL,
-                isRetry: false,
-                isDisplay: false,
+            const updateParams = {
+                buyins: [],
+                score: 0,
+                endDate: new Date(),
+                active: false,
+                totalBuyins: 0,
             };
+
+            if (res && res.length > 0) {
+                for (const entry of res) {
+                    updateParams.buyins.push({
+                        amount: entry.amount,
+                        createdAt: entry.createdAt,
+                    });
+                    updateParams.totalBuyins += entry.amount;
+                }
+            }
+
+            updateParams.score = params.data.antibankingAmount - updateParams.totalBuyins;
+
+            const updateResult = await this.db.updatePlayerSession(updateQuery, updateParams);
+
+            if (updateResult) {
+                return params;
+            } else {
+                throw {
+                    success: false,
+                    channelId: params.channelId || "",
+                    info: popupTextManager.dbQyeryInfo.DB_REMOVEANTIBANKING_FAIL,
+                    isRetry: false,
+                    isDisplay: false,
+                };
+            }
+        } catch (error) {
+            throw error;
         }
-    } catch (error) {
-        throw error;
     }
-}
     // var closePlayerSession = function (params, cb) {
     //     var updateQuery = {};
     //     updateQuery.playerId = params.playerId;
@@ -561,41 +568,41 @@ export class JoinRequestUtilService {
     //         });
     //     })
     // }
-/*=============================  END  ========================*/
+    /*=============================  END  ========================*/
 
     /*=============================  START  ========================*/
     // remove antibanking data from db
     async removeAntiBanking(params: any): Promise<any> {
-      
+
         try {
-          const res = await this.db.removeAntiBankingEntry({
-            playerId: params.data.playerId,
-            channelId: params.channelId,
-          });
-      
-          if (res) {
-            return params;
-          } else {
-            throw {
-              success: false,
-              channelId: params.channelId || '',
-              info: popupTextManager.dbQyeryInfo.DB_REMOVEANTIBANKING_FAIL,
-              isRetry: false,
-              isDisplay: false,
-            };
-          }
+            const res = await this.db.removeAntiBankingEntry({
+                playerId: params.data.playerId,
+                channelId: params.channelId,
+            });
+
+            if (res) {
+                return params;
+            } else {
+                throw {
+                    success: false,
+                    channelId: params.channelId || '',
+                    info: popupTextManager.dbQyeryInfo.DB_REMOVEANTIBANKING_FAIL,
+                    isRetry: false,
+                    isDisplay: false,
+                };
+            }
         } catch (err) {
-          console.log(
-            stateOfX.serverLogType.error,
-            'Unable to remove anti banking details in database: ' + JSON.stringify(err)
-          );
-          return {
-            success: false,
-            channelId: params.channelId || '',
-            info: popupTextManager.dbQyeryInfo.DB_REMOVEANTIBANKING_FAIL,
-            isRetry: false,
-            isDisplay: false,
-          };
+            console.log(
+                stateOfX.serverLogType.error,
+                'Unable to remove anti banking details in database: ' + JSON.stringify(err)
+            );
+            return {
+                success: false,
+                channelId: params.channelId || '',
+                info: popupTextManager.dbQyeryInfo.DB_REMOVEANTIBANKING_FAIL,
+                isRetry: false,
+                isDisplay: false,
+            };
         }
     }
     // var removeAntiBanking = function (params, cb) {
@@ -615,33 +622,35 @@ export class JoinRequestUtilService {
     // get table data for password validation
 
     async getTableDataForValidation(params: any): Promise<any> {
-        
+
+
+
         if (params.data.tableFound) {
-          params.success = true;
-          return params;
+            params.success = true;
+            return params;
         }
-      
+
         try {
-          const result = await this.db.findTableById(params.channelId); // Assumes `db.findTableByIdAsync` exists or is created
-      
-          result.isPrivate = JSON.parse(result.isPrivateTabel);
-          result.password = result.passwordForPrivate;
-      
-          params.table = result;
-          params.success = true;
-      
-          return params;
+            const result = await this.db.findTableById(params.channelId); // Assumes `db.findTableByIdAsync` exists or is created
+
+            result.isPrivate = JSON.parse(result.isPrivateTabel);
+            result.password = result.passwordForPrivate;
+
+            params.table = result;
+            params.success = true;
+
+            return params;
         } catch (error) {
-          console.log(stateOfX.serverLogType.error, "Error in getTableDataForValidation: " + error);
-          return {
-            success: false,
-            isRetry: false,
-            isDisplay: true,
-            channelId: params.channelId || "",
-            info: popupTextManager.falseMessages.DB_CHANNEL_NOTFOUND,
-          };
+            //   console.log(stateOfX.serverLogType.error, "Error in getTableDataForValidation: " + error);
+            return {
+                success: false,
+                isRetry: false,
+                isDisplay: true,
+                channelId: params.channelId || "",
+                info: popupTextManager.falseMessages.DB_CHANNEL_NOTFOUND,
+            };
         }
-      }
+    }
 
 
     // joinRequestUtil.getTableDataForValidation = function (params, cb) {

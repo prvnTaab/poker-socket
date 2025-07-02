@@ -98,19 +98,26 @@ export class JoinChannelHandler {
 
     // bypass password // if no password,  // player knows password and rejoins table
     async shouldBypassPassword(params: any): Promise<any> {
+
         if (!params.data.tableFound) {
             return params;
         }
+
+        console.log("---------shouldBypassPassword 1-------",params)
 
         if (!params.table.isPrivate) {
             params.bypassPassword = true;
             return params;
         }
 
+        // console.log("---------shouldBypassPassword 2-------")
+        
+
         const result = await this.imdb.playerJoinedRecord({
             playerId: params.playerId,
             channelId: params.channelId,
         });
+
 
         params.bypassPassword = !!(result && result.length > 0);
         return params;
@@ -131,6 +138,8 @@ export class JoinChannelHandler {
     // If there is no table exists in database then create new one
     async createChannelInDatabase(params: any): Promise<any> {
         const response: any = await this.joinRequestUtil.createChannelInDatabase(params);
+
+        console.log("------------ Insdie createChannel In Database",response)
 
         if (!response.success) {
             throw response;
@@ -1015,18 +1024,44 @@ export class JoinChannelHandler {
 
     async processJoin(params: any): Promise<any> {      
         try {
+
           params = await this.validateKeyOnJoin(params);
+
+          
+
           params = await this.initializeParams(params);
           params = await this.getInMemoryTable(params);
+
+           
+
           params = await this.shouldBypassPassword(params);
+
+          console.log("------- Inside Process Join------")
+
           params = await this.getTableDataForValidation(params);
+          
           params = await this.rejectIfPassword(params);
+
           params = await this.createChannelInDatabase(params);
+
+          
+
           params = await this.addPlayerAsSpectator(params);
+
           params = await this.broadcastOnJoinTable(params);
+
+          
+
           params = await this.getTournamentChannel(params);
+
+          
           params = await this.joinPlayerToChannel(params);
+
+          
+
           params = await this.saveActivityRecord(params);
+
+          
           params = await this.saveJoinRecord(params);
           params = await this.updatePlayerState(params);
           params = await this.setChannelIntoSession(params);
@@ -1042,7 +1077,7 @@ export class JoinChannelHandler {
       
           return params;
         } catch (err) {
-          console.error("in joinChannelHandler processJoin err", err);
+          console.error("in joinChannelHandler processJoin err", err.message);
           throw err;
         }
       };

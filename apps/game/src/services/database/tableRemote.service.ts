@@ -578,10 +578,11 @@ export class TableRemoteService {
 
     // ### Create table object for a channel
     async createTable(params: any) {
-        
-        const validated = await validateKeySets("Request", "database", "createTable", params);
-        if (!validated.success) return validated;
 
+        const validated = await validateKeySets("Request", "database", "createTable", params);
+
+
+        if (!validated.success) return validated;
         
         if (params.channelVariation == stateOfX.channelVariation.roe) {
             params.channelVariation = stateOfX.channelVariation.holdem;
@@ -756,7 +757,9 @@ export class TableRemoteService {
                     "tournamentName": params.tournament.parentTournament, 
                     "isActive": true
                 });
-                console.log("got this tourDetail while creating tabel for satellite", tourDetail);
+
+                
+                
                 table.tournamentRules.parentId = tourDetail.tournamentId;
                 table.tournamentRules.parentName = params.tournament.parentTournament;
             } catch (err) {
@@ -765,9 +768,12 @@ export class TableRemoteService {
         }
 
         
+        
         try {
             const data = await this.imdb.saveTable(table);
             
+            // console.log("--------- Inside Create Table-------")
+
             const successResponse = { success: true, table: table };
             const responseValidated = await validateKeySets("Response", "database", "createTable", successResponse);
             
@@ -777,7 +783,7 @@ export class TableRemoteService {
                 success: false, 
                 isRetry: false, 
                 isDisplay: false, 
-                channelId: (params.channelId || ""), 
+                channelId: (params.channelId|| ""), 
                 info: popupTextManager.dbQyeryInfo.DBSAVETABLEFAIL_TABLEREMOTE 
             };
         }

@@ -97,7 +97,7 @@ export class EntryHandlerService {
     private readonly winnerMgmt: EntryService,
     private readonly dbRemote: DbRemoteService,
     private readonly entryRemote: EntryRemoteService,
-    private readonly redisSessionService:RedisSessionService
+    private readonly redisSessionService: RedisSessionService
   ) { }
 
 
@@ -286,85 +286,52 @@ export class EntryHandlerService {
   // kill old session if found
   // find player's joined channels - return array of object containing channelId
   async enter(msg: any): Promise<any> {
-
-    console.log("--------MSG--------", msg)
-
+    // 1. Optional broadcast for non-socket requests
     if (!msg.isRequestedBySocket) {
-      await this.broadcastHandler.userLoggedIn({ playerId: msg.playerId, action: 'pomeloLoggedIn' });
+      await this.broadcastHandler.userLoggedIn({
+        playerId: msg.playerId,
+        action: 'pomeloLoggedIn'
+      });
     }
 
-    console.log("--------MSG 2--------", msg)
-
+    // 2. Validate the request
     const validated = await validateKeySets("Request", "connector", "enter", msg);
+    if (!validated.success) return validated;
 
-    if (!validated.success) {
-      return validated;
-    }
-
+    // 3. Check if session already exists in Redis
     const sessionExist = await this.redisSessionService.getUserSession(msg.playerId);
 
-    if (sessionExist.success) {
+    if (sessionExist.success && sessionExist.sessionId) {
+      // Kick previous session if it exists
+      await this.redisSessionService.setSessionField(sessionExist.sessionId, 'isConnected', false);
 
-      const prevSession = self.app.sessionService.get(sessionExist.sessionId);
+      await this.redisSessionService.kickSession(sessionExist.sessionId, 'elseWhere-another device');
+    }
 
-      
-      if (prevSession) {
-        prevSession.set("isConnected", false);
-        // self.session.set("waitingChannels", prevSession.get("waitingChannels"));
-        await self.app.sessionService.kickBySessionId(sessionExist.sessionId, 'elseWhere-another device');
-      }
+    // 4. Add/bind new session
+    const userSession = await this.redisSessionService.addSession({
+      playerId: msg.playerId,
+      playerName: msg.playerName,
+      deviceType: msg.deviceType,
+      socketId: msg.socketId
+    });
 
-      // await self.app.rpc.connector.entryRemote.killUserSession(self.session, sessionExist.sessionId);
+    // 5. Get joined channels
+    const joinChannelResponse = await this.retryHandler.getJoinedChannles({ playerId: msg.playerId });
 
-      const userSession = await this.redisSessionService.addSession({
-        playerId: msg.playerId,
-        playerName: msg.playerName,
-        deviceType: msg.deviceType
-      });
-
-      const joinChannelResponse = await this.retryHandler.getJoinedChannles({ playerId: msg.playerId });
-
-      if (joinChannelResponse.success) {
-        return {
-          success: userSession.success,
-          joinChannels: joinChannelResponse.joinedChannels,
-        };
-      } else {
-        return {
-          success: false,
-          info: popupTextManager.dbQyeryInfo.GETJOINEDCHANNELSFAIL_ENTRYHANDLER,
-          isRetry: false,
-          isDisplay: true,
-          channelId: "",
-        };
-      }
+    if (joinChannelResponse.success) {
+      return {
+        success: userSession.success,
+        joinChannels: joinChannelResponse.joinedChannels
+      };
     } else {
-
-
-      const userSession = await this.redisSessionService.addSession({
-        playerId: msg.playerId,
-        playerName: msg.playerName,
-        deviceType: msg.deviceType
-      });
-
-      const joinChannelResponse = await this.retryHandler.getJoinedChannles({ playerId: msg.playerId });
-
-      if (joinChannelResponse.success) {
-
-        return {
-          success: userSession.success,
-          joinChannels: joinChannelResponse.joinedChannels,
-        };
-
-      } else {
-        return {
-          success: false,
-          channelId: "",
-          isDisplay: true,
-          isRetry: false,
-          info: popupTextManager.dbQyeryInfo.GETJOINEDCHANNELSFAIL_ENTRYHANDLER,
-        };
-      }
+      return {
+        success: false,
+        info: popupTextManager.dbQyeryInfo.GETJOINEDCHANNELSFAIL_ENTRYHANDLER,
+        isRetry: false,
+        isDisplay: true,
+        channelId: ""
+      };
     }
   }
 

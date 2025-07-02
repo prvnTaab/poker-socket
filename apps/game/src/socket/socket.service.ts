@@ -4,6 +4,7 @@ import { GateHandler } from "../services/gate/gateHandler.service";
 
 import { EntryHandlerService } from "../services/connector/entryHandler.service";
 import { ChannelHandlerService } from "../services/room/channelHandler.service";
+import { Socket } from "socket.io";
 
 
 
@@ -20,7 +21,7 @@ export class SocketGatewayService {
 
 
 
-    async processRequest(params) {
+    async processRequest(client:Socket,params) {
 
         const { data, action } = params;
 
@@ -53,7 +54,7 @@ export class SocketGatewayService {
 
 
                 case "joinChannel":
-                    return await this.channelHandler.joinChannel(data);
+                    return await this.channelHandler.joinChannel(client,data);
                 // return { success: true, route: 'room.channelHandler.joinChannel' }
 
                 case "autoSit": 

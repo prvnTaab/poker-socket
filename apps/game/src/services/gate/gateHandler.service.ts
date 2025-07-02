@@ -76,13 +76,16 @@ export class GateHandler {
 
             if (msg.loginType.toLowerCase() === 'login') {
 
-                let result = await this.handleLogin(msg, activityParams, activityCategory, activitySubCategory);
+                let isValidated = await this.handleLogin(msg, activityParams, activityCategory, activitySubCategory);
 
-                if(result.success) {
-                    await this.redisSessionService.addUserSession(msg.playerId,msg.socketId);
+                if(isValidated.success) {
+                    let isAddSession = await this.redisSessionService.addUserSession(isValidated.user.playerId,msg.socketId);
+
+                    console.log("----Session Add----",isAddSession)
                 }
 
-                return result;
+
+                return isValidated;
 
             } else if (msg.loginType.toLowerCase() === 'registration') {
 

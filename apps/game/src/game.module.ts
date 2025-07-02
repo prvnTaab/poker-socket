@@ -108,7 +108,7 @@ import { BroadcastHandlerService1 } from './services/connector/broadcastHandler.
 import { SessionHandlerService1 } from './services/connector/sessionHandler.service';
 import { OnlinePlayersService1 } from './services/connector/onlinePlayers.service';
 import { CommonHandlerService1 } from './services/connector/commonHandler.service';
-import { SocketGatewayService } from './socket/socket-gateway.service';
+import { SocketGatewayService } from './socket/socket.service';
 import { GateHandler } from './services/gate/gateHandler.service';
 import { RoomRemoteService } from './services/room/remote/roomRemote.service';
 import { ChannelHandlerService } from './services/room/channelHandler.service';
@@ -116,6 +116,7 @@ import { EntryRemoteService } from './services/connector/remote/entryRemote.serv
 import { TableRemoteService } from './services/database/tableRemote.service';
 import { ChannelRemoteService } from './services/database/channelRemote.service';
 import { RedisModule } from './redis/redis.module';
+import { RoomManagerService } from './room-manager/room-manager.service';
 
 @Module({
   imports: [
@@ -259,7 +260,10 @@ import { RedisModule } from './redis/redis.module';
     OnlinePlayersService1,
     CommonHandlerService1,
     
-    EntryRemoteService
+    EntryRemoteService,
+
+    // Room Manager
+    RoomManagerService
 
   ],
   exports: [
@@ -274,7 +278,8 @@ import { RedisModule } from './redis/redis.module';
     CommonHandlerService,
     TournamentActionHandlerService,
     SharedModuleService,
-    SocketGateway
+    SocketGateway,
+    RoomManagerService
   ]
 })
 export class GameModule { }
