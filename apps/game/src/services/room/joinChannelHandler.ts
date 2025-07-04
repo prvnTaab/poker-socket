@@ -139,7 +139,7 @@ export class JoinChannelHandler {
     async createChannelInDatabase(params: any): Promise<any> {
         const response: any = await this.joinRequestUtil.createChannelInDatabase(params);
 
-        console.log("------------ Insdie createChannel In Database",response)
+        // console.log("------------ Insdie createChannel In Database",response)
 
         if (!response.success) {
             throw response;
@@ -185,10 +185,12 @@ export class JoinChannelHandler {
     // send braodcast on player joining the table  // table row becomes green on lobby
     async broadcastOnJoinTable(params: any): Promise<any> {
 
+        // console.log("---------- Inside Broadcast On Join Table-------",params.frontendId)
+
         this.broadcastHandler.sendMessageToUser({
             self: {},
             playerId: params.playerId,
-            serverId: params.session.frontendId,
+            serverId: params.frontendId,
             msg: {
                 playerId: params.playerId,
                 channelId: params.channelId,
@@ -196,6 +198,8 @@ export class JoinChannelHandler {
             },
             route: stateOfX.broadcasts.joinTableList
         });
+
+        
 
         return params;
     }
@@ -1036,7 +1040,6 @@ export class JoinChannelHandler {
 
           params = await this.shouldBypassPassword(params);
 
-          console.log("------- Inside Process Join------")
 
           params = await this.getTableDataForValidation(params);
           
@@ -1048,19 +1051,23 @@ export class JoinChannelHandler {
 
           params = await this.addPlayerAsSpectator(params);
 
-          params = await this.broadcastOnJoinTable(params);
+          
+
+        //   params = await this.broadcastOnJoinTable(params);
 
           
 
           params = await this.getTournamentChannel(params);
 
           
+          
           params = await this.joinPlayerToChannel(params);
 
-          
+          console.log("------- Inside Process Join Function------------")
 
           params = await this.saveActivityRecord(params);
 
+          
           
           params = await this.saveJoinRecord(params);
           params = await this.updatePlayerState(params);
@@ -1074,6 +1081,8 @@ export class JoinChannelHandler {
       
           // Optionally include:
           // params = await this.handleTournament(params);
+
+          
       
           return params;
         } catch (err) {

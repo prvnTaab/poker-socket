@@ -124,15 +124,15 @@ export class ChannelRemoteService {
         const validated = await validateKeySets("Request", "database", "getChannelDetails", params);
 
         if (!validated.success) {
-            throw validated;
+            return validated;
         }
 
-        console.log('About to get table from main db', params);
+        // console.log('About to get table from main db', params);
 
         const channel = await this.db.findTableById(params.channelId);
 
         if (!channel) {
-            throw {
+            return {
                 success: false,
                 channelId: params.channelId,
                 isRetry: false,

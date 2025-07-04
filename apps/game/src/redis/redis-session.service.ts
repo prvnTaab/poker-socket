@@ -45,9 +45,6 @@ export class RedisSessionService {
 
   async addUserSession(playerId: string, socketId: string): Promise<{ success: boolean; message: string; data?: Record<string, any> }> {
 
-    console.log("-----In Redis Service-------", playerId, socketId)
-
-
     const sessionKey = `session:${playerId}`;
 
     const sessionData = {

@@ -117,6 +117,7 @@ import { TableRemoteService } from './services/database/tableRemote.service';
 import { ChannelRemoteService } from './services/database/channelRemote.service';
 import { RedisModule } from './redis/redis.module';
 import { RoomManagerService } from './room-manager/room-manager.service';
+// import { JoinChannelEvent } from './events/join-channel.event';
 
 @Module({
   imports: [
@@ -263,7 +264,13 @@ import { RoomManagerService } from './room-manager/room-manager.service';
     EntryRemoteService,
 
     // Room Manager
-    RoomManagerService
+    RoomManagerService,
+
+
+    // Events Folder START
+    // JoinChannelEvent
+    // Events Folder END
+
 
   ],
   exports: [

@@ -58,12 +58,12 @@ export class JoinRequestUtilService {
                 }
 
             } else {
-                console.log(stateOfX.serverLogType.info, 'No table is created for this channel, create one in next step!');
+                // console.log(stateOfX.serverLogType.info, 'No table is created for this channel, create one in next step!');
                 return { success: true, params };
             }
 
         } else {
-            console.log(stateOfX.serverLogType.info, 'This request is for tournament table join!');
+            // console.log(stateOfX.serverLogType.info, 'This request is for tournament table join!');
             return { success: true, params };
         }
     };
@@ -238,7 +238,7 @@ export class JoinRequestUtilService {
                 ritPopupTime: table.ritPopupTime || 0,
             });
 
-            console.log("----createChannelInDatabase---20000",channel)
+            // console.log("----createChannelInDatabase---20000",channel)
 
             // Optionally broadcast:
             // broadcastTableData(pomelo.app, table);
@@ -344,7 +344,7 @@ export class JoinRequestUtilService {
 
         params.channel.add(params.playerId, params.session.frontendId);
 
-        console.log(stateOfX.serverLogType.info, "channel members are after - " + JSON.stringify(params.channel.getMembers()));
+        // console.log(stateOfX.serverLogType.info, "channel members are after - " + JSON.stringify(params.channel.getMembers()));
 
         return params;
     };
