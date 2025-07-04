@@ -1,9 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 
 @Injectable()
 export class ImdbDatabaseService {
+
+  private readonly logger = new Logger(ImdbDatabaseService.name);
+
+
   constructor(@InjectConnection('inMemoryDb') private inMemoryDb: Connection) { }
 
   /*----------------- Table Operations START ---------------------*/
@@ -283,8 +287,9 @@ export class ImdbDatabaseService {
       return await this.inMemoryDb
         .collection('tables')
         .findOne({ channelId: tournamentId.toString() });
-    } catch (err) {
-      throw err;
+    } catch (error) {
+      this.logger.error('Error in libs.utils.Imdbdatabase-service.getPlayerChannel', error.stack);
+      throw error;
     }
   }
 
@@ -337,8 +342,9 @@ export class ImdbDatabaseService {
       return await this.inMemoryDb
         .collection('tableJoinRecord')
         .updateOne(query, update, { upsert: true });
-    } catch (err) {
-      throw err;
+    } catch (error) {
+      this.logger.error('Error in room.Imdbdatabase-service.upsertPlayerJoin', error.stack || error.message);
+      throw error;
     }
   }
 
@@ -387,13 +393,16 @@ export class ImdbDatabaseService {
   }
 
   async upsertActivity(query: any, data: any): Promise<any> {
-    data.updatedAt = Number(new Date());
+
     try {
+      data.updatedAt = Number(new Date());
       return await this.inMemoryDb
         .collection('userActivity')
         .updateOne(query, data, { upsert: true });
-    } catch (err) {
-      throw err;
+    } catch (error) {
+      this.logger.error('Error in libs.Imdbdatabase-service.upsertActivity', error.stack);
+      throw new Error(`Failed in libs.Imdbdatabase-service.upsertActivity: ${error.message}`);
+      throw error;
     }
   }
 
@@ -769,8 +778,9 @@ export class ImdbDatabaseService {
             },
           },
         );
-    } catch (err) {
-      throw err;
+    } catch (error) {
+      this.logger.error('Error in libs.utils.Imdbdatabase-service.findDataForCallTime', error.stack);
+      throw new Error(`Failed in libs.utils.Imdbdatabase-service.findDataForCallTime: ${error.message}`);
     }
   }
 
@@ -840,8 +850,9 @@ export class ImdbDatabaseService {
         .collection('playerScore')
         .find(query)
         .toArray();
-    } catch (err) {
-      throw err;
+    } catch (error) {
+      this.logger.error('Error in libs.utils.Imdbdatabase-service.getPlayerBuyIn', error.stack);
+      throw new Error(`Failed in libs.utils.Imdbdatabase-service.getPlayerBuyIn: ${error.message}`);
     }
   }
 

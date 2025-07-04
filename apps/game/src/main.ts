@@ -1,3 +1,5 @@
+
+import 'source-map-support/register';
 import { NestFactory } from '@nestjs/core';
 import { GameModule } from './game.module';
 import { Logger } from '@nestjs/common';

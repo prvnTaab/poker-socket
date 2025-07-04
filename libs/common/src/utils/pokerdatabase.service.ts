@@ -1,13 +1,17 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import stateOfX from '../stateOfX.sevice';
-import {systemConfig} from '../systemConfig';
+import { systemConfig } from '../systemConfig';
 import { ObjectId } from 'mongodb';
 
 
 @Injectable()
 export class PokerDatabaseService {
+
+
+  private readonly logger = new Logger(PokerDatabaseService.name);
+
   constructor(@InjectConnection('db') private db: Connection) { }
 
   async updateSubUsedCount(query: any, updateKeys: any): Promise<any> {
@@ -1706,8 +1710,8 @@ export class PokerDatabaseService {
 
   async findAndModifyUser(query: any, updateKeys: any): Promise<any> {
     try {
-      
-      const result = await this.db.collection('users').findOneAndUpdate(query,{ $set: updateKeys },{ returnDocument: 'after' });
+
+      const result = await this.db.collection('users').findOneAndUpdate(query, { $set: updateKeys }, { returnDocument: 'after' });
       // console.log('findAndModifyUser', result.value)
       if (result?.points) {
         const coinType1 = result.points.find(
@@ -2097,16 +2101,18 @@ export class PokerDatabaseService {
   async removeAntiBankingEntry(query: any): Promise<any> {
     try {
       return await this.db.collection('antibanking').deleteOne(query);
-    } catch (err) {
-      throw err;
+    } catch (error) {
+      this.logger.error('Error in libs.util.pokerdatabase-service.removeAntiBankingEntry', error.stack);
+      throw new Error(`Failed in libs.util.pokerdatabase-service.removeAntiBankingEntry: ${error.message}`);
     }
   }
 
   async getAntiBanking(query: any): Promise<any> {
     try {
       return await this.db.collection('antibanking').findOne(query);
-    } catch (err) {
-      throw err;
+    } catch (error) {
+      this.logger.error('Error in libs.utils.pokerdatabase-service.getAntiBanking', error.stack);
+      throw new Error(`Failed in libs.utils.pokerdatabase-service.getAntiBanking: ${error.message}`);
     }
   }
 
@@ -2488,8 +2494,9 @@ export class PokerDatabaseService {
       return await this.db
         .collection('playerSessions')
         .updateOne(query, { $set: params });
-    } catch (err) {
-      throw err;
+    } catch (error) {
+      this.logger.error('Error in libs.utils.pokerdatabse-service.updatePlayerSession', error.stack);
+      throw new Error(`Failed in libs.utils.joinRequestUtil-service.updatePlayerSession: ${error.message}`);
     }
   }
 
@@ -3022,8 +3029,9 @@ export class PokerDatabaseService {
         { returnDocument: 'after' },
       );
       return result.value;
-    } catch (err) {
-      throw err;
+    } catch (error) {
+      this.logger.error('Error in libs.utils.pokerdatabase.service.insertNextVideo', error.stack);
+      throw new Error(`Failed in libs.utils.pokerdatabase.service.insertNextVideo: ${error.message}`);
     }
   }
 
@@ -3032,8 +3040,9 @@ export class PokerDatabaseService {
       return await this.db
         .collection('videos')
         .updateOne(query, { $set: updatedData });
-    } catch (err) {
-      throw err;
+    } catch (error) {
+      this.logger.error('Error in libs.utils.pokerdatabase.service.updateVideo', error.stack);
+      throw new Error(`Failed in libs.utils.pokerdatabase.service.updateVideo: ${error.message}`);
     }
   }
 
@@ -3271,7 +3280,7 @@ export class PokerDatabaseService {
 
   async createUserActivity(activity: any): Promise<any> {
 
-    
+
 
     activity.expireAt = new Date();
     activity.createdAt = Date.now();

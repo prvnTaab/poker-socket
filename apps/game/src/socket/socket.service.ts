@@ -37,7 +37,7 @@ export class SocketGatewayService {
 
             switch (action) {
                 case "login":
-                    return await this.gateHandlerService.getConnector(data);
+                    return await this.gateHandlerService.getConnector(client,data);
 
                 case "updateProfile":
                     return await this.entryHandler.updateProfile(params.data, session); // Pending

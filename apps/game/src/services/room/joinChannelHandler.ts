@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
 
@@ -26,6 +26,8 @@ declare const pomelo: any; // In this place we have add socket.io
 @Injectable()
 export class JoinChannelHandler {
 
+    private readonly logger = new Logger(JoinChannelHandler.name);
+
     constructor(
         private readonly db: PokerDatabaseService,
         private readonly imdb: ImdbDatabaseService,
@@ -41,13 +43,21 @@ export class JoinChannelHandler {
 
     // Get table from inmemory if already exisst in database
     async getInMemoryTable(params: any): Promise<any> {
-        const response = await this.joinRequestUtil.getInMemoryTable(params);
 
-        if (response.success) {
-            return response.params;
-        } else {
-            throw response; // or throw new Error(response.message) if you want a cleaner error
+        try {
+            const response = await this.joinRequestUtil.getInMemoryTable(params);
+
+            if (response.success) {
+                return response.params;
+            } else {
+                throw response; // or throw new Error(response.message) if you want a cleaner error
+            }
+        } catch (error) {
+            this.logger.error('Error in room.joinChannelHandler.getInMemoryTable', error.stack);
+            throw new Error(`Failed in room.joinChannelHandler.getInMemoryTable: ${error.message}`);
         }
+
+
     }
 
 
@@ -99,118 +109,173 @@ export class JoinChannelHandler {
     // bypass password // if no password,  // player knows password and rejoins table
     async shouldBypassPassword(params: any): Promise<any> {
 
-        if (!params.data.tableFound) {
+        try {
+            if (!params.data.tableFound) {
+                return params;
+            }
+
+            if (!params.table.isPrivate) {
+                params.bypassPassword = true;
+                return params;
+            }
+
+            const result = await this.imdb.playerJoinedRecord({
+                playerId: params.playerId,
+                channelId: params.channelId,
+            });
+
+
+            params.bypassPassword = !!(result && result.length > 0);
             return params;
+        } catch (error) {
+            this.logger.error('Error in room.joinChannelHandler.shouldBypassPassword', error.stack);
+            throw new Error(`Failed in room.joinChannelHandler.shouldBypassPassword: ${error.message}`);
         }
 
-        console.log("---------shouldBypassPassword 1-------",params)
-
-        if (!params.table.isPrivate) {
-            params.bypassPassword = true;
-            return params;
-        }
-
-        // console.log("---------shouldBypassPassword 2-------")
-        
-
-        const result = await this.imdb.playerJoinedRecord({
-            playerId: params.playerId,
-            channelId: params.channelId,
-        });
-
-
-        params.bypassPassword = !!(result && result.length > 0);
-        return params;
     }
 
     // fetch a table data for validation  // mainly for password check
     async getTableDataForValidation(params: any): Promise<any> {
 
-        const response: any = await this.joinRequestUtil.getTableDataForValidation(params);
+        try {
+            const response: any = await this.joinRequestUtil.getTableDataForValidation(params);
 
-        if (!response.success) {
-            throw response;
+            if (!response.success) {
+                throw response;
+            }
+
+            return response;
+        } catch (error) {
+            this.logger.error('Error in room.channelHandler.getTableDataForValidation', error.stack);
+            throw new Error(`Failed in room.channelHandler.getTableDataForValidation: ${error.message}`);
         }
 
-        return response;
+
     }
 
     // If there is no table exists in database then create new one
     async createChannelInDatabase(params: any): Promise<any> {
-        const response: any = await this.joinRequestUtil.createChannelInDatabase(params);
+        try {
+            const response: any = await this.joinRequestUtil.createChannelInDatabase(params);
 
-        // console.log("------------ Insdie createChannel In Database",response)
+            if (!response.success) {
+                throw response;
+            }
 
-        if (!response.success) {
-            throw response;
+            return response;
+        } catch (error) {
+            this.logger.error('Error in room.joinChannelHandler.createChannelInDatabase', error.stack);
+            throw new Error(`Failed in room.joinChannelHandler.createChannelInDatabase: ${error.message}`);
         }
-
-        return response;
     }
 
     // in such code style, these returns are MUST due to more code
     async rejectIfPassword(params: any): Promise<any> {
+        try {
+            if (!params?.table?.isPrivate) {
+                return params; // PASS: table is not protected
+            }
 
-        if (!params.table.isPrivate) {
-            return params; // PASS: table is not protected
+            if (params.bypassPassword) {
+                return params; // PASS: player already joined before
+            }
+
+            if (params.table.password === params.password) {
+                return params; // PASS: correct password entered
+            }
+
+            // FAIL: wrong or no password
+            return {
+                success: false,
+                isRetry: false,
+                isDisplay: true,
+                tableId: params.tableId,
+                channelId: params.channelId || "",
+                info: popupTextManager.falseMessages.TABLEPASSWORDFAIL_JOINCHANNELHANDLER
+            };
+
+        } catch (error) {
+            this.logger.error(
+                'Error in room.joinChannelHandler.rejectIfPassword',
+                error.stack || error.message
+            );
+            throw new Error(
+                `Failed in room.joinChannelHandler.rejectIfPassword: ${error.message}`
+            );
         }
-
-        if (params.bypassPassword) {
-            return params; // PASS: player already joined before
-        }
-
-        // match with input password;
-        if (params.table.password === params.password) {
-            return params; // PASS: correct password entered
-        }
-
-        // FAIL: wrong or no password
-        return {
-            success: false,
-            isRetry: false,
-            isDisplay: true,
-            tableId: params.tableId,
-            channelId: params.channelId || "",
-            info: popupTextManager.falseMessages.TABLEPASSWORDFAIL_JOINCHANNELHANDLER
-        };
     }
+
 
     async addPlayerAsSpectator(params: any): Promise<any> {
 
-        const result = await this.commonHandler.assignTableSettings(params);
+        try {
+            const result = await this.commonHandler.assignTableSettings(params);
 
-        return result;
+            return result;
+        } catch (error) {
+            this.logger.error('Error in room.channelHandler.addPlayerAsSpectator', error.stack);
+            throw new Error(`Failed in room.channelHandler.addPlayerAsSpectator: ${error.message}`);
+        }
+
     }
 
     // send braodcast on player joining the table  // table row becomes green on lobby
     async broadcastOnJoinTable(params: any): Promise<any> {
 
-        // console.log("---------- Inside Broadcast On Join Table-------",params.frontendId)
-
-        this.broadcastHandler.sendMessageToUser({
-            self: {},
-            playerId: params.playerId,
-            serverId: params.frontendId,
-            msg: {
+        try {
+            this.broadcastHandler.sendMessageToUser({
+                self: {},
                 playerId: params.playerId,
-                channelId: params.channelId,
-                event: stateOfX.recordChange.playerJoinTable
-            },
-            route: stateOfX.broadcasts.joinTableList
-        });
+                serverId: params.frontendId,
+                msg: {
+                    playerId: params.playerId,
+                    channelId: params.channelId,
+                    event: stateOfX.recordChange.playerJoinTable
+                },
+                route: stateOfX.broadcasts.joinTableList
+            });
 
-        
+            return params;
+        } catch (error) {
+            this.logger.error('Error in room.joinChannelHandler.broadcastOnJoinTable', error.stack);
+            throw new Error(`Failed in room.joinChannelHandler.broadcastOnJoinTable: ${error.message}`);
+        }
 
-        return params;
+
     }
 
     // If request is for tournament then found channel for this player // > In which this player is already playing
     //=============================    START   ==================================//
     async getTournamentChannel(params: any): Promise<any> {
-        if (params.tableId) {
-            try {
-                const channel = await this.imdb.getPlayerChannel(params.channelId, params.playerId);
-                if (!channel) {
+
+        try {
+            if (params.tableId) {
+                try {
+                    const channel = await this.imdb.getPlayerChannel(params.channelId, params.playerId);
+                    if (!channel) {
+                        return {
+                            success: false,
+                            isRetry: false,
+                            tableId: params.tableId,
+                            isDisplay: false,
+                            channelId: params.channelId || '',
+                            info: popupTextManager.falseMessages.GETTOURNAMENTCHANNELFAIL_JOINCHANNELHANDLER
+                        };
+                    }
+
+                    // Pomelo Connection
+                    const getTableResponse = await this.getTableAsync(params.session, { channelId: channel.channelId });
+
+                    if (getTableResponse.success && getTableResponse.table) {
+                        params.data.tableFound = true;
+                        params.table = getTableResponse.table;
+                        params.channelId = getTableResponse.table.channelId;
+                        params.channel = pomelo.app.get('channelService').getChannel(getTableResponse.table.channelId, false);
+                        return params;
+                    } else {
+                        return getTableResponse;
+                    }
+                } catch (error) {
                     return {
                         success: false,
                         isRetry: false,
@@ -220,40 +285,26 @@ export class JoinChannelHandler {
                         info: popupTextManager.falseMessages.GETTOURNAMENTCHANNELFAIL_JOINCHANNELHANDLER
                     };
                 }
-
-                // Pomelo Connection
-                const getTableResponse = await this.getTableAsync(params.session, { channelId: channel.channelId });
-
-                if (getTableResponse.success && getTableResponse.table) {
-                    params.data.tableFound = true;
-                    params.table = getTableResponse.table;
-                    params.channelId = getTableResponse.table.channelId;
-                    params.channel = pomelo.app.get('channelService').getChannel(getTableResponse.table.channelId, false);
-                    return params;
-                } else {
-                    return getTableResponse;
-                }
-            } catch (error) {
-                return {
-                    success: false,
-                    isRetry: false,
-                    tableId: params.tableId,
-                    isDisplay: false,
-                    channelId: params.channelId || '',
-                    info: popupTextManager.falseMessages.GETTOURNAMENTCHANNELFAIL_JOINCHANNELHANDLER
-                };
+            } else {
+                return params;
             }
-        } else {
-            return params;
+        } catch (error) {
+            this.logger.error('Error in room.joinChannelHandler.getTournamentChannel', error.stack);
+            throw new Error(`Failed in room.joinChannelHandler.getTournamentChannel: ${error.message}`);
         }
+
+
     }
 
     private async getTableAsync(session: any, params: any): Promise<any> {
-        return await new Promise((resolve) => {
-            pomelo.app.rpc.database.tableRemote.getTable(session, params, (response: any) => {
-                resolve(response);
-            });
-        });
+
+        try {
+            return await pomelo.app.rpc.database.tableRemote.getTable(session, params);
+        } catch (error) {
+            this.logger.error('Error in room.joinChannelHandler.getTableAsync', error.stack);
+            throw new Error(`Failed in room.joinChannelHandler.getTableAsync: ${error.message}`);
+        }
+
     }
     // getTournamentChannel = (params, cb) => {
     //     this.serverLog(stateOfX.serverLogType.info, "in joinChannelHandler function getTournamentChannel" + params);
@@ -286,8 +337,16 @@ export class JoinChannelHandler {
     // Join a player into channel if not already exists // add member into pomelo channel
     //=========  START ======
     async joinPlayerToChannel(params: any): Promise<any> {
-        const joinPlayerToChannelResponse = await this.joinRequestUtil.joinPlayerToChannel(params);
-        return joinPlayerToChannelResponse;
+
+        try {
+            const joinPlayerToChannelResponse = await this.joinRequestUtil.joinPlayerToChannel(params);
+            return joinPlayerToChannelResponse;
+        } catch (error) {
+            this.logger.error('Error in room.joinChannelHandler.joinPlayerToChannel', error.stack);
+            throw new Error(`Failed in room.joinChannelHandler.joinPlayerToChannel: ${error.message}`);
+        }
+
+
     }
     // joinPlayerToChannel = (params, cb) => {
     //     this.serverLog(stateOfX.serverLogType.info, "in joinChannelHandler function joinPlayerToChannel");
@@ -300,55 +359,63 @@ export class JoinChannelHandler {
     // Save this record for disconnection handling // not used anymore
     //=============  START  ==============
     async saveActivityRecord(params: any): Promise<any> {
-
-        const generateCOTReferenceId = (): string => {
-            const prefix = 'COT-';
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            let result = prefix;
-            for (let i = 0; i < 16; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
-        };
-
-        const dataToInsert = {
-            channelId: params.channelId,
-            playerId: params.playerId,
-            isRequested: true,
-            deviceType: params.deviceType || '',
-            playerName: params.playerName,
-            channelType: params.channelType,
-            tableId: params.tableId,
-            referenceNumber: generateCOTReferenceId()
-        };
-
-        const query: Record<string, any> = {
-            playerId: params.playerId
-        };
-
-        if (params.channelId) {
-            query.channelId = params.channelId;
-        }
-
         try {
+            const generateCOTReferenceId = (): string => {
+                const prefix = 'COT-';
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                let result = prefix;
+                for (let i = 0; i < 16; i++) {
+                    result += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                return result;
+            };
+
+            const referenceNumber = generateCOTReferenceId();
+
+            const dataToInsert = {
+                channelId: params.channelId,
+                playerId: params.playerId,
+                isRequested: true,
+                deviceType: params.deviceType || '',
+                playerName: params.playerName,
+                channelType: params.channelType,
+                tableId: params.tableId,
+                referenceNumber,
+            };
+
+            const query: Record<string, any> = {
+                playerId: params.playerId,
+            };
+
+            if (params.channelId) {
+                query.channelId = params.channelId;
+            }
             const result: any = await this.imdb.upsertActivity(query, dataToInsert); // must be async
-            if (result) {
-                params.referenceNum = generateCOTReferenceId();
-                return params;
-            } else {
+
+            if (!result) {
                 throw new Error('No result from upsert');
             }
-        } catch (err) {
+
+            params.referenceNum = referenceNumber;
+            return params;
+
+        } catch (error) {
+            this.logger.error(
+                'Error in room.joinChannelHandler.saveActivityRecord',
+                error.stack || error.message
+            );
+
             return {
                 success: false,
                 isRetry: true,
                 isDisplay: false,
                 tableId: params.tableId,
                 channelId: params.channelId || '',
-                info: popupTextManager.falseMessages.DBUPSERTACTIVITYFAIL_JOINCHANNELHANDLER
+                info: popupTextManager.falseMessages.DBUPSERTACTIVITYFAIL_JOINCHANNELHANDLER,
             };
         }
     }
+
 
 
     // saveActivityRecord = (params, cb) => {
@@ -397,26 +464,28 @@ export class JoinChannelHandler {
 
     async saveJoinRecord(params: any): Promise<any> {
 
-        const query = {
-            channelId: params.channelId,
-            playerId: params.playerId,
-        };
-
-        const update = {
-            $setOnInsert: {
-                playerName: params.playerName,
-                channelType: params.channelType,
-                referenceNumber: params.referenceNumber,
-                firstJoined: Date.now(),
-                observerSince: Date.now()
-            },
-            $set: {
-                networkIp: params.networkIp,
-                event: 'join'
-            }
-        };
 
         try {
+
+            const query = {
+                channelId: params.channelId,
+                playerId: params.playerId,
+            };
+
+            const update = {
+                $setOnInsert: {
+                    playerName: params.playerName,
+                    channelType: params.channelType,
+                    referenceNumber: params.referenceNumber,
+                    firstJoined: Date.now(),
+                    observerSince: Date.now(),
+                },
+                $set: {
+                    networkIp: params.networkIp,
+                    event: 'join',
+                },
+            };
+
             const result: any = await this.imdb.upsertPlayerJoin(query, update); // Must be async
 
             if (result?.result?.upserted) {
@@ -424,17 +493,27 @@ export class JoinChannelHandler {
             }
 
             return params;
-        } catch (err) {
+
+        } catch (error) {
+            this.logger.error(
+                'Error in room.joinChannelHandler.saveJoinRecord',
+                error.stack || error.message
+            );
+
             return {
                 success: false,
                 isRetry: false,
                 isDisplay: false,
-                tableId: params.tableId,
-                channelId: params.channelId || "",
-                info: popupTextManager.dbQyeryInfo.DBSAVEJOINRECORDFAIL_JOINCHANNELHANDLER + JSON.stringify(err)
+                tableId: params?.tableId,
+                channelId: params?.channelId || "",
+                info:
+                    popupTextManager.dbQyeryInfo.DBSAVEJOINRECORDFAIL_JOINCHANNELHANDLER +
+                    ' ' +
+                    JSON.stringify(error?.message || error),
             };
         }
     }
+
 
     // saveJoinRecord = (params, cb) => {
     //     this.serverLog(stateOfX.serverLogType.info, "in joinChannelHandler function saveJoinRecord");
@@ -489,48 +568,57 @@ export class JoinChannelHandler {
     /*==================  START   =================*/
 
     async updatePlayerState(params: any): Promise<any> {
-        // Pomelo Connection
-        const changeDisconnPlayerStateResponse: any = await pomelo.app.rpc.database.requestRemote.changeDisconnPlayerState(
-            params.session,
-            {
-                channelId: params.channelId,
-                playerId: params.playerId,
-                deviceType: params.deviceType
-            }
-        );
-        // Pomelo Connection
 
-        // this.serverLog(
-        //   stateOfX.serverLogType.info,
-        //   'Response while updating player state from DISCONNECTED on join - ' + JSON.stringify(response)
-        // );
 
-        if (changeDisconnPlayerStateResponse.success) {
-            params.table = changeDisconnPlayerStateResponse.table;
-            params.data = {
-                ...params.data,
-                ...changeDisconnPlayerStateResponse.data
-            };
-
-            if (changeDisconnPlayerStateResponse.data.previousState === stateOfX.playerState.disconnected) {
-
-                this.broadcastHandler.firePlayerStateBroadcast({
-                    channel: params.channel,
+        try {
+            // Pomelo Connection
+            const changeDisconnPlayerStateResponse: any = await pomelo.app.rpc.database.requestRemote.changeDisconnPlayerState(
+                params.session,
+                {
                     channelId: params.channelId,
                     playerId: params.playerId,
-                    state: changeDisconnPlayerStateResponse.data.currentState
-                });
-            } else {
-                console.log(
-                    stateOfX.serverLogType.info,
-                    'Player was not in DISCONNECTED state, so skipping playerState broadcast on join.'
-                );
-            }
+                    deviceType: params.deviceType
+                }
+            );
+            // Pomelo Connection
 
-            return params;
-        } else {
-            return changeDisconnPlayerStateResponse;
+            // this.serverLog(
+            //   stateOfX.serverLogType.info,
+            //   'Response while updating player state from DISCONNECTED on join - ' + JSON.stringify(response)
+            // );
+
+            if (changeDisconnPlayerStateResponse.success) {
+                params.table = changeDisconnPlayerStateResponse.table;
+                params.data = {
+                    ...params.data,
+                    ...changeDisconnPlayerStateResponse.data
+                };
+
+                if (changeDisconnPlayerStateResponse.data.previousState === stateOfX.playerState.disconnected) {
+
+                    this.broadcastHandler.firePlayerStateBroadcast({
+                        channel: params.channel,
+                        channelId: params.channelId,
+                        playerId: params.playerId,
+                        state: changeDisconnPlayerStateResponse.data.currentState
+                    });
+                } else {
+                    console.log(
+                        stateOfX.serverLogType.info,
+                        'Player was not in DISCONNECTED state, so skipping playerState broadcast on join.'
+                    );
+                }
+
+                return params;
+            } else {
+                return changeDisconnPlayerStateResponse;
+            }
+        } catch (error) {
+            this.logger.error('Error in room.joinChannelHandler.updatePlayerState', error.stack);
+            throw new Error(`Failed in room.joinChannelHandler.updatePlayerState: ${error.message}`);
         }
+
+
     }
 
     // updatePlayerState = (params, cb) => {
@@ -558,27 +646,32 @@ export class JoinChannelHandler {
     // Set this channel into session of player // in session settings, for future use
     /*==================  START   =================*/
     async setChannelIntoSession(params: any): Promise<any> {
-
-        const sessionChannels = params.session.get("channels") || [];
-
-        sessionChannels.push(params.channelId);
-
-        params.session.set("channels", sessionChannels);
-
         try {
+            const sessionChannels = params.session.get("channels") || [];
+
+            sessionChannels.push(params.channelId);
+
+            params.session.set("channels", sessionChannels);
             await params.session.push("channels");
 
             return params;
-        } catch (err: any) {
+
+        } catch (error: any) {
+            this.logger.error(
+                'Error in room.joinChannelHandler.setChannelIntoSession',
+                error.stack || error.message
+            );
+
             return {
                 success: false,
-                channelId: params.channelId,
-                info: err,
+                channelId: params?.channelId || '',
+                info: error.message || error,
                 isRetry: false,
-                isDisplay: false
+                isDisplay: false,
             };
         }
     }
+
 
     // setChannelIntoSession = (params, cb) => {
     //     this.serverLog(stateOfX.serverLogType.info, "in joinChannelHandler function setChannelIntoSession");
@@ -606,9 +699,9 @@ export class JoinChannelHandler {
         try {
             const res = await this.joinRequestUtil.getAntiBanking(params);
             return res;
-        } catch (err) {
-            // You can customize error response here if needed
-            throw err;
+        } catch (error) {
+            this.logger.error('Error in room.joinChannelHandler.getAntiBankingDetails', error.stack);
+            throw new Error(`Failed in room.joinChannelHandler.getAntiBankingDetails: ${error.message}`);
         }
     }
 
@@ -625,13 +718,20 @@ export class JoinChannelHandler {
 
     async joinChannelKeys(params: any): Promise<any> {
 
-        const setJoinChannelKeysResponse = await this.responseHandler.setJoinChannelKeys(params);
+        try {
+            const setJoinChannelKeysResponse = await this.responseHandler.setJoinChannelKeys(params);
 
-        params.response = setJoinChannelKeysResponse;
-        params.response.isJoinedOnce = params.data.isJoinedOnce;
-        params.response.firstJoined = params.firstJoined;
+            params.response = setJoinChannelKeysResponse;
+            params.response.isJoinedOnce = params.data.isJoinedOnce;
+            params.response.firstJoined = params.firstJoined;
 
-        return params;
+            return params;
+        } catch (error) {
+            this.logger.error('Error in room.joinChannelHandler.joinChannelKeys', error.stack);
+            throw new Error(`Failed in room.joinChannelHandler.joinChannelKeys: ${error.message}`);
+        }
+
+
     }
 
 
@@ -653,24 +753,32 @@ export class JoinChannelHandler {
     /*==================  START   =================*/
 
     async startKickToLobbyTimer(params: any): Promise<any> {
-        const isTournamentChannel = params.channel.channelType === stateOfX.gameType.tournament || params.channelType === stateOfX.gameType.tournament;
 
-        if (isTournamentChannel) {
+        try {
+            const isTournamentChannel = params.channel.channelType === stateOfX.gameType.tournament || params.channelType === stateOfX.gameType.tournament;
+
+            if (isTournamentChannel) {
+                return params;
+            }
+
+            const playerIndex = _ld.indexOf(params.table.players, { playerId: params.playerId });
+
+            if (playerIndex < 0 && !!params.firstJoined) {
+                await this.channelTimerHandler.kickPlayerToLobby({
+                    session: params.session,
+                    channel: params.channel,
+                    channelId: params.channelId,
+                    playerId: params.playerId
+                });
+            }
+
             return params;
+        } catch (error) {
+            this.logger.error('Error in room.joinChannelHandler.startKickToLobbyTimer', error.stack);
+            throw new Error(`Failed in room.joinChannelHandler.startKickToLobbyTimer: ${error.message}`);
         }
 
-        const playerIndex = _ld.indexOf(params.table.players, { playerId: params.playerId });
 
-        if (playerIndex < 0 && !!params.firstJoined) {
-            await this.channelTimerHandler.kickPlayerToLobby({
-                session: params.session,
-                channel: params.channel,
-                channelId: params.channelId,
-                playerId: params.playerId
-            });
-        }
-
-        return params;
     }
 
 
@@ -697,33 +805,42 @@ export class JoinChannelHandler {
     // save an action log - hand history text 
     /*==================  START   =================*/
 
-    async validateKeyAndCreateLog(params: any): Promise<any> { // Pending
+    async validateKeyAndCreateLog(params: any): Promise<any> {
 
-        const validated: any = await validateKeySets(
-            "Response",
-            "connector",
-            "joinChannel",
-            params.response
-        );
+        try {
 
-        if (validated.success) {
-            if (params.channelId) {
-                this.actionLogger.createEventLog({
-                    self: {},
-                    session: params.session,
-                    channel: params.channel,
-                    data: {
-                        channelId: params.channelId,
-                        eventName: stateOfX.logEvents.joinChannel,
-                        rawData: params.response
-                    }
-                });
+            const validated: any = await validateKeySets(
+                "Response",
+                "connector",
+                "joinChannel",
+                params.response
+            );
+
+            if (validated.success) {
+                if (params.channelId) {
+                    this.actionLogger.createEventLog({
+                        self: {},
+                        session: params.session,
+                        channel: params.channel,
+                        data: {
+                            channelId: params.channelId,
+                            eventName: stateOfX.logEvents.joinChannel,
+                            rawData: params.response
+                        }
+                    });
+                }
+
+                return params.response;
+            } else {
+                return validated;
             }
 
-            return params.response;
-        } else {
-            throw validated;
+        } catch (error) {
+            this.logger.error('Error in room.joinChannelHandler.validateKeyAndCreateLog', error.stack);
+            throw new Error(`Failed in room.joinChannelHandler.validateKeyAndCreateLog: ${error.message}`);
         }
+
+
     }
 
     // validateKeyAndCreateLog = (params, cb) => {
@@ -749,14 +866,21 @@ export class JoinChannelHandler {
     /*==================  START   =================*/
 
     initializeParams(params: any): any {
-        params.data = {
-            settings: {},
-            antibanking: {},
-            tableFound: false,
-        };
-        params.table = null;
 
-        return params;
+        try {
+            params.data = {
+                settings: {},
+                antibanking: {},
+                tableFound: false,
+            };
+            params.table = null;
+
+            return params;
+        } catch (error) {
+            this.logger.error('Error in room.joinChannelHandler.initializeParams', error.stack);
+            throw new Error(`Failed in room.joinChannelHandler.initializeParams: ${error.message}`);
+        }
+
     };
 
     // initializeParams = (params, cb) => {
@@ -776,18 +900,25 @@ export class JoinChannelHandler {
 
     validateKeyOnJoin(params: any): any {
 
-        // Validate
-        if (params.channelId || params.tableId) {
-            return params;
-        } else {
-            return {
-                success: false,
-                isRetry: false,
-                isDisplay: false,
-                channelId: params.channelId || "",
-                info: popupTextManager.falseMessages.VALIDATEKEYONJOINFAIL_JOINCHANNELHANDLER,
-            };
+        try {
+            // Validate
+            if (params.channelId || params.tableId) {
+                return params;
+            } else {
+                return {
+                    success: false,
+                    isRetry: false,
+                    isDisplay: false,
+                    channelId: params.channelId || "",
+                    info: popupTextManager.falseMessages.VALIDATEKEYONJOINFAIL_JOINCHANNELHANDLER,
+                };
+            }
+        } catch (error) {
+            this.logger.error('Error in room.joinChannelHandler.validateKeyOnJoin', error.stack);
+            throw new Error(`Failed in room.joinChannelHandler.validateKeyOnJoin: ${error.message}`);
         }
+
+
     }
 
     // validateKeyOnJoin = (params, cb) => {
@@ -806,48 +937,56 @@ export class JoinChannelHandler {
 
     firingRITBroadCast(params: any): Promise<any> {
 
-        const { tableDetails } = params;
 
-        if (tableDetails.players.length > 0) {
+        try {
 
-            // Pomelo Connection
-            let channel = pomelo.app.get('channelService').getChannel(tableDetails.channelId, false);
+            const { tableDetails } = params;
 
-            if (!channel) {
+            if (tableDetails.players.length > 0) {
 
-                channel = pomelo.app.get('channelService').getChannel(tableDetails.channelId, true);
+                // Pomelo Connection
+                let channel = pomelo.app.get('channelService').getChannel(tableDetails.channelId, false);
+
+                if (!channel) {
+
+                    channel = pomelo.app.get('channelService').getChannel(tableDetails.channelId, true);
+                }
+                // Pomelo Connection
+
+                for (const player of tableDetails.players) {
+                    const broadcastData = {
+                        channelId: player.channelId,
+                        playerId: player.playerId,
+                        RITstatus: tableDetails.isRunItTwiceTable || player.isRunItTwice || false,
+                    };
+
+                    this.broadcastHandler.playerRITStatus({
+                        channel,
+                        channelId: player.channelId,
+                        data: broadcastData,
+                    });
+                    return params;
+                }
+
+                if (tableDetails.isROE) {
+                    const variationBroadcast = {
+                        channel,
+                        channelId: tableDetails.channelId,
+                        isROE: tableDetails.isROE,
+                        channelVariation: tableDetails.channelVariation,
+                        message: `${tableDetails.channelRoundCount}/${tableDetails.maxPlayers}`,
+                    };
+
+                    this.broadcastHandler.fireGameVariationBroadcast(variationBroadcast);
+                }
             }
-            // Pomelo Connection
 
-            for (const player of tableDetails.players) {
-                const broadcastData = {
-                    channelId: player.channelId,
-                    playerId: player.playerId,
-                    RITstatus: tableDetails.isRunItTwiceTable || player.isRunItTwice || false,
-                };
-
-                this.broadcastHandler.playerRITStatus({
-                    channel,
-                    channelId: player.channelId,
-                    data: broadcastData,
-                });
-                return params;
-            }
-
-            if (tableDetails.isROE) {
-                const variationBroadcast = {
-                    channel,
-                    channelId: tableDetails.channelId,
-                    isROE: tableDetails.isROE,
-                    channelVariation: tableDetails.channelVariation,
-                    message: `${tableDetails.channelRoundCount}/${tableDetails.maxPlayers}`,
-                };
-
-                this.broadcastHandler.fireGameVariationBroadcast(variationBroadcast);
-            }
+            return params;
+        } catch (error) {
+            this.logger.error('Error in room.joinChannelHandler.firingRITBroadCast', error.stack);
+            throw new Error(`Failed in room.joinChannelHandler.firingRITBroadCast: ${error.message}`);
         }
 
-        return params;
     };
 
 
@@ -896,62 +1035,66 @@ export class JoinChannelHandler {
 
     async firingCallTimeBroadCast(params: any): Promise<any> {
 
-        const players = params.tableDetails.players;
+        try {
+            const players = params.tableDetails.players;
 
-        if (!players.length) return params;
+            if (!players.length) return params;
 
-        for (const player of players) {
+            for (const player of players) {
 
-            const { playerId, channelId, playerCallTimer } = player;
+                const { playerId, channelId, playerCallTimer } = player;
 
-            // Pomelo Connection
-            let channel = pomelo.app.get('channelService').getChannel(channelId, false);
+                // Pomelo Connection
+                let channel = pomelo.app.get('channelService').getChannel(channelId, false);
 
-            if (!channel) {
-                channel = pomelo.app.get('channelService').getChannel(channelId, true);
-            }
-            // Pomelo Connection
-
-            const broadcastData: any = {
-                channelId,
-                playerId,
-            };
-
-            const now = Date.now();
-            const elapsed = Math.floor((now - playerCallTimer.createdAt) / systemConfig.secondToMinutsConvert);
-            const timerInSeconds = (systemConfig.playerCallTime * 60) - Math.floor((now - playerCallTimer.createdAt) / 1000);
-
-            if (playerCallTimer.status || playerCallTimer.isCallTimeOver) {
-                broadcastData.timer = playerCallTimer.timer - elapsed;
-                broadcastData.timerInSeconds = timerInSeconds;
-                broadcastData.createdAt = playerCallTimer.createdAt;
-                broadcastData.status = broadcastData.timer >= 1 ? playerCallTimer.status : false;
-
-                if (broadcastData.timer < 1) {
-                    broadcastData.timer = 0;
-                    broadcastData.timerInSeconds = 0;
-                    broadcastData.status = false;
-                    broadcastData.createdAt = 0;
+                if (!channel) {
+                    channel = pomelo.app.get('channelService').getChannel(channelId, true);
                 }
+                // Pomelo Connection
 
-                if (playerCallTimer.isCallTimeOver) {
-                    broadcastData.isCallTimeOver = true;
-                }
+                const broadcastData: any = {
+                    channelId,
+                    playerId,
+                };
 
-                await new Promise<void>((resolve) => {
+                const now = Date.now();
+                const elapsed = Math.floor((now - playerCallTimer.createdAt) / systemConfig.secondToMinutsConvert);
+                const timerInSeconds = (systemConfig.playerCallTime * 60) - Math.floor((now - playerCallTimer.createdAt) / 1000);
+
+                if (playerCallTimer.status || playerCallTimer.isCallTimeOver) {
+                    broadcastData.timer = playerCallTimer.timer - elapsed;
+                    broadcastData.timerInSeconds = timerInSeconds;
+                    broadcastData.createdAt = playerCallTimer.createdAt;
+                    broadcastData.status = broadcastData.timer >= 1 ? playerCallTimer.status : false;
+
+                    if (broadcastData.timer < 1) {
+                        broadcastData.timer = 0;
+                        broadcastData.timerInSeconds = 0;
+                        broadcastData.status = false;
+                        broadcastData.createdAt = 0;
+                    }
+
+                    if (playerCallTimer.isCallTimeOver) {
+                        broadcastData.isCallTimeOver = true;
+                    }
+
                     setTimeout(() => {
                         this.broadcastHandler.playerCallTimer({
                             channel,
                             channelId,
                             data: broadcastData,
                         });
-                        resolve();
                     }, 500);
-                });
+                }
             }
+
+            return params;
+        } catch (error) {
+            this.logger.error('Error in room.joinChannelHandler.firingCallTimeBroadCast', error.stack);
+            throw new Error(`Failed in room.joinChannelHandler.firingCallTimeBroadCast: ${error.message}`);
         }
 
-        return params;
+
     };
 
 
@@ -1026,70 +1169,79 @@ export class JoinChannelHandler {
     // process join all steps
     /*==================  START   =================*/
 
-    async processJoin(params: any): Promise<any> {      
+    async processJoin(params: any): Promise<any> {
         try {
 
-          params = await this.validateKeyOnJoin(params);
+            params = await this.validateKeyOnJoin(params);
 
-          
+            params = await this.initializeParams(params);
 
-          params = await this.initializeParams(params);
-          params = await this.getInMemoryTable(params);
-
-           
-
-          params = await this.shouldBypassPassword(params);
+            params = await this.getInMemoryTable(params);
 
 
-          params = await this.getTableDataForValidation(params);
-          
-          params = await this.rejectIfPassword(params);
 
-          params = await this.createChannelInDatabase(params);
+            params = await this.shouldBypassPassword(params);
 
-          
 
-          params = await this.addPlayerAsSpectator(params);
+            params = await this.getTableDataForValidation(params);
 
-          
+            params = await this.rejectIfPassword(params);
 
-        //   params = await this.broadcastOnJoinTable(params);
+            params = await this.createChannelInDatabase(params);
 
-          
 
-          params = await this.getTournamentChannel(params);
 
-          
-          
-          params = await this.joinPlayerToChannel(params);
+            params = await this.addPlayerAsSpectator(params);
 
-          console.log("------- Inside Process Join Function------------")
 
-          params = await this.saveActivityRecord(params);
 
-          
-          
-          params = await this.saveJoinRecord(params);
-          params = await this.updatePlayerState(params);
-          params = await this.setChannelIntoSession(params);
-          params = await this.getAntiBankingDetails(params);
-          params = await this.joinChannelKeys(params);
-          params = await this.startKickToLobbyTimer(params);
-          params = await this.validateKeyAndCreateLog(params);
-          params = await this.firingRITBroadCast(params);
-          params = await this.firingCallTimeBroadCast(params);
-      
-          // Optionally include:
-          // params = await this.handleTournament(params);
+            params = await this.broadcastOnJoinTable(params);
 
-          
-      
-          return params;
-        } catch (err) {
-          console.error("in joinChannelHandler processJoin err", err.message);
-          throw err;
+
+
+            params = await this.getTournamentChannel(params);
+
+
+
+            params = await this.joinPlayerToChannel(params);
+
+            console.log("------- Inside Process Join Function------------")
+
+            params = await this.saveActivityRecord(params);
+
+            params = await this.saveJoinRecord(params);
+
+
+            params = await this.updatePlayerState(params);
+
+            params = await this.setChannelIntoSession(params);
+
+            params = await this.getAntiBankingDetails(params);
+
+
+            params = await this.joinChannelKeys(params);
+
+            params = await this.startKickToLobbyTimer(params);
+
+            params = await this.validateKeyAndCreateLog(params);
+
+
+            params = await this.firingRITBroadCast(params);
+
+
+            params = await this.firingCallTimeBroadCast(params);
+
+            // Optionally include:
+            // params = await this.handleTournament(params);
+
+
+
+            return params;
+        } catch (error) {
+            this.logger.error('Error in room.joinChannelHandler.processJoin', error.stack);
+            throw new Error(`Failed in room.joinChannelHandler.processJoin: ${error.message}`);
         }
-      };
+    };
 
 
     // processJoin = (params, cb) => {

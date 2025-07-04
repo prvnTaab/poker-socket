@@ -10,6 +10,7 @@ import { SharedModuleService } from 'shared/common/utils/sharedModule.service';
 import { UtilityService } from 'shared/common/utils/utils.service';
 import { Injectable } from '@nestjs/common';
 import { RedisSessionService } from '../../redis/redis-session.service';
+import { Socket } from 'socket.io';
 
 
 @Injectable()
@@ -26,7 +27,7 @@ export class GateHandler {
     ) { }
 
 
-    async getConnector(msg: any): Promise<any> {
+    async getConnector(client:Socket,msg: any): Promise<any> {
 
         // console.log("--------msg-0----",msg)
 
@@ -79,7 +80,7 @@ export class GateHandler {
                 let isValidated = await this.handleLogin(msg, activityParams, activityCategory, activitySubCategory);
 
                 if(isValidated.success) {
-                    let isAddSession = await this.redisSessionService.addUserSession(isValidated.user.playerId,msg.socketId);
+                    let isAddSession = await this.redisSessionService.addUserSession(isValidated.user.playerId,client.id);
 
                     console.log("----Session Add----",isAddSession)
                 }

@@ -1,7 +1,7 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import _ from "underscore";
 import _ld from "lodash";
-import {systemConfig} from "../../../../../libs/common/src/systemConfig";
+import { systemConfig } from "../../../../../libs/common/src/systemConfig";
 import popupTextManager from "../../../../../libs/common/src/popupTextManager";
 import stateOfX from "shared/common/stateOfX.sevice";
 
@@ -17,6 +17,8 @@ declare const pomelo: any; // In this place we have add socket.io
 
 @Injectable()
 export class ChannelTimerHandlerService {
+
+    private readonly logger = new Logger(ChannelTimerHandlerService.name);
 
     private configMsg = popupTextManager.falseMessages;
 
@@ -2966,10 +2968,17 @@ export class ChannelTimerHandlerService {
 
     /*======================  START  =====================*/
     sessionExport(session) {
-        var EXPORTED_SESSION_FIELDS = ['id', 'frontendId', 'uid', 'settings']
-        var res = {};
-        this.clone(session, res, EXPORTED_SESSION_FIELDS);
-        return res;
+
+        try {
+            let EXPORTED_SESSION_FIELDS = ['id', 'frontendId', 'uid', 'settings']
+            let res = {};
+            this.clone(session, res, EXPORTED_SESSION_FIELDS);
+            return res;
+        } catch (error) {
+            this.logger.error('Error in room.channelTimeHandler-service.sessionExport', error.stack);
+            throw new Error(`Failed in room.channelTimeHandler-service.sessionExport: ${error.message}`);
+        }
+
     };
 
     /**
@@ -3108,28 +3117,27 @@ export class ChannelTimerHandlerService {
     // New
     async kickPlayerToLobby(params: any): Promise<any> {
 
-        const currentTime = new Date();
-        let scheduleTime = 0;
+        try {
+            const currentTime = new Date();
+            let scheduleTime = 0;
 
-        if (params.channel.kickPlayerToLobby[params.playerId]) {
-            params.channel.kickPlayerToLobby[params.playerId].cancel();
-            params.channel.kickPlayerToLobby[params.playerId] = null;
-        }
-
-        if (!params.data) {
-            scheduleTime = currentTime.setSeconds(currentTime.getSeconds() + Number(systemConfig.playerSpectateLimit));
-        } else {
-            if (params.data.isStandup && (params.data.origin === 'tableIdleTimer' || params.data.origin === 'idlePlayer')) {
-                console.log("inside if params.data.isStandup && params.data.origin");
-                scheduleTime = currentTime.setSeconds(currentTime.getSeconds() + 1);
-            } else {
-                scheduleTime = currentTime.setSeconds(currentTime.getSeconds() + Number(systemConfig.playerSpectateLimit));
+            if (params.channel.kickPlayerToLobby[params.playerId]) {
+                params.channel.kickPlayerToLobby[params.playerId].cancel();
+                params.channel.kickPlayerToLobby[params.playerId] = null;
             }
-        }
 
-        params.channel.kickPlayerToLobby[params.playerId] = schedule.scheduleJob(scheduleTime, async () => {
-            try {
+            if (!params.data) {
+                scheduleTime = currentTime.setSeconds(currentTime.getSeconds() + Number(systemConfig.playerSpectateLimit));
+            } else {
+                if (params.data.isStandup && (params.data.origin === 'tableIdleTimer' || params.data.origin === 'idlePlayer')) {
+                    console.log("inside if params.data.isStandup && params.data.origin");
+                    scheduleTime = currentTime.setSeconds(currentTime.getSeconds() + 1);
+                } else {
+                    scheduleTime = currentTime.setSeconds(currentTime.getSeconds() + Number(systemConfig.playerSpectateLimit));
+                }
+            }
 
+            params.channel.kickPlayerToLobby[params.playerId] = schedule.scheduleJob(scheduleTime, async () => {
                 // Pomelo Connection
                 const hitLeaveResponse = await pomelo.app.sysrpc['room'].msgRemote.forwardMessage(
                     { forceFrontendId: "room-server-1" },
@@ -3148,16 +3156,18 @@ export class ChannelTimerHandlerService {
                 );
                 // Pomelo Connection
 
-            } catch (error) {
-                console.error("Error in kickPlayerToLobby forwardMessage:", error);
-            }
+                const playerObject = {
+                    playerId: params.playerId,
+                    channelId: params.channelId
+                };
+                // You can optionally use getPlayerSessionServer here if needed
+            });
+        } catch (error) {
+            this.logger.error('Error in room.channelTimerHandler-service.kickPlayerToLobby', error.stack);
+            throw new Error(`Failed in room.channelTimerHandler-service.kickPlayerToLobby: ${error.message}`);
+        }
 
-            const playerObject = {
-                playerId: params.playerId,
-                channelId: params.channelId
-            };
-            // You can optionally use getPlayerSessionServer here if needed
-        });
+
     };
 
     // Old
@@ -3305,7 +3315,7 @@ export class ChannelTimerHandlerService {
     /*======================  START  =====================*/
     // kill channel timers
     killChannelTurnTimer(params) {
-            this.killChannelLevelTimers(params);
+        this.killChannelLevelTimers(params);
     }
     /*======================  END  =====================*/
 

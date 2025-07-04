@@ -552,9 +552,9 @@ export async function validate(type: string, serverType: string, methodName: str
         routeFromDict = responseSet[serverType][methodName];
         responsibleText = " in response ";
     }
-    
+
     const missingKeys = [];
-    
+
     if (internalFunctions[serverType].indexOf(methodName) >= 0) {
         responsibleText = responsibleText + " on server !";
     } else if (handlerFunctions[serverType].indexOf(methodName) >= 0) {
@@ -595,9 +595,17 @@ export async function validate(type: string, serverType: string, methodName: str
 
 // ### Validate client keys from dictionary first ###
 export async function validateKeySets(type: string, serverType: string, methodName: string, clientKeys: any): Promise<any> {
-    clientKeys = _.omit(clientKeys, 'timestamp', '__route__');
-    if (serverType == 'room') {
-        serverType = 'connector';
+
+    try {
+        clientKeys = _.omit(clientKeys, 'timestamp', '__route__');
+        if (serverType == 'room') {
+            serverType = 'connector';
+        }
+        return await validate(type, serverType, methodName, clientKeys);
+    } catch (error) {
+        this.logger.error('Error in libs.utils.activity.validateKeySets', error.stack);
+        throw new Error(`Failed in libs.utils.activity.validateKeySets': ${error.message}`);
     }
-    return await validate(type, serverType, methodName, clientKeys);
+
+
 }

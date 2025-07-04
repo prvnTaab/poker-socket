@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import _ from "underscore";
 import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
 import stateOfX from "shared/common/stateOfX.sevice";
@@ -8,6 +8,8 @@ import { popupTextManager } from "shared/common";
 
 @Injectable()
 export class VideoGameRemoteService {
+
+    private readonly logger = new Logger(VideoGameRemoteService.name);
 
     constructor(
         private readonly imdb: ImdbDatabaseService,
@@ -43,8 +45,6 @@ export class VideoGameRemoteService {
             channelId: params.channelId
         };
 
-        console.trace("updating video is like", query, history);
-
         try {
             const updatedVideo = await this.db.insertNextVideo(query, history);
 
@@ -55,7 +55,12 @@ export class VideoGameRemoteService {
                 try {
                     await this.db.updateVideo(query, { active: true });
                     return { success: true, result: { videoId: updatedVideo._id } };
-                } catch (err) {
+                } catch (error) {
+                    this.logger.error(
+                        'Error in database.videoGameRemote.createVideo',
+                        error.stack || error.message
+                    );
+
                     return {
                         success: false,
                         info: "Error while setting video as active true.",
@@ -73,7 +78,12 @@ export class VideoGameRemoteService {
                     channelId: ""
                 };
             }
-        } catch (err) {
+        } catch (error) {
+            this.logger.error(
+                'Error in database.videoGameRemote.createVideo',
+                error.stack || error.message
+            );
+
             return {
                 success: false,
                 info: "Error in insert new video in db",

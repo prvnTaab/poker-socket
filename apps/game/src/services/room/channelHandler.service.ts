@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import _ from "underscore";
 import _ld from "lodash";
 import { popupTextManager, stateOfX } from "shared/common";
@@ -30,6 +30,8 @@ declare const pomelo: any;
 @Injectable()
 export class ChannelHandlerService {
 
+  private readonly logger = new Logger(ChannelHandlerService.name);
+
   private readonly callTimerFromDb = 0;
 
   constructor(
@@ -46,7 +48,7 @@ export class ChannelHandlerService {
     private readonly actionLogger: ActionLoggerService,
     private readonly channelTimerHandler: ChannelTimerHandlerService,
     private readonly roomManagerService: RoomManagerService,
-    private readonly redisSessionService:RedisSessionService
+    private readonly redisSessionService: RedisSessionService
 
 
 
@@ -127,220 +129,228 @@ export class ChannelHandlerService {
 
   public async similarTableBroadcast(params: any): Promise<any> {
 
-    const imdbTable = await this.imdb.getTable(params.channelId);
+    try {
+      const imdbTable = await this.imdb.getTable(params.channelId);
 
-    // console.log("--------ChannelHandler Line---121", imdbTable)
+      if (imdbTable && imdbTable.players && imdbTable.players.length && imdbTable.maxPlayers === imdbTable.players.length) {
 
-    if (imdbTable && imdbTable.players && imdbTable.players.length && imdbTable.maxPlayers === imdbTable.players.length) {
-      const tmpChannelId = params.channelId.split('-')[0];
+        const tmpChannelId = params.channelId.split('-')[0];
 
-      const tablesRecord = await this.imdb.playerJoinedRecord({ channelId: { $regex: tmpChannelId } });
+        const tablesRecord = await this.imdb.playerJoinedRecord({ channelId: { $regex: tmpChannelId } });
 
-      const uniquePlayers: Record<string, any> = {};
-      tablesRecord.forEach(item => {
-        uniquePlayers[item.playerId] = item;
-      });
+        const uniquePlayers: Record<string, any> = {};
+        tablesRecord.forEach(item => {
+          uniquePlayers[item.playerId] = item;
+        });
 
-      const uniquePlayersArray = Object.values(uniquePlayers);
+        const uniquePlayersArray = Object.values(uniquePlayers);
 
-      for (const eachJoinedPlayer of uniquePlayersArray) {
-        const playerOnSeat = imdbTable.players.find(p => p.playerId === eachJoinedPlayer.playerId);
+        for (const eachJoinedPlayer of uniquePlayersArray) {
+          const playerOnSeat = imdbTable.players.find(p => p.playerId === eachJoinedPlayer.playerId);
 
-        if (!playerOnSeat) {
-          const allChannels = await this.imdb.getAllTable({ channelId: { $regex: tmpChannelId } });
+          if (!playerOnSeat) {
+            const allChannels = await this.imdb.getAllTable({ channelId: { $regex: tmpChannelId } });
 
-          if (!allChannels) {
-            continue;
-          }
-
-          let fullTableCount = 0;
-          let isTableAvailable = false;
-
-          for (const table of allChannels) {
-            if (table.players.length === table.maxPlayers) {
-              fullTableCount++;
+            if (!allChannels) {
               continue;
             }
 
-            const alreadyInTable = table.players.find(p => p.playerId === eachJoinedPlayer.playerId);
-            if (!alreadyInTable) {
-              isTableAvailable = true;
+            let fullTableCount = 0;
+            let isTableAvailable = false;
+
+            for (const table of allChannels) {
+              if (table.players.length === table.maxPlayers) {
+                fullTableCount++;
+                continue;
+              }
+
+              const alreadyInTable = table.players.find(p => p.playerId === eachJoinedPlayer.playerId);
+              if (!alreadyInTable) {
+                isTableAvailable = true;
+              }
+            }
+
+            if (fullTableCount === allChannels.length || isTableAvailable) {
+              for (const channel of allChannels) {
+                this.broadcastHandler.newSimilarTable({
+                  channelId: channel.channelId,
+                  msg: { channelId: channel.channelId, info: 'join Now' },
+                  route: 'joinSimilarTable'
+                });
+              }
             }
           }
-
-          console.log('sf7herkwe checking if we can send a broadcast or not', fullTableCount, allChannels.length, isTableAvailable);
-
-          if (fullTableCount === allChannels.length || isTableAvailable) {
-            for (const channel of allChannels) {
-              this.broadcastHandler.newSimilarTable({
-                channelId: channel.channelId,
-                msg: { channelId: channel.channelId, info: 'join Now' },
-                route: 'joinSimilarTable'
-              });
-            }
-            console.log('sf7herkwe inside sending broadcast', params.playerId);
-          }
-        } else {
-          console.log('player is sf7herkwe already in the table');
         }
       }
-    } else {
-      console.log('player is sf7herkwe an empty seat is available');
+    } catch (error) {
+      this.logger.error('Error in room.channelHandler.similarTableBroadcast', error.stack);
+      throw new Error(`Failed in room.channelHandler.similarTableBroadcast: ${error.message}`);
     }
+
   }
 
 
 
-async joinChannel(client: Socket, msg: any): Promise<any> {
-  // Simulate setTimeout
-  setTimeout(() => {
-    this.similarTableBroadcast(msg);
-  }, 1000);
+  async joinChannel(client: Socket, msg: any): Promise<any> {
 
-  if (this.serverDownManager.checkServerState('joinReq')) {
-    return {
-      success: false,
-      channelId: msg.channelId || "",
-      info: "Server is going under maintenance. No new game will start now."
-    };
-  }
+    try {
 
-  await this.redisSessionService.recordLastActivityTime(msg);
+      // Simulate setTimeout
+      setTimeout(() => {
+        this.similarTableBroadcast(msg);
+      }, 1000);
 
-  const validated = await validateKeySets("Request", "connector", "joinChannel", msg);
+      if (this.serverDownManager.checkServerState('joinReq')) {
+        return {
+          success: false,
+          channelId: msg.channelId || "",
+          info: "Server is going under maintenance. No new game will start now."
+        };
+      }
+
+      await this.redisSessionService.recordLastActivityTime(msg);
+
+      const validated = await validateKeySets("Request", "connector", "joinChannel", msg);
 
 
-  if (!validated.success) {
-    return validated;
-  }
+      if (!validated.success) {
+        return validated;
+      }
 
-  // Socket.IO handles channel creation when joining
-  await client.join(msg.channelId);
-  
-  const channelId = msg.channelId;
+      // Socket.IO handles channel creation when joining
+      await client.join(msg.channelId);
 
-  // Optional: store or fetch room data (if needed)
-  const channel = await this.roomManagerService.getOrCreateRoom(channelId);
+      const channelId = msg.channelId;
 
-  const deviceType = await this.redisSessionService.getDeviceType(client.id);
+      // Optional: store or fetch room data (if needed)
+      const channel = await this.roomManagerService.getOrCreateRoom(channelId);
 
-  // console.log("---------Channel-----",channel)
+      const deviceType = await this.redisSessionService.getDeviceType(client.id);
 
-  const processJoinResponse = await this.joinChannelHandler.processJoin({
-    channel,
-    channelId: msg.channelId,
-    channelType: msg.channelType,
-    tableId: msg.tableId,
-    playerId: msg.playerId,
-    playerName: msg.playerName,
-    password: msg.password,
-    networkIp: msg.networkIp,
-    deviceType
-  });
+      // console.log("---------Channel-----",channel)
 
-    console.log("---------- Inside joinChannel----------")
-
-  const res = await this.imdb.getCardShow({ channelId });
-
-  if (res?.length > 0) {
-    const eyeResponse = res.map(result => ({
-      playerId: result.playerId,
-      channelId: result.channelId,
-      cards: result.cards
-    }));
-
-    await this.broadcastHandler.sendMessageToUser({
-      msg: {
-        playerId: msg.playerId,
+      const processJoinResponse = await this.joinChannelHandler.processJoin({
+        channel,
         channelId: msg.channelId,
-        data: eyeResponse
-      },
-      playerId: msg.playerId,
-      route: "muckedCardsUpdate"
-    });
-  }
+        channelType: msg.channelType,
+        tableId: msg.tableId,
+        playerId: msg.playerId,
+        playerName: msg.playerName,
+        password: msg.password,
+        networkIp: msg.networkIp,
+        deviceType
+      });
 
-  const myparams: any = {};
-  myparams.channel = channel;
+      // console.log("---------- Inside joinChannel----------")
 
-  if (
-    (channel.playerSimpleMoveWithTimeBank || channel.extraTurnTimeReference) &&
-    processJoinResponse?.tableDetails
-  ) {
-    processJoinResponse.tableDetails.finalTimeLeft = Math.floor(
-      channel.updatedTimeBank - (Date.now() - channel.startedAt) / 1000
-    );
+      const res = await this.imdb.getCardShow({ channelId });
 
-    if (channel.currentMovePlayer === msg.playerId) {
-      await this.roomRemote.playerReconnected(msg);
-    }
-  }
+      if (res?.length > 0) {
+        const eyeResponse = res.map(result => ({
+          playerId: result.playerId,
+          channelId: result.channelId,
+          cards: result.cards
+        }));
 
-  const evResponse = await this.requestRemote.checkEvHappens(msg);
+        await this.broadcastHandler.sendMessageToUser({
+          msg: {
+            playerId: msg.playerId,
+            channelId: msg.channelId,
+            data: eyeResponse
+          },
+          playerId: msg.playerId,
+          route: "muckedCardsUpdate"
+        });
+      }
 
-  if (
-    evResponse.success &&
-    processJoinResponse?.tableDetails?.roundBets?.length > 0
-  ) {
-    const potAmount = processJoinResponse.tableDetails.roundBets.reduce((sum, bet) => sum + bet, 0);
-    processJoinResponse.tableDetails.totalPot -= potAmount;
-    console.log("now roundbets added is", potAmount);
-  }
+      const myparams: any = {};
+      myparams.channel = channel;
 
-  const playerData = await this.imdb.getPlayerData(channelId);
-  myparams.channelId = channelId;
-  myparams.session = client;
-  myparams.table = { channelId };
-  myparams.player = { playerCallTimer: {} };
+      if (
+        (channel.playerSimpleMoveWithTimeBank || channel.extraTurnTimeReference) &&
+        processJoinResponse?.tableDetails
+      ) {
+        processJoinResponse.tableDetails.finalTimeLeft = Math.floor(
+          channel.updatedTimeBank - (Date.now() - channel.startedAt) / 1000
+        );
 
-  if (playerData?.players?.length > 0) {
-    const playerIndex = _ld.findIndex(playerData.players, { playerId: msg.playerId });
-    if (playerIndex >= 0 && playerData.players[playerIndex].state === stateOfX.playerState.waiting) {
-      const player = playerData.players[playerIndex];
-      myparams.player = player;
-      myparams.player.isForceBlindVisible = player.isForceBlindVisible;
-      myparams.player.RITstatus = player.isRunItTwice;
-      myparams.player.playerCallTimer.channelId = channelId;
-      myparams.player.playerCallTimer.playerId = msg.playerId;
-
-      if (player.playerCallTimer.status) {
-        myparams.player.playerCallTimer.callTimer = this.callTimerFromDb;
-        const createdAt = player.playerCallTimer.createdAt;
-        const diff = Math.floor((Date.now() - createdAt) / systemConfig.secondToMinutsConvert);
-        myparams.player.playerCallTimer.timer = Math.max(0, player.playerCallTimer.timer - diff);
-        myparams.player.callTimeGameMissed = 0;
-
-        if (myparams.player.playerCallTimer.timer >= 1) {
-          myparams.player.playerCallTimer.timerInSeconds = systemConfig.playerCallTime * 60 - Math.floor((Date.now() - createdAt) / 1000);
-        } else {
-          myparams.player.playerCallTimer.timerInSeconds = 0;
-          myparams.player.playerCallTimer.status = false;
-          myparams.player.playerCallTimer.createdAt = 0;
+        if (channel.currentMovePlayer === msg.playerId) {
+          await this.roomRemote.playerReconnected(msg);
         }
       }
 
-      await this.broadcastHandler.playerSettings(myparams);
+      const evResponse = await this.requestRemote.checkEvHappens(msg);
+
+      if (
+        evResponse.success &&
+        processJoinResponse?.tableDetails?.roundBets?.length > 0
+      ) {
+        const potAmount = processJoinResponse.tableDetails.roundBets.reduce((sum, bet) => sum + bet, 0);
+        processJoinResponse.tableDetails.totalPot -= potAmount;
+        console.log("now roundbets added is", potAmount);
+      }
+
+      const playerData = await this.imdb.getPlayerData(channelId);
+      myparams.channelId = channelId;
+      myparams.session = client;
+      myparams.table = { channelId };
+      myparams.player = { playerCallTimer: {} };
+
+      if (playerData?.players?.length > 0) {
+        const playerIndex = _ld.findIndex(playerData.players, { playerId: msg.playerId });
+        if (playerIndex >= 0 && playerData.players[playerIndex].state === stateOfX.playerState.waiting) {
+          const player = playerData.players[playerIndex];
+          myparams.player = player;
+          myparams.player.isForceBlindVisible = player.isForceBlindVisible;
+          myparams.player.RITstatus = player.isRunItTwice;
+          myparams.player.playerCallTimer.channelId = channelId;
+          myparams.player.playerCallTimer.playerId = msg.playerId;
+
+          if (player.playerCallTimer.status) {
+            myparams.player.playerCallTimer.callTimer = this.callTimerFromDb;
+            const createdAt = player.playerCallTimer.createdAt;
+            const diff = Math.floor((Date.now() - createdAt) / systemConfig.secondToMinutsConvert);
+            myparams.player.playerCallTimer.timer = Math.max(0, player.playerCallTimer.timer - diff);
+            myparams.player.callTimeGameMissed = 0;
+
+            if (myparams.player.playerCallTimer.timer >= 1) {
+              myparams.player.playerCallTimer.timerInSeconds = systemConfig.playerCallTime * 60 - Math.floor((Date.now() - createdAt) / 1000);
+            } else {
+              myparams.player.playerCallTimer.timerInSeconds = 0;
+              myparams.player.playerCallTimer.status = false;
+              myparams.player.playerCallTimer.createdAt = 0;
+            }
+          }
+
+          await this.broadcastHandler.playerSettings(myparams);
+        }
+      }
+
+      if (
+        processJoinResponse?.tableDetails?.players?.length > 0 &&
+        processJoinResponse.tableDetails.isROE
+      ) {
+        const tableDetails = {
+          channel,
+          channelId: processJoinResponse.tableDetails.channelId,
+          isROE: processJoinResponse.tableDetails.isROE,
+          channelVariation: processJoinResponse.tableDetails.channelVariation,
+          message: `${processJoinResponse.tableDetails.channelRoundCount}/${processJoinResponse.tableDetails.maxPlayers}`
+        };
+        this.broadcastHandler.fireGameVariationBroadcast(tableDetails);
+      }
+
+      await this.requestRemote.playerLeftEv(msg);
+
+      return processJoinResponse;
+
+
+
+    } catch (error) {
+      this.logger.error('Error in room.channelHandler-service.joinChannel', error.stack);
+      throw error;
     }
   }
-
-  if (
-    processJoinResponse?.tableDetails?.players?.length > 0 &&
-    processJoinResponse.tableDetails.isROE
-  ) {
-    const tableDetails = {
-      channel,
-      channelId: processJoinResponse.tableDetails.channelId,
-      isROE: processJoinResponse.tableDetails.isROE,
-      channelVariation: processJoinResponse.tableDetails.channelVariation,
-      message: `${processJoinResponse.tableDetails.channelRoundCount}/${processJoinResponse.tableDetails.maxPlayers}`
-    };
-    this.broadcastHandler.fireGameVariationBroadcast(tableDetails);
-  }
-
-  await this.requestRemote.playerLeftEv(msg);
-
-  return processJoinResponse;
-}
 
 
 

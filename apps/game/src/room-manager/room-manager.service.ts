@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 
 
 
@@ -8,6 +8,7 @@ import { Injectable } from "@nestjs/common";
 @Injectable()
 export class RoomManagerService {
 
+    private readonly logger = new Logger(RoomManagerService.name);
 
     private rooms: any = new Map();
 
@@ -16,18 +17,22 @@ export class RoomManagerService {
  * Get room. If not found and `createIfNotExists`, it creates a new one.
  */
     getOrCreateRoom(channelId: string): any {
+        try {
+            let room = this.rooms.get(channelId);
 
-        let room = this.rooms.get(channelId);
-
-        if (!room) {
-            room = {
-                channelId,
-                createdAt: Date.now(),
-                players: new Map()
-            };
-            this.rooms.set(channelId, room);
+            if (!room) {
+                room = {
+                    channelId,
+                    createdAt: Date.now(),
+                    players: new Map()
+                };
+                this.rooms.set(channelId, room);
+            }
+            return room || null;
+        } catch (error) {
+            this.logger.error('Error in room-manager.room-manager-service.getOrCreateRoom', error.stack);
+            throw new Error(`Failed in room-manager.room-manager-service.getOrCreateRoom: ${error.message}`);
         }
-        return room || null;
     }
 
     /**

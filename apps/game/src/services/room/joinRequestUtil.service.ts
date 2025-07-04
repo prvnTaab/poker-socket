@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import _ from "underscore";
 import _ld from "lodash";
 import { systemConfig } from "shared/common";
@@ -22,6 +22,8 @@ declare const pomelo: any; // In this place we have add socket.io
 @Injectable()
 export class JoinRequestUtilService {
 
+    private readonly logger = new Logger(JoinRequestUtilService.name);
+
     constructor(
         private readonly db: PokerDatabaseService,
         private readonly imdb: ImdbDatabaseService,
@@ -40,32 +42,39 @@ export class JoinRequestUtilService {
 
     async getInMemoryTable(params: any): Promise<any> {
 
-        if (!!params.channelId) {
+        try {
+            if (!!params.channelId) {
 
 
-            if ((!!params.channel && params.channelType === 'TOURNAMENT') || (!!params.channel?.isTable)) {
+                if ((!!params.channel && params.channelType === 'TOURNAMENT') || (!!params.channel?.isTable)) {
 
 
-                try {
-                    const getTableResponse = await this.tableRemote.getTable({ channelId: params.channelId });
+                    try {
+                        const getTableResponse = await this.tableRemote.getTable({ channelId: params.channelId });
 
-                    params.data.tableFound = true;
-                    params.table = getTableResponse;
+                        params.data.tableFound = true;
+                        params.table = getTableResponse;
 
+                        return { success: true, params };
+                    } catch (error) {
+                        return error;
+                    }
+
+                } else {
+                    // console.log(stateOfX.serverLogType.info, 'No table is created for this channel, create one in next step!');
                     return { success: true, params };
-                } catch (error) {
-                    return error;
                 }
 
             } else {
-                // console.log(stateOfX.serverLogType.info, 'No table is created for this channel, create one in next step!');
+                // console.log(stateOfX.serverLogType.info, 'This request is for tournament table join!');
                 return { success: true, params };
             }
-
-        } else {
-            // console.log(stateOfX.serverLogType.info, 'This request is for tournament table join!');
-            return { success: true, params };
+        } catch (error) {
+            this.logger.error('Error in room.joinRequestUtil-service.getInMemoryTable', error.stack);
+            throw new Error(`Failed in room.joinRequestUtil-service.getInMemoryTable: ${error.message}`);
         }
+
+
     };
 
 
@@ -180,7 +189,7 @@ export class JoinRequestUtilService {
                 gameVersionCount: params.gameVersionCount,
             }
 
-            
+
 
             const channelRemoteResponse = await this.channelRemote.processSearch(queryData);
 
@@ -195,7 +204,7 @@ export class JoinRequestUtilService {
 
             const createTableResponse = await this.tableRemote.createTable(channelRemoteResponse.channelDetails);
 
-            
+
 
             if (!createTableResponse.success) {
                 params.success = false;
@@ -327,26 +336,31 @@ export class JoinRequestUtilService {
 
     async joinPlayerToChannel(params: any): Promise<any> {
 
-        const validated = await validateKeySets("Request", "connector", "joinPlayerToChannel", params);
+        try {
+            const validated = await validateKeySets("Request", "connector", "joinPlayerToChannel", params);
 
 
-        if (!validated.success) {
-            return validated;
+            if (!validated.success) {
+                return validated;
+            }
+
+            const channelMembers = params.channel.getMembers();
+
+            if (channelMembers.includes(params.playerId)) {
+                params.channel.leave(params.playerId);
+            } else {
+                console.log(stateOfX.serverLogType.info, 'Player is already present in pomelo channel, not adding here!');
+            }
+
+            params.channel.add(params.playerId, params.session.frontendId);
+
+            // console.log(stateOfX.serverLogType.info, "channel members are after - " + JSON.stringify(params.channel.getMembers()));
+
+            return params;
+        } catch (error) {
+            this.logger.error('Error in room.joinRequestUtil-service.joinPlayerToChannel', error.stack);
+            throw new Error(`Failed in room.joinRequestUtil-service.joinPlayerToChannel: ${error.message}`);
         }
-
-        const channelMembers = params.channel.getMembers();
-
-        if (channelMembers.includes(params.playerId)) {
-            params.channel.leave(params.playerId);
-        } else {
-            console.log(stateOfX.serverLogType.info, 'Player is already present in pomelo channel, not adding here!');
-        }
-
-        params.channel.add(params.playerId, params.session.frontendId);
-
-        // console.log(stateOfX.serverLogType.info, "channel members are after - " + JSON.stringify(params.channel.getMembers()));
-
-        return params;
     };
 
     // joinRequestUtil.joinPlayerToChannel = function (params, cb) {
@@ -408,10 +422,15 @@ export class JoinRequestUtilService {
             }
 
             return params;
-        } catch (err) {
-            throw {
+        } catch (error) {
+            this.logger.error(
+                'Error in room.joinRequestUtil-service.getAntiBanking',
+                error.stack || error.message
+            );
+
+            return {
                 success: false,
-                channelId: params.channelId || "",
+                channelId: params?.channelId || "",
                 info: popupTextManager.dbQyeryInfo.DB_GETANTIBANKING_FAIL,
                 isRetry: false,
                 isDisplay: false,
@@ -489,13 +508,16 @@ export class JoinRequestUtilService {
 
     /*=============================  START  ========================*/
     async closePlayerSession(params: any): Promise<any> {
-        const updateQuery = {
-            playerId: params.playerId,
-            channelId: params.channelId,
-            active: true,
-        };
 
         try {
+
+            const updateQuery = {
+                playerId: params.playerId,
+                channelId: params.channelId,
+                active: true,
+            };
+
+
             const res: any = await this.imdb.getPlayerBuyIn(updateQuery);
 
             const updateParams = {
@@ -532,7 +554,8 @@ export class JoinRequestUtilService {
                 };
             }
         } catch (error) {
-            throw error;
+            this.logger.error('Error in room.joinRequestUtil-service.closePlayerSession', error.stack);
+            throw new Error(`Failed in room.joinRequestUtil-service.closePlayerSession: ${error.message}`);
         }
     }
     // var closePlayerSession = function (params, cb) {
@@ -591,14 +614,15 @@ export class JoinRequestUtilService {
                     isDisplay: false,
                 };
             }
-        } catch (err) {
-            console.log(
-                stateOfX.serverLogType.error,
-                'Unable to remove anti banking details in database: ' + JSON.stringify(err)
+        } catch (error) {
+            this.logger.error(
+                'Error in room.joinRequestUtil.removeAntiBanking',
+                error.stack || error.message
             );
+
             return {
                 success: false,
-                channelId: params.channelId || '',
+                channelId: params?.channelId || '',
                 info: popupTextManager.dbQyeryInfo.DB_REMOVEANTIBANKING_FAIL,
                 isRetry: false,
                 isDisplay: false,
@@ -621,60 +645,67 @@ export class JoinRequestUtilService {
     /*=============================  START  ========================*/
     // get table data for password validation
 
-    async getTableDataForValidation(params: any): Promise<any> {
+    async getTableDataForValidation(params: any): Promise < any > {
+            try {
+                if(params?.data?.tableFound) {
+                    params.success = true;
+                    return params;
+                }
 
+            const result = await this.db.findTableById(params.channelId);
+                if(!result) {
+                    throw new Error('Table not found in DB');
+                }
 
+            result.isPrivate = JSON.parse(result.isPrivateTabel || 'false');
+                result.password = result.passwordForPrivate;
 
-        if (params.data.tableFound) {
-            params.success = true;
-            return params;
+                params.table = result;
+                params.success = true;
+
+                return params;
+
+            } catch(error) {
+                this.logger.error(
+                    'Error in room.joinRequestUtil-service.getTableDataForValidation',
+                    error.stack || error.message,
+                );
+
+                return {
+                    success: false,
+                    isRetry: false,
+                    isDisplay: true,
+                    channelId: params?.channelId || "",
+                    info: popupTextManager.falseMessages.DB_CHANNEL_NOTFOUND,
+                };
+            }
         }
 
-        try {
-            const result = await this.db.findTableById(params.channelId); // Assumes `db.findTableByIdAsync` exists or is created
-
-            result.isPrivate = JSON.parse(result.isPrivateTabel);
-            result.password = result.passwordForPrivate;
-
-            params.table = result;
-            params.success = true;
-
-            return params;
-        } catch (error) {
-            //   console.log(stateOfX.serverLogType.error, "Error in getTableDataForValidation: " + error);
-            return {
-                success: false,
-                isRetry: false,
-                isDisplay: true,
-                channelId: params.channelId || "",
-                info: popupTextManager.falseMessages.DB_CHANNEL_NOTFOUND,
-            };
-        }
-    }
 
 
-    // joinRequestUtil.getTableDataForValidation = function (params, cb) {
-    //     serverLog(stateOfX.serverLogType.info, "in joinChannelHandler function getTableDataForValidation " + params);
-    //     console.log("in joinChannelHandler function getTableDataForValidation ", params);
-    //     if (params.data.tableFound) {
-    //         params.success = true;
-    //         cb(params);
-    //         return;
-    //     }
-    //     db.findTableById(params.channelId, function (err, result) {
-    //         console.log("err, result ", err, result);
-    //         if (!err && result) {
-    //             result.isPrivate = JSON.parse(result.isPrivateTabel);
-    //             result.password = result.passwordForPrivate;
-    //             params.table = result;
-    //             params.success = true;
-    //             cb(params);
-    //             return;
-    //         } else {
-    //             return cb({ success: false, isRetry: false, isDisplay: true, channelId: (params.channelId || ""), info: popupTextManager.falseMessages.DB_CHANNEL_NOTFOUND });
-    //         }
-    //     })
-    // }
-    /*=============================  END  ========================*/
+        // joinRequestUtil.getTableDataForValidation = function (params, cb) {
+        //     serverLog(stateOfX.serverLogType.info, "in joinChannelHandler function getTableDataForValidation " + params);
+        //     console.log("in joinChannelHandler function getTableDataForValidation ", params);
+        //     if (params.data.tableFound) {
+        //         params.success = true;
+        //         cb(params);
+        //         return;
+        //     }
+        //     db.findTableById(params.channelId, function (err, result) {
+        //         console.log("err, result ", err, result);
+        //         if (!err && result) {
+        //             result.isPrivate = JSON.parse(result.isPrivateTabel);
+        //             result.password = result.passwordForPrivate;
+        //             params.table = result;
+        //             params.success = true;
+        //             cb(params);
+        //             return;
+        //         } else {
+        //             return cb({ success: false, isRetry: false, isDisplay: true, channelId: (params.channelId || ""), info: popupTextManager.falseMessages.DB_CHANNEL_NOTFOUND });
+        //         }
+        //     })
+        // }
+        /*=============================  END  ========================*/
+    
+
 }
-

@@ -1,13 +1,14 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import _ from "underscore";
 import _ld from "lodash";
-import {systemConfig} from "../../../../../libs/common/src/systemConfig";
+import { systemConfig } from "../../../../../libs/common/src/systemConfig";
 import popupTextManager from "../../../../../libs/common/src/popupTextManager";
 import stateOfX from "shared/common/stateOfX.sevice";
 import { validateKeySets } from "shared/common/utils/activity";
 
 import { PokerDatabaseService } from "shared/common/utils/pokerdatabase.service";
 import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
+import { VideoGameRemoteService } from "../database/videoGameRemote.service";
 
 
 declare const pomelo: any; // In this place we have add socket.io
@@ -15,12 +16,14 @@ declare const pomelo: any; // In this place we have add socket.io
 @Injectable()
 export class BroadcastHandlerService {
 
+    private readonly logger = new Logger(BroadcastHandlerService.name);
     private configMsg = popupTextManager.falseMessages;
 
 
     constructor(
         private readonly db: PokerDatabaseService,
         private readonly imdb: ImdbDatabaseService,
+        private readonly videoGameRemoteService:VideoGameRemoteService
     ) { }
 
     sendPlayerBroadCast(data) {
@@ -47,104 +50,118 @@ export class BroadcastHandlerService {
 
     // New
     async sendMessageToUser(params: any): Promise<any> {
-        if (params.route === stateOfX.broadcasts.updateProfile && params.msg.sentFrom !== "wallet") {
-            return true;
-        } else if (
-            params.route === 'playerNewChannelBroadcast' ||
-            params.route === 'playerElimination' ||
-            params.route === "tournamentGameStart"
-        ) {
 
-            // Pomelo Connection
-            await pomelo.app.rpcInvoke("connector-server-1", {
-                namespace: "user",
-                service: "entryRemote",
-                method: "sendMessageToUser",
-                args: [params.playerId, params.msg, params.route]
-            });
-            // Pomelo Connection
+        try {
+            if (params.route === stateOfX.broadcasts.updateProfile && params.msg.sentFrom !== "wallet") {
+                return true;
+            } else if (
+                params.route === 'playerNewChannelBroadcast' ||
+                params.route === 'playerElimination' ||
+                params.route === "tournamentGameStart"
+            ) {
 
-        } else {
-            if (params.msg.sentFrom) {
-                delete params.msg.sentFrom;
-            }
+                // Pomelo Connection
+                await pomelo.app.rpcInvoke("connector-server-1", {
+                    namespace: "user",
+                    service: "entryRemote",
+                    method: "sendMessageToUser",
+                    args: [params.playerId, params.msg, params.route]
+                });
+                // Pomelo Connection
 
-            const validated = await validateKeySets("Request", "connector", "sendMessageToUser", params);
+            } else {
+                if (params.msg.sentFrom) {
+                    delete params.msg.sentFrom;
+                }
 
-            if (validated.success) {
-                if (params.serverId) {
+                const validated = await validateKeySets("Request", "connector", "sendMessageToUser", params);
 
-                    // Pomelo Connection
-                    const data = await pomelo.app.rpcInvoke(params.serverId, {
-                        namespace: "user",
-                        service: "entryRemote",
-                        method: "sendMessageToUser",
-                        args: [params.playerId, params.msg, params.route]
-                    });
-                    // Pomelo Connection
+                if (validated.success) {
+                    if (params.serverId) {
+
+                        // Pomelo Connection
+                        // const data = await pomelo.app.rpcInvoke(params.serverId, {
+                        //     namespace: "user",
+                        //     service: "entryRemote",
+                        //     method: "sendMessageToUser",
+                        //     args: [params.playerId, params.msg, params.route]
+                        // });
+                        // Pomelo Connection
 
 
-                    const channelId = params.channelId || params.msg.channelId;
-                    const channel = params.channel || pomelo.app.get('channelService').getChannel(channelId, false);
-                    if (!!channel && params.route !== stateOfX.broadcasts.updateProfile) {
-                        const msgs: any = {};
-                        msgs[params.playerId] = { ...params.msg, action: params.route };
-                        this.sendPlayerBroadCast(msgs[params.playerId]);
+                        const channelId = params.channelId || params.msg.channelId;
+                        const channel = params.channel || pomelo.app.get('channelService').getChannel(channelId, false);
+                        if (!!channel && params.route !== stateOfX.broadcasts.updateProfile) {
+                            const msgs: any = {};
+                            msgs[params.playerId] = { ...params.msg, action: params.route };
+                            this.sendPlayerBroadCast(msgs[params.playerId]);
+                        } else {
+                            params.msg.action = params.route;
+                            this.sendPlayerBroadCast(params.msg);
+                        }
                     } else {
-                        params.msg.action = params.route;
-                        this.sendPlayerBroadCast(params.msg);
+                        const channelId = params.channelId || params.msg.channelId;
+                        const route = params.route;
+                        const playerId = params.playerId;
+
+                        const routesToIgnore = [
+                            stateOfX.broadcasts.updateProfile,
+                            'playerInfo',
+                            'evChopPercent',
+                            'evChop',
+                            'showdownAllInCards',
+                            'setEvTag',
+                            'waitingForEvChop',
+                            'roundOver',
+                            'evRIT',
+                            'turn'
+                        ];
+
+                        // if (!routesToIgnore.includes(route)) {
+                        //     const socketId = await this.redisSessionService.getSocketIdByPlayerId(playerId); // Redis/in-memory
+
+                        //     const socket = this.server.sockets.sockets.get(socketId);
+
+                        //     if (socket) {
+                        //         const messageToSend = { ...params.msg, action: route, route };
+                        //         socket.emit(route, messageToSend);
+                        //         this.sendPlayerBroadCast(messageToSend);
+                        //     } else {
+                        //         this.logger.warn(`No active socket for playerId: ${playerId}`);
+                        //     }
+                        // } else {
+                        //     // Send fallback message (was via pomelo.app.rpcInvoke)
+                        //     const socketId = await this.userSessionService.getSocketIdByPlayerId(playerId);
+                            
+                        //     const socket = this.gateway.server.sockets.sockets.get(socketId);
+
+                        //     if (socket) {
+                        //         socket.emit(route, params.msg);
+                        //     }
+
+                        //     // Optional: Send video log if route is 'waitingForEvChop'
+                        //     if (route === 'waitingForEvChop') {
+                        //         const videoMessage = {
+                        //             roundId: params.msg.roundId,
+                        //             channelId: channelId,
+                        //             type: stateOfX.videoLogEventType.broadcast,
+                        //             data: params.msg
+                        //         };
+                        //         await this.videoGameRemoteService.createVideo(videoMessage); // Replace with real service
+                        //     }
+
+                        //     params.msg.action = route;
+                        //     this.sendPlayerBroadCast(params.msg);
+                        // }
+
                     }
                 } else {
-                    console.log(stateOfX.serverLogType.info, 'trying with pushPrivateMessages room-sendMessageToUser', params);
-                    const channelId = params.channelId || params.msg.channelId;
-
-                    // Pomelo Connection
-                    const channel = params.channel || pomelo.app.get('channelService').getChannel(channelId);
-                    // Pomelo Connection
-
-                    const routesToIgnore = [
-                        stateOfX.broadcasts.updateProfile,
-                        'playerInfo',
-                        'evChopPercent',
-                        'evChop',
-                        'showdownAllInCards',
-                        'setEvTag',
-                        'waitingForEvChop',
-                        'roundOver',
-                        'evRIT',
-                        'turn'
-                    ];
-
-                    if (!!channel && !routesToIgnore.includes(params.route)) {
-                        const msgs: any = {};
-                        msgs[params.playerId] = { ...params.msg, action: params.route, route: params.route };
-                        channel.pushPrivateMessages(params.route, msgs);
-                        this.sendPlayerBroadCast(msgs[params.playerId]);
-                    } else {
-                        const data = await pomelo.app.rpcInvoke("connector-server-1", {
-                            namespace: "user",
-                            service: "entryRemote",
-                            method: "sendMessageToUser",
-                            args: [params.playerId, params.msg, params.route]
-                        });
-
-                        if (params.route === 'waitingForEvChop') {
-                            const videoMessage = {
-                                roundId: params.msg.roundId,
-                                channelId: params.channelId,
-                                type: stateOfX.videoLogEventType.broadcast,
-                                data: params.msg
-                            };
-                            await pomelo.app.rpc.database.videoGameRemote.createVideo('', videoMessage);
-                        }
-
-                        params.msg.action = params.route;
-                        this.sendPlayerBroadCast(params.msg);
-                    }
+                    console.log(stateOfX.serverLogType.error, 'Key validation failed - ' + JSON.stringify(validated));
                 }
-            } else {
-                console.log(stateOfX.serverLogType.error, 'Key validation failed - ' + JSON.stringify(validated));
             }
+        } catch (error) {
+            this.logger.error('Error in room.broadcastHandler-service.sendMessageToUser', error.stack);
+            throw new Error(`Failed in room.broadcastHandler-service.broadcastOnJoinTable: ${error.message}`);
         }
     };
 
@@ -849,8 +866,8 @@ export class BroadcastHandlerService {
 
 
     /*==========================  START  ========================*/
-  // ### Broadcast for client-server connection
-  // deprecated
+    // ### Broadcast for client-server connection
+    // deprecated
 
     //   New
     async fireAckBroadcastDep(params: any): Promise<any> {
@@ -888,7 +905,7 @@ export class BroadcastHandlerService {
 
     //   New
     async fireNewChannelBroadcast(params: any): Promise<any> {
-        
+
         const validated = await validateKeySets("Request", "connector", "fireNewChannelBroadcast", params);
 
         if (validated.success) {
@@ -923,95 +940,95 @@ export class BroadcastHandlerService {
     /*==========================  END  ========================*/
 
     /*==========================  START  ========================*/
-  /**
-   * broadcast when player gets a seat from waiting list
-   * @method autoJoinBroadcast
-   * @param  {Object}          params contains data, route
-   */
+    /**
+     * broadcast when player gets a seat from waiting list
+     * @method autoJoinBroadcast
+     * @param  {Object}          params contains data, route
+     */
 
-//   New
-async autoJoinBroadcast(params: any): Promise<any> {
-    const validated = await validateKeySets("Request", "connector", "autoJoinBroadcast", params);
+    //   New
+    async autoJoinBroadcast(params: any): Promise<any> {
+        const validated = await validateKeySets("Request", "connector", "autoJoinBroadcast", params);
 
-    if (validated.success) {
-        this.sendMessageToUser({
-            self: {},
-            playerId: params.playerId,
-            serverId: params.serverId,
-            msg: _.omit(params, "self", "session"),
-            route: "autoJoinBroadcast"
-        });
-    } else {
-        console.log(stateOfX.serverLogType.error, 'Error while sending playerNewChannelBroadcast - ' + JSON.stringify(validated));
-    }
-};
-
-
-//   Old
-//   broadcastHandler.autoJoinBroadcast = function (params) {
-//         console.log("cjjjjj2 autoJoinBroadcast", params)
-//         keyValidator.validateKeySets("Request", "connector", "autoJoinBroadcast", params, function (validated) {
-//             if (validated.success) {
-//                 broadcastHandler.sendMessageToUser({ self: {}, playerId: params.playerId, serverId: params.serverId, msg: _.omit(params, "self", "session"), route: "autoJoinBroadcast" });
-//             } else {
-//                 serverLog(stateOfX.serverLogType.error, 'Error while sending playerNewChannelBroadcast - ' + JSON.stringify(validated))
-//             }
-//         });
-//     }
-    /*==========================  END  ========================*/
-
-    /*==========================  START  ========================*/
-  //### this function send broadcast when any player eliminate.
-  // tournament
-
-//   New
-async firePlayerEliminateBroadcast(params: any): Promise<any> {
-    const validated = await validateKeySets("Request", "connector", "firePlayerEliminateBroadcast", params);
-
-    if (validated.success) {
-        setTimeout(() => {
+        if (validated.success) {
             this.sendMessageToUser({
                 self: {},
                 playerId: params.playerId,
-                msg: {
-                    channelId: params.channelId,
-                    playerId: params.playerId,
-                    tournamentId: params.tournamentId,
-                    chipsWon: Math.round(params.chipsWon) || 0,
-                    rank: params.rank,
-                    isGameRunning: params.isGameRunning,
-                    isRebuyAllowed: params.isRebuyAllowed,
-                    tournamentName: params.tournamentName,
-                    tournamentType: params.tournamentType,
-                    ticketsWon: params.ticketsWon || 0,
-                    info: params.info
-                },
-                route: params.route
+                serverId: params.serverId,
+                msg: _.omit(params, "self", "session"),
+                route: "autoJoinBroadcast"
             });
-        }, (systemConfig.gameOverBroadcastDelay * 1000 + 100));
-
-        return { success: true };
-    } else {
-        console.log(stateOfX.serverLogType.error, 'Error while sending firePlayerEliminateBroadcast - ' + JSON.stringify(validated));
-        return validated;
-    }
-};
+        } else {
+            console.log(stateOfX.serverLogType.error, 'Error while sending playerNewChannelBroadcast - ' + JSON.stringify(validated));
+        }
+    };
 
 
-//   Old
-//   broadcastHandler.firePlayerEliminateBroadcast = function (params, cb) {
-//         console.log("cjjjjj2 firePlayerEliminateBroadcast", params)
-//         keyValidator.validateKeySets("Request", "connector", "firePlayerEliminateBroadcast", params, function (validated) {
-//             if (validated.success) {
-//                 setTimeout(function () {
-//                     broadcastHandler.sendMessageToUser({ self: {}, playerId: params.playerId, msg: { channelId: params.channelId, playerId: params.playerId, tournamentId: params.tournamentId, chipsWon: Math.round(params.chipsWon) || 0, rank: params.rank, isGameRunning: params.isGameRunning, isRebuyAllowed: params.isRebuyAllowed, tournamentName: params.tournamentName, tournamentType: params.tournamentType, ticketsWon: params.ticketsWon || 0, info: params.info }, route: params.route });
-//                 }, (systemConfig.gameOverBroadcastDelay * 1000 + 100))
-//                 cb({ success: true });
-//             } else {
-//                 cb(validated);
-//             }
-//         })
-//     }
+    //   Old
+    //   broadcastHandler.autoJoinBroadcast = function (params) {
+    //         console.log("cjjjjj2 autoJoinBroadcast", params)
+    //         keyValidator.validateKeySets("Request", "connector", "autoJoinBroadcast", params, function (validated) {
+    //             if (validated.success) {
+    //                 broadcastHandler.sendMessageToUser({ self: {}, playerId: params.playerId, serverId: params.serverId, msg: _.omit(params, "self", "session"), route: "autoJoinBroadcast" });
+    //             } else {
+    //                 serverLog(stateOfX.serverLogType.error, 'Error while sending playerNewChannelBroadcast - ' + JSON.stringify(validated))
+    //             }
+    //         });
+    //     }
+    /*==========================  END  ========================*/
+
+    /*==========================  START  ========================*/
+    //### this function send broadcast when any player eliminate.
+    // tournament
+
+    //   New
+    async firePlayerEliminateBroadcast(params: any): Promise<any> {
+        const validated = await validateKeySets("Request", "connector", "firePlayerEliminateBroadcast", params);
+
+        if (validated.success) {
+            setTimeout(() => {
+                this.sendMessageToUser({
+                    self: {},
+                    playerId: params.playerId,
+                    msg: {
+                        channelId: params.channelId,
+                        playerId: params.playerId,
+                        tournamentId: params.tournamentId,
+                        chipsWon: Math.round(params.chipsWon) || 0,
+                        rank: params.rank,
+                        isGameRunning: params.isGameRunning,
+                        isRebuyAllowed: params.isRebuyAllowed,
+                        tournamentName: params.tournamentName,
+                        tournamentType: params.tournamentType,
+                        ticketsWon: params.ticketsWon || 0,
+                        info: params.info
+                    },
+                    route: params.route
+                });
+            }, (systemConfig.gameOverBroadcastDelay * 1000 + 100));
+
+            return { success: true };
+        } else {
+            console.log(stateOfX.serverLogType.error, 'Error while sending firePlayerEliminateBroadcast - ' + JSON.stringify(validated));
+            return validated;
+        }
+    };
+
+
+    //   Old
+    //   broadcastHandler.firePlayerEliminateBroadcast = function (params, cb) {
+    //         console.log("cjjjjj2 firePlayerEliminateBroadcast", params)
+    //         keyValidator.validateKeySets("Request", "connector", "firePlayerEliminateBroadcast", params, function (validated) {
+    //             if (validated.success) {
+    //                 setTimeout(function () {
+    //                     broadcastHandler.sendMessageToUser({ self: {}, playerId: params.playerId, msg: { channelId: params.channelId, playerId: params.playerId, tournamentId: params.tournamentId, chipsWon: Math.round(params.chipsWon) || 0, rank: params.rank, isGameRunning: params.isGameRunning, isRebuyAllowed: params.isRebuyAllowed, tournamentName: params.tournamentName, tournamentType: params.tournamentType, ticketsWon: params.ticketsWon || 0, info: params.info }, route: params.route });
+    //                 }, (systemConfig.gameOverBroadcastDelay * 1000 + 100))
+    //                 cb({ success: true });
+    //             } else {
+    //                 cb(validated);
+    //             }
+    //         })
+    //     }
     /*==========================  END  ========================*/
 
     /*==========================  START  ========================*/
@@ -1060,10 +1077,10 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     //             }
     //         })
     //     }
-        /*==========================  END  ========================*/
+    /*==========================  END  ========================*/
 
-        /*==========================  START  ========================*/
-  // ### Broadcast sit of this player
+    /*==========================  START  ========================*/
+    // ### Broadcast sit of this player
 
     //   New
     async fireSitBroadcast(params: any): Promise<any> {
@@ -1071,7 +1088,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
         const validated = await validateKeySets("Request", "connector", "fireSitBroadcast", params);
 
         if (validated.success) {
-            let data:any = {
+            let data: any = {
                 channelId: params.table.channelId,
                 playerId: params.player.playerId,
                 chips: params.player.chips,
@@ -1130,7 +1147,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     //             }
     //         });
     //     }
-        /*==========================  END  ========================*/
+    /*==========================  END  ========================*/
 
     /*==========================  START  ========================*/
     // player sit broadcast while shuffling
@@ -1148,7 +1165,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
                 params.channel = pomelo.app.get('channelService').getChannel(params.newChannelId, true);
             }
 
-            const data:any = {
+            const data: any = {
                 channelId: params.newChannelId,
                 playerId: params.playerId,
                 chips: params.chips,
@@ -1210,10 +1227,10 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
 
 
     /*==========================  START  ========================*/
-  // ### Broadcast players with state before next game start
-  // game might start OR not
-  // but this broadcast should be pushed
-  // to reset table
+    // ### Broadcast players with state before next game start
+    // game might start OR not
+    // but this broadcast should be pushed
+    // to reset table
 
     //   New
     async fireTablePlayersBroadcast(params: any): Promise<any> {
@@ -1221,7 +1238,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
         const validated = await validateKeySets("Request", "connector", "fireTablePlayersBroadcast", params);
 
         if (validated.success) {
-            const data:any = {
+            const data: any = {
                 channelId: params.channelId,
                 players: _.map(params.players, function (player) {
                     const p = _.pick(player, 'playerId', 'playerName', 'channelId', 'seatIndex', 'bestHands', 'chips', 'state', 'moves', 'isPartOfGame');
@@ -1428,14 +1445,14 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     //         });
     //     }
     /*==========================  END  ========================*/
-  
+
     /*==========================  START  ========================*/
 
     // New
     async fireOnFirstTurnBroadcast(params: any): Promise<any> {
-    
+
         const data = _.omit(params, 'self', 'channel', 'session');
-    
+
         let tableResponse;
         try {
             tableResponse = await this.imdb.getTable(data.channelId);
@@ -1449,7 +1466,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
                 channelId: ""
             };
         }
-    
+
         if (!tableResponse) {
             return {
                 success: false,
@@ -1458,7 +1475,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
                 channelId: ""
             };
         }
-    
+
         if (tableResponse.removedPlayers.length > 0) {
             return {
                 success: false,
@@ -1467,29 +1484,29 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
                 channelId: ""
             };
         }
-    
+
         const validated = await validateKeySets("Request", "connector", "fireOnTurnBroadcast", params);
-    
+
         if (validated.success) {
             params.channel.pushMessage("turn", data);
             data.route = "turn";
-    
+
             const videoMessage = {
                 roundId: params.channel.roundId,
                 channelId: data.channelId,
                 type: stateOfX.videoLogEventType.broadcast,
                 data: data
             };
-    
+
             // Pomelo Connection
             await pomelo.app.rpc.database.videoGameRemote.createVideo('', videoMessage);
             // Pomelo Connection
-    
+
             data.playerAction = data.action;
             data.action = "turn";
-    
+
             this.sendGeneralBroadCast(data);
-    
+
             return { success: true, isRetry: false, isDisplay: true, channelId: data.channelId };
         } else {
             return {
@@ -1500,7 +1517,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
             };
         }
     };
-    
+
 
     // Old
     //   broadcastHandler.fireOnFirstTurnBroadcast = function (params, cb) {
@@ -1536,10 +1553,10 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     //             }
     //         });
     //     }
-        /*==========================  END  ========================*/
+    /*==========================  END  ========================*/
 
 
-        /*==========================  START  ========================*/
+    /*==========================  START  ========================*/
     // Broadcast after an action performed
 
     //   New
@@ -1793,61 +1810,58 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     // TypeScript version with async/await, no callbacks or Promises   
     async firePlayerStateBroadcast(params: any) {
 
-        const validated = await validateKeySets(
-            "Request",
-            "connector",
-            "firePlayerStateBroadcast",
-            params
-        );
+        try {
+            const validated = await validateKeySets(
+                "Request",
+                "connector",
+                "firePlayerStateBroadcast",
+                params
+            );
 
-        if (validated.success) {
-            const data:any = {
-                channelId: params.channelId,
-                playerId: params.playerId,
-                resetTimer: !!params.resetTimer,
-                state: params.state,
-            };
-
-            console.log(
-                stateOfX.serverLogType.broadcast,
-                "playerState- " + JSON.stringify({
+            if (validated.success) {
+                const data: any = {
                     channelId: params.channelId,
                     playerId: params.playerId,
+                    resetTimer: !!params.resetTimer,
                     state: params.state,
-                })
-            );
+                };
 
-            params.channel.pushMessage('playerState', data);
+                params.channel.pushMessage('playerState', data);
 
-            data.route = "playerState";
+                data.route = "playerState";
 
-            const videoMessage = {
-                roundId: params.channel.roundId,
-                channelId: params.channel.channelId,
-                type: stateOfX.videoLogEventType.broadcast,
-                data: data,
-            };
+                const videoMessage = {
+                    roundId: params.channel.roundId,
+                    channelId: params.channel.channelId,
+                    type: stateOfX.videoLogEventType.broadcast,
+                    data: data,
+                };
 
-            // Pomelo Connection
-            await pomelo.app.rpc.database.videoGameRemote.createVideo(
-                '',
-                videoMessage
-            );
-            // Pomelo Connection
+                // Pomelo Connection
+                await pomelo.app.rpc.database.videoGameRemote.createVideo(
+                    '',
+                    videoMessage
+                );
+                // Pomelo Connection
 
-            // sending general broadcast using socket
-            data.action = 'playerState';
-            this.sendGeneralBroadCast(data);
-        } else {
-            console.log(
-                stateOfX.serverLogType.error,
-                'Error while sending player state broadcast - ' + JSON.stringify(validated)
-            );
+                // sending general broadcast using socket
+                data.action = 'playerState';
+                this.sendGeneralBroadCast(data);
+            } else {
+                console.log(
+                    stateOfX.serverLogType.error,
+                    'Error while sending player state broadcast - ' + JSON.stringify(validated)
+                );
+            }
+        } catch (error) {
+            this.logger.error('Error in room.broadcastHandler-service.firePlayerStateBroadcast', error.stack);
+            throw new Error(`Failed in room.broadcastHandler-service.firePlayerStateBroadcast: ${error.message}`);
         }
+
     };
 
 
-        // Old
+    // Old
     //   broadcastHandler.firePlayerStateBroadcast = function (params) {
     //         console.log("cjjjjj2 firePlayerStateBroadcast", params.playerId, params.state)
     //         keyValidator.validateKeySets("Request", "connector", "firePlayerStateBroadcast", params, function (validated) {
@@ -1936,7 +1950,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
         );
 
         if (validated.success) {
-            const data:any = {
+            const data: any = {
                 channelId: params.channelId,
                 playerId: params.playerId,
                 amount: params.amount,
@@ -2007,29 +2021,28 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     //   New
     async fireDealerChat(params: any) {
 
-        console.log(
-            stateOfX.serverLogType.broadcast,
-            "delaerChat- " + JSON.stringify({
+        try {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            params.channel.pushMessage('delaerChat', {
                 channelId: params.channelId,
                 message: params.message,
-            })
-        );
+            });
 
-        await new Promise(resolve => setTimeout(resolve, 2000));
+            // sending general broadcast using socket
+            const broadcast = {
+                action: 'delaerChat',
+                channelId: params.channelId,
+                message: params.message,
+            };
 
-        params.channel.pushMessage('delaerChat', {
-            channelId: params.channelId,
-            message: params.message,
-        });
+            this.sendGeneralBroadCast(broadcast);
+        } catch (error) {
+            this.logger.error('Error in room.broadcastHandler-service.fireDealerChat', error.stack);
+            throw new Error(`Failed in room.broadcastHandler-service.createEventLog: ${error.message}`);
+        }
 
-        // sending general broadcast using socket
-        const broadcast = {
-            action: 'delaerChat',
-            channelId: params.channelId,
-            message: params.message,
-        };
 
-        this.sendGeneralBroadCast(broadcast);
     };
 
     //   Old
@@ -2146,7 +2159,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     //         }
     //     }
     /*==========================  END  ========================*/
-  
+
     /*==========================  START  ========================*/
 
     // New
@@ -2157,17 +2170,17 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
             console.log("find channel in evChopPercent broadcastHandler", channel);
             params.channel = channel;
         }
-    
-        const data:any = {
+
+        const data: any = {
             channelId: params.channelId,
             evChopPercent: [] as { playerId: string; evPercent: number }[],
         };
-    
+
         for (const ev of params.evChop) {
             const obj = { playerId: ev.playerId, evPercent: ev.equity };
             data.evChopPercent.push(obj);
         }
-    
+
         if (params.sentFromReconnection) {
             const userData = {
                 playerId: params.playerId,
@@ -2182,24 +2195,24 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
         } else {
             params.channel!.pushMessage('evChopPercent', data);
             data.route = "evChopPercent";
-    
+
             const videoMessage = {
                 roundId: params.channel!.roundId,
                 channelId: params.channelId,
                 type: stateOfX.videoLogEventType.broadcast,
                 data: data,
             };
-    
+
             await pomelo.app.rpc.database.videoGameRemote.createVideo('', videoMessage);
-    
+
             // sending general broadcast using socket
             data.action = 'evChopPercent';
             this.sendGeneralBroadCast(data);
         }
     };
-    
 
-        // Old
+
+    // Old
     //   broadcastHandler.evChopPercent = function (params) {
     //         console.log("cjjjjj2 evChop percent", params)
     //         if (!params.channel) {
@@ -2263,7 +2276,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
             };
             this.sendMessageToUser(userData);
         } else {
-            const data:any = {
+            const data: any = {
                 channelId: params.channelId,
                 playerId: params.playerId,
             };
@@ -2426,7 +2439,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     async fireLeaveBroadcast(params: any) {
 
         const validated = await validateKeySets("Request", "connector", "fireLeaveBroadcast", params);
-        
+
         if (validated.success) {
 
             params.channel.pushMessage("leave", params.data);
@@ -2579,19 +2592,28 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
 
     // New
     async fireGameVariationBroadcast(params: any) {
-        const validated = await validateKeySets("Request", "connector", "fireGameVariationBroadcast", params);
-        
-        if (validated.success) {
-            const data = _.omit(params, 'self', 'channel', 'session');
-            params.channel.pushMessage("getRoeRoundInfo", data);
-            data.action = 'getRoeRoundInfo';
-            this.sendGeneralBroadCast(data);
-            data.route = "getRoeRoundInfo";
-        } else {
-            console.log(stateOfX.serverLogType.error, 'Error while sending game over broadcast - ' + JSON.stringify(validated));
+
+        try {
+            const validated = await validateKeySets("Request", "connector", "fireGameVariationBroadcast", params);
+
+            if (validated.success) {
+                const data = _.omit(params, 'self', 'channel', 'session');
+                params.channel.pushMessage("getRoeRoundInfo", data);
+                data.action = 'getRoeRoundInfo';
+                this.sendGeneralBroadCast(data);
+                data.route = "getRoeRoundInfo";
+            } else {
+                console.log(stateOfX.serverLogType.error, 'Error while sending game over broadcast - ' + JSON.stringify(validated));
+            }
+        } catch (error) {
+            this.logger.error('Error in room.broadcastHandler-service.fireGameVariationBroadcast', error.stack);
+            throw new Error(`Failed in room.broadcastHandler-service.fireGameVariationBroadcast: ${error.message}`);
         }
+
+
+
     };
-    
+
 
     // Old
     //   broadcastHandler.fireGameVariationBroadcast = function (params) {
@@ -2616,7 +2638,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     // New
     async fireROEGameVariationBroadcast(params: any) {
         const validated = await validateKeySets("Request", "connector", "fireROEGameVariationBroadcast", params);
-    
+
         if (validated.success) {
             const data = _.omit(params, 'self', 'channel', 'session');
             params.channel.pushMessage("getRoeVariationInfo", data);
@@ -2627,23 +2649,23 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
             console.log(stateOfX.serverLogType.error, 'Error while sending game over broadcast - ' + JSON.stringify(validated));
         }
     };
-    
+
 
     // Old
-//   broadcastHandler.fireROEGameVariationBroadcast = function (params) {
-//         keyValidator.validateKeySets("Request", "connector", "fireROEGameVariationBroadcast", params, function (validated) {
-//             if (validated.success) {
-//                 let data = _.omit(params, 'self', 'channel', 'session');
-//                 params.channel.pushMessage("getRoeVariationInfo", data);
-//                 data.action = 'getRoeVariationInfo';
-//                 // sending general broadcast using socket
-//                 sendGeneralBroadCast(data);
-//                 data.route = "getRoeVariationInfo";
-//             } else {
-//                 serverLog(stateOfX.serverLogType.error, 'Error while sending game over broadcast - ' + JSON.stringify(validated))
-//             }
-//         });
-//     }
+    //   broadcastHandler.fireROEGameVariationBroadcast = function (params) {
+    //         keyValidator.validateKeySets("Request", "connector", "fireROEGameVariationBroadcast", params, function (validated) {
+    //             if (validated.success) {
+    //                 let data = _.omit(params, 'self', 'channel', 'session');
+    //                 params.channel.pushMessage("getRoeVariationInfo", data);
+    //                 data.action = 'getRoeVariationInfo';
+    //                 // sending general broadcast using socket
+    //                 sendGeneralBroadCast(data);
+    //                 data.route = "getRoeVariationInfo";
+    //             } else {
+    //                 serverLog(stateOfX.serverLogType.error, 'Error while sending game over broadcast - ' + JSON.stringify(validated))
+    //             }
+    //         });
+    //     }
     /*==========================  END  ========================*/
 
 
@@ -2684,7 +2706,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
         params.channel.pushPrivateMessages("preCheck", prechecks);
     };
 
-    
+
     //   Old
     //   broadcastHandler.firePrecheckBroadcast = function (params) {
     //         console.log('.pushPrecheck - called12141616', params)
@@ -2707,8 +2729,8 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     //         params.channel.pushPrivateMessages("preCheck", prechecks);
     //     }
     /*==========================  END  ========================*/
-  
-  
+
+
     /*==========================  START  ========================*/
     // New
     async fireCustomBestHandBroadcast(params: any) {
@@ -2721,14 +2743,14 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
             route: "bestHands",
             action: "bestHands"
         };
-    
+
         const messages: { [playerId: string]: typeof message } = {
             [bestHand.playerId]: message
         };
-    
+
         params.channel.pushPrivateMessages("bestHands", messages);
         this.sendPlayerBroadCast(message);
-    };    
+    };
 
     // Old
     //   broadcastHandler.fireCustomBestHandBroadcast = function (params) {
@@ -2808,13 +2830,13 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     // broadcast megapoints to each player seperate after game over
     // USE CUSTOM MADE - channel.pushPrivateMessages in pomelo/.../channelService
     pushMegaPoints(params) {
-            if (params.channel) {
-                params.channel.pushPrivateMessages("megaPoints", params.data);
-                params.data.action = 'megaPoints';
-                // sending player broadcast using socket
-                this.sendPlayerBroadCast(params.data);
-            }
+        if (params.channel) {
+            params.channel.pushPrivateMessages("megaPoints", params.data);
+            params.data.action = 'megaPoints';
+            // sending player broadcast using socket
+            this.sendPlayerBroadCast(params.data);
         }
+    }
     /*==========================  END  ========================*/
 
     /*==========================  START  ========================*/
@@ -2954,7 +2976,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     //   New
     async fireInfoBroadcastToChannel(params: any) {
         const validated = await validateKeySets("Request", "connector", "fireInfoBroadcastToChannel", params);
-        
+
         if (validated.success) {
             params.channel.pushMessage("channelInfo", { heading: params.heading, info: params.info, channelId: params.channelId });
 
@@ -3049,27 +3071,35 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
 
     //   New
     async fireHandtabBroadcast(params: any) {
-        const validated = await validateKeySets("Request", "connector", "fireHandtabBroadcast", params);
 
-        if (validated.success) {
-            const handTabData = {
-                channelId: params.channelId,
-                handTab: params.handTab
-            };
+        try {
+            const validated = await validateKeySets("Request", "connector", "fireHandtabBroadcast", params);
 
-            console.log(stateOfX.serverLogType.broadcast, "handTab- " + JSON.stringify(handTabData));
+            if (validated.success) {
+                const handTabData = {
+                    channelId: params.channelId,
+                    handTab: params.handTab
+                };
 
-            params.channel.pushMessage('handTab', handTabData);
+                console.log(stateOfX.serverLogType.broadcast, "handTab- " + JSON.stringify(handTabData));
 
-            const broadcast = {
-                ...handTabData,
-                action: 'handTab'
-            };
+                params.channel.pushMessage('handTab', handTabData);
 
-            this.sendGeneralBroadCast(broadcast);
-        } else {
-            console.log(stateOfX.serverLogType.error, 'Error while sending hand tab broadcast on channel - ' + JSON.stringify(validated));
+                const broadcast = {
+                    ...handTabData,
+                    action: 'handTab'
+                };
+
+                this.sendGeneralBroadCast(broadcast);
+            } else {
+                console.log(stateOfX.serverLogType.error, 'Error while sending hand tab broadcast on channel - ' + JSON.stringify(validated));
+            }
+        } catch (error) {
+            this.logger.error('Error in room.broadcastHandler-service.fireHandtabBroadcast', error.stack);
+            throw new Error(`Failed in room.broadcastHandler-service.fireHandtabBroadcast: ${error.message}`);
         }
+
+
     };
 
 
@@ -3167,21 +3197,28 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     //   New
     async fireChatDisabled(params: any) {
 
-        const validated = await validateKeySets("Request", "connector", "fireChatDisabled", params);
+        try {
+            const validated = await validateKeySets("Request", "connector", "fireChatDisabled", params);
 
-        if (validated.success) {
+            if (validated.success) {
 
-            params.channel.pushMessage('disableChat', { channelId: params.channelId });
+                params.channel.pushMessage('disableChat', { channelId: params.channelId });
 
-            const broadcast = {
-                action: 'disableChat',
-                channelId: params.channelId,
-            };
+                const broadcast = {
+                    action: 'disableChat',
+                    channelId: params.channelId,
+                };
 
-            this.sendGeneralBroadCast(broadcast);
-        } else {
-            console.log(stateOfX.serverLogType.error, 'Error while sending player state broadcast - ' + JSON.stringify(validated));
+                this.sendGeneralBroadCast(broadcast);
+            } else {
+                console.log(stateOfX.serverLogType.error, 'Error while sending player state broadcast - ' + JSON.stringify(validated));
+            }
+        } catch (error) {
+            this.logger.error('Error in room.broadcastHandler-service.fireChatDisabled', error.stack);
+            throw new Error(`Failed in room.broadcastHandler-service.fireChatDisabled: ${error.message}`);
         }
+
+
     };
 
     //   Old
@@ -3290,7 +3327,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     //         sendGeneralBroadCast(params.data)
     //     }
     /*==========================  END  ========================*/
-  
+
     /*==========================  START  ========================*/
 
     // New
@@ -3301,15 +3338,15 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
         const frontendType = pomelo.app.get('frontendType');
         // Pomelo Connection
 
-    
+
         channelService.broadcast(frontendType, params.route, params.data);
-    
+
         params.data.action = params.route;
         this.sendGeneralBroadCast(params.data);
     }
-    
 
-        // Old
+
+    // Old
     //   broadcastHandler.fireBroadcastToLobby = function (params) {
     //         pomelo.app.get('channelService').broadcast(pomelo.app.get('frontendType'), params.route, params.data);
     //         params.data.action = params.route;
@@ -3317,12 +3354,12 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     //     }
     /*==========================  END  ========================*/
 
-    
-  ///////////////////////////////////////////////////////////////////
-  // General broadcast function to broadcast data on channel level //
-  ///////////////////////////////////////////////////////////////////
-  // Used for show/hide cards on winning - specially
-  
+
+    ///////////////////////////////////////////////////////////////////
+    // General broadcast function to broadcast data on channel level //
+    ///////////////////////////////////////////////////////////////////
+    // Used for show/hide cards on winning - specially
+
     /*==========================  START  ========================*/
 
     // New
@@ -3333,10 +3370,10 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
             "fireChannelBroadcast",
             params
         );
-    
+
         if (validated.success) {
             params.channel.pushMessage(params.route, params.data);
-    
+
             params.data.action = params.route;
             this.sendGeneralBroadCast(params.data);
         } else {
@@ -3346,7 +3383,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
             );
         }
     };
-    
+
 
     // Old
     //   broadcastHandler.fireChannelBroadcast = function (params) {
@@ -3467,7 +3504,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
         params.data.action = 'muckedCards';
         this.sendGeneralBroadCast(params.data);
     };
-    
+
 
     // Old
     //   broadcastHandler.fireMuckedCards = function (params) {
@@ -3478,12 +3515,12 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     //         sendGeneralBroadCast(params.data);
     //     }
     /*==========================  END  ========================*/
-  
+
     /*==========================  START  ========================*/
 
     // New
     fireAllInCards(params: any) {
-    
+
         if (params.sentFromReconnection) {
             const userData = {
                 playerId: params.playerId,
@@ -3504,7 +3541,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
             this.sendGeneralBroadCast(params.data);
         }
     };
-    
+
 
     // Old
     //   broadcastHandler.fireAllInCards = function (params) {
@@ -3535,12 +3572,12 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     //         }
     //     }
     /*==========================  END  ========================*/
-  
+
     /*==========================  START  ========================*/
 
     // New
     playerSettings(params: any) {
-    
+
         const data = {
             channelId: params.table.channelId,
             playerId: params.player.playerId,
@@ -3553,11 +3590,11 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
             route: 'playerSettings',
             action: 'playerSettings',
         };
-    
+
         params.channel.pushMessage(data.route, data);
         this.sendGeneralBroadCast(data);
     };
-    
+
     // Old
     //   broadcastHandler.playerSettings = function (params) {
     //         console.log("CT > 1 > broadcastHandler.playerSettings", params)
@@ -3589,7 +3626,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
         const validated = await validateKeySets("Request", "connector", "firePlayerStateOnDisconnected", params);
 
         if (validated.success) {
-            const data:any = { channelId: params.channelId, playerId: params.playerId, state: params.state };
+            const data: any = { channelId: params.channelId, playerId: params.playerId, state: params.state };
             params.channel.pushMessage('playerState', data);
 
             // sending general broadcast using socket
@@ -3617,28 +3654,36 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     //         });
     //     }
     /*==========================  END  ========================*/
-  
+
     /*==========================  START  ========================*/
 
     // New
     async playerRITStatus(params: any) {
-        params.channelId = params.data.channelId;
-        params.playerId = params.data.playerId;
-        params.RITstatus = params.data.RITstatus;
-    
-        const validated = await validateKeySets("Request", "connector", "playerRITStatus", params);
-    
-        if (validated.success) {
-            params.channel.pushMessage('playerRITStatus', params.data);
-    
-            // sending general broadcast using socket
-            params.data.action = 'playerRITStatus';
-            this.sendGeneralBroadCast(params.data);
-        } else {
-            console.log(stateOfX.serverLogType.error, 'Error while sending broadcast  on channel level - ' + JSON.stringify(validated));
+
+        try {
+            params.channelId = params.data.channelId;
+            params.playerId = params.data.playerId;
+            params.RITstatus = params.data.RITstatus;
+
+            const validated = await validateKeySets("Request", "connector", "playerRITStatus", params);
+
+            if (validated.success) {
+                params.channel.pushMessage('playerRITStatus', params.data);
+
+                // sending general broadcast using socket
+                params.data.action = 'playerRITStatus';
+                this.sendGeneralBroadCast(params.data);
+            } else {
+                console.log(stateOfX.serverLogType.error, 'Error while sending broadcast  on channel level - ' + JSON.stringify(validated));
+            }
+        } catch (error) {
+            this.logger.error('Error in room.broadcastHandler-service.playerRITStatus', error.stack);
+            throw new Error(`Failed in room.broadcastHandler-service.playerRITStatus: ${error.message}`);
         }
+
+
     };
-    
+
 
     // Old
     //   broadcastHandler.playerRITStatus = function (params) {
@@ -3660,73 +3705,79 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     //         });
     //     }
     /*==========================  END  ========================*/
-  
+
     /*==========================  START  ========================*/
 
     // New
     async playerCallTimer(params: any) {
-    
-        params.channelId = params.data.channelId;
-        params.playerId = params.data.playerId;
-        params.status = params.data.status;
-        params.timer = params.data.timer;
-        params.timerInSeconds = params.data.timerInSeconds || (params.data.timer * 60);
-        params.createdAt = params.data.createdAt;
-        params.info = params.data.info;
-        params.isCallTimeOver = params.data.isCallTimeOver;
-    
-    
-        const validated = await validateKeySets("Request", "connector", "playerCallTimer", params);
-    
-        if (validated.success) {    
-            const data:any = {
-                channelId: params.channelId,
-                playerId: params.playerId,
-                status: params.status,
-                timer: params.timer,
-                timerInSeconds: params.timerInSeconds,
-                createdAt: params.createdAt,
-                info: params.info || null,
-                isCallTimeOver: params.isCallTimeOver
-            };
-    
-            const dataForCallTime = {
-                channelId: params.channelId,
-                status: params.status,
-                timer: params.timer,
-                createdAt: params.createdAt,
-                userName: params.data.userName
-            };
-    
-            try {
-                const result = await this.imdb.findDataForCallTime(dataForCallTime);
-    
-                if (result?.players?.length) {
-                    const callTime = {
-                        playerId: result.players[0].playerId,
-                        channelId: result.players[0].channelId,
-                        status: params.status,
-                        timer: params.timer,
-                        createdAt: Date.now(),
-                        userName: result.players[0].playerName,
-                        chips: result.players[0].chips,
-                        channelName: params.channel.channelName
-                    };
-                    await this.db.callTimer(callTime);
+
+        try {
+            params.channelId = params.data.channelId;
+            params.playerId = params.data.playerId;
+            params.status = params.data.status;
+            params.timer = params.data.timer;
+            params.timerInSeconds = params.data.timerInSeconds || (params.data.timer * 60);
+            params.createdAt = params.data.createdAt;
+            params.info = params.data.info;
+            params.isCallTimeOver = params.data.isCallTimeOver;
+
+
+            const validated = await validateKeySets("Request", "connector", "playerCallTimer", params);
+
+            if (validated.success) {
+                const data: any = {
+                    channelId: params.channelId,
+                    playerId: params.playerId,
+                    status: params.status,
+                    timer: params.timer,
+                    timerInSeconds: params.timerInSeconds,
+                    createdAt: params.createdAt,
+                    info: params.info || null,
+                    isCallTimeOver: params.isCallTimeOver
+                };
+
+                const dataForCallTime = {
+                    channelId: params.channelId,
+                    status: params.status,
+                    timer: params.timer,
+                    createdAt: params.createdAt,
+                    userName: params.data.userName
+                };
+
+                try {
+                    const result = await this.imdb.findDataForCallTime(dataForCallTime);
+
+                    if (result?.players?.length) {
+                        const callTime = {
+                            playerId: result.players[0].playerId,
+                            channelId: result.players[0].channelId,
+                            status: params.status,
+                            timer: params.timer,
+                            createdAt: Date.now(),
+                            userName: result.players[0].playerName,
+                            chips: result.players[0].chips,
+                            channelName: params.channel.channelName
+                        };
+                        await this.db.callTimer(callTime);
+                    }
+                } catch (err) {
+                    console.log(">>>>>>>>>>> err in call timer", err);
                 }
-            } catch (err) {
-                console.log(">>>>>>>>>>> err in call timer", err);
+
+                params.channel.pushMessage('playerCallTimer', data);
+
+                // sending general broadcast using socket
+                data.action = "playerCallTimer";
+                this.sendGeneralBroadCast(data);
+            } else {
+                console.log(stateOfX.serverLogType.error, 'Error while sending broadcast  on channel level - ' + JSON.stringify(validated));
             }
-    
-            params.channel.pushMessage('playerCallTimer', data);
-    
-            // sending general broadcast using socket
-            data.action = "playerCallTimer";
-            this.sendGeneralBroadCast(data);
-        } else {
-            console.log(stateOfX.serverLogType.error, 'Error while sending broadcast  on channel level - ' + JSON.stringify(validated));
+        } catch (error) {
+            this.logger.error('Error in room.broadcastHandler-service.playerCallTimer', error.stack);
+            throw new Error(`Failed in room.broadcastHandler-service.playerCallTimer: ${error.message}`);
         }
-    };   
+
+    };
 
     // Old
     //   broadcastHandler.playerCallTimer = function (params) {
@@ -3796,17 +3847,17 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     //         });
     //     }
     /*==========================  END  ========================*/
-  
+
     /*==========================  START  ========================*/
 
     // New
     async playerCallTimerEnds(params: any) {
         console.log('params after player callTimerEnds', params);
-    
+
         const validated = await validateKeySets("Request", "connector", "playerCallTimer", params);
-        
+
         if (validated.success) {
-    
+
             const data = {
                 channelId: params.channelId,
                 playerId: params.playerId,
@@ -3819,14 +3870,14 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
                 callTimeGameMissed: params.callTimeGameMissed,
                 action: 'playerCallTimer'
             };
-    
+
             params.channel.pushPrivateMessages('playerCallTimer', { [params.playerId]: data });
             this.sendPlayerBroadCast(data);
         } else {
             console.log(stateOfX.serverLogType.error, 'Error while sending broadcast  on channel level - ' + JSON.stringify(validated));
         }
     };
-    
+
 
     // Old
     //   broadcastHandler.playerCallTimerEnds = function (params) {
@@ -3854,7 +3905,7 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
     //         });
     //     }
     /*==========================  END  ========================*/
-  
+
     /*==========================  START  ========================*/
 
     // New
@@ -3865,10 +3916,10 @@ async firePlayerEliminateBroadcast(params: any): Promise<any> {
             heading: 'Server Down',
             info: 'Server is going under maintenance. No new game will be started now.'
         });
-    
+
         params.action = "playerInfo";
         this.sendGeneralBroadCast(params);
-    };    
+    };
 
     // Old
     //   broadcastHandler.serverDownBroadcast = function (params) {

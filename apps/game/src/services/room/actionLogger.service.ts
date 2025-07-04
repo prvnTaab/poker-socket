@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import _ from "underscore";
 import stateOfX from "shared/common/stateOfX.sevice";
 import { ImdbDatabaseService } from "shared/common/utils/Imdbdatabase.service";
@@ -13,6 +13,7 @@ declare const pomelo: any; // In this place we have add socket.io
 @Injectable()
 export class ActionLoggerService {
 
+    private readonly logger = new Logger(ActionLoggerService.name);
 
     constructor(
         private db: PokerDatabaseService,
@@ -32,20 +33,28 @@ export class ActionLoggerService {
     */
 
     handlePlayerTurnBroadcast(channel: any, channelId: string, eventName: string, actionName: string, text: string): void {
-        if (eventName === stateOfX.logEvents.playerTurn) {
-            text = text.replace(/\n/g, "");
 
-            // Set all-in occurred in this channel, disable chat and send dealer message
-            if (!channel.allInOccuredOnChannel && actionName === stateOfX.move.allin) {
-                this.broadcastHandler.fireChatDisabled({ channel, channelId });
-                this.broadcastHandler.fireDealerChat({
-                    channel,
-                    channelId,
-                    message: "The player chat has been disabled now due to All In."
-                });
-                channel.allInOccuredOnChannel = true;
+        try {
+            if (eventName === stateOfX.logEvents.playerTurn) {
+                text = text.replace(/\n/g, "");
+
+                // Set all-in occurred in this channel, disable chat and send dealer message
+                if (!channel.allInOccuredOnChannel && actionName === stateOfX.move.allin) {
+                    this.broadcastHandler.fireChatDisabled({ channel, channelId });
+                    this.broadcastHandler.fireDealerChat({
+                        channel,
+                        channelId,
+                        message: "The player chat has been disabled now due to All In."
+                    });
+                    channel.allInOccuredOnChannel = true;
+                }
             }
+        } catch (error) {
+            this.logger.error('Error in room.actionLogger-service.handlePlayerTurnBroadcast', error.stack);
+            throw new Error(`Failed in room.actionLogger-service.handlePlayerTurnBroadcast: ${error.message}`);
         }
+
+
     };
 
 
@@ -95,13 +104,21 @@ export class ActionLoggerService {
     */
 
     fireHandTabOnSummaryBroadcast(eventName: string, channel: any, channelId: string, handTab: any): void {
-        if (eventName === stateOfX.logEvents.summary) {
-            this.broadcastHandler.fireHandtabBroadcast({
-                channel,
-                channelId,
-                handTab,
-            });
+
+        try {
+            if (eventName === stateOfX.logEvents.summary) {
+                this.broadcastHandler.fireHandtabBroadcast({
+                    channel,
+                    channelId,
+                    handTab,
+                });
+            }
+        } catch (error) {
+            this.logger.error('Error in room.actionLogger-service.fireHandTabOnSummaryBroadcast', error.stack);
+            throw new Error(`Failed in room.actionLogger-service.fireHandTabOnSummaryBroadcast: ${error.message}`);
         }
+
+
     };
 
     // var fireHandTabOnSummaryBroadcast = function (eventName, channel, channelId, handTab) {
@@ -119,21 +136,13 @@ export class ActionLoggerService {
     // > So that a new hand histroy tab will be added into client hand tab
 
     async createEventLog(params: any): Promise<void> {
-        if (!!params.data && !!params.data.channelId) {
-            try {
-                const createLogResponse = await new Promise<any>((resolve, reject) => {
-                    pomelo.app.rpc.database.tableRemote.createLog(
-                        {},
-                        { channelId: params.data.channelId, data: params.data },
-                        (response: any) => {
-                            if (response?.success) {
-                                resolve(response);
-                            } else {
-                                reject(response);
-                            }
-                        }
-                    );
-                });
+
+        try {
+            if (!!params.data && !!params.data.channelId) {
+
+                const createLogResponse = await pomelo.app.rpc.database.tableRemote.createLog(
+                    {},
+                    { channelId: params.data.channelId, data: params.data })
 
                 const { channel, data } = params;
 
@@ -144,17 +153,18 @@ export class ActionLoggerService {
 
                 this.handlePlayerTurnBroadcast(channel, data.channelId, data.eventName, data.rawData.actionName, createLogResponse.data.text);
                 this.fireHandTabOnSummaryBroadcast(data.eventName, channel, data.channelId, createLogResponse.data.handTab);
-
-            } catch (error) {
-                console.log(stateOfX.serverLogType.error, 'createLogResponse - ' + JSON.stringify(error));
+            } else {
+                console.log(
+                    stateOfX.serverLogType.error,
+                    'Not creating log for an event as some argument channelId is missing, to prevent table lock issue. ' +
+                    JSON.stringify(_.keys(params))
+                );
             }
-        } else {
-            console.log(
-                stateOfX.serverLogType.error,
-                'Not creating log for an event as some argument channelId is missing, to prevent table lock issue. ' +
-                JSON.stringify(_.keys(params))
-            );
+        } catch (error) {
+            this.logger.error('Error in room.actionLogger-service.createEventLog', error.stack);
+            throw new Error(`Failed in room.actionLogger-service.createEventLog: ${error.message}`);
         }
+
     };
 
     // actionLogger.createEventLog = function (params) {
