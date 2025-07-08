@@ -15,7 +15,7 @@ import { AutoSitHandlerService } from "./autoSitHandler.service";
 import { systemConfig } from "shared/common";
 import { ActionLoggerService } from "./actionLogger.service";
 import { ChannelTimerHandlerService } from "./channelTimerHandler.service";
-import { Socket } from "socket.io";
+import { Server, Socket } from "socket.io";
 import { RoomManagerService } from "../../room-manager/room-manager.service";
 import { RedisSessionService } from "../../redis/redis-session.service";
 
@@ -127,68 +127,96 @@ export class ChannelHandlerService {
   }
 
 
-  public async similarTableBroadcast(params: any): Promise<any> {
-
+  // Main method to check and broadcast similar table invitations
+  async similarTableBroadcast(params: { channelId: string; playerId: string }) {
     try {
-      const imdbTable = await this.imdb.getTable(params.channelId);
+      // Step 1: Get the current table's data by channelId
+      const table = await this.imdb.getTable(params.channelId);
 
-      if (imdbTable && imdbTable.players && imdbTable.players.length && imdbTable.maxPlayers === imdbTable.players.length) {
+      // Step 2: If table not found, or not full, skip broadcasting
+      if (!table || !table.players || table.players.length !== table.maxPlayers) {
+        this.logger.debug('Table is not full or invalid, no broadcast needed.');
+        return;
+      }
 
-        const tmpChannelId = params.channelId.split('-')[0];
+      // Step 3: Extract the base channelId (e.g., from 'table-123-1' to 'table-123')
+      const baseChannelId = params.channelId.split("-")[0];
 
-        const tablesRecord = await this.imdb.playerJoinedRecord({ channelId: { $regex: tmpChannelId } });
+      // Step 4: Get all players who tried joining any table matching this baseChannelId
+      const joinedRecords = await this.imdb.playerJoinedRecord({
+        channelId: { $regex: baseChannelId }
+      });
 
-        const uniquePlayers: Record<string, any> = {};
-        tablesRecord.forEach(item => {
-          uniquePlayers[item.playerId] = item;
-        });
+      // Step 5: Remove duplicate player records by playerId using a map
+      const uniquePlayersMap: any = {};
+      
+      joinedRecords.forEach(record => {
+        uniquePlayersMap[record.playerId] = record;
+      });
 
-        const uniquePlayersArray = Object.values(uniquePlayers);
+      // Step 6: Convert unique player map to array for iteration
+      const uniquePlayers:any = Object.values(uniquePlayersMap);
 
-        for (const eachJoinedPlayer of uniquePlayersArray) {
-          const playerOnSeat = imdbTable.players.find(p => p.playerId === eachJoinedPlayer.playerId);
+      // Step 7: Get all replica tables that share the same base channelId
+      const allTables = await this.imdb.getAllTable({
+        channelId: { $regex: baseChannelId }
+      });
 
-          if (!playerOnSeat) {
-            const allChannels = await this.imdb.getAllTable({ channelId: { $regex: tmpChannelId } });
+      // Step 8: Loop over each unique player who attempted to join the table
+      for (const player of uniquePlayers) {
 
-            if (!allChannels) {
-              continue;
-            }
+        // Step 9: Check if this player is already seated in the current full table
+        const isAlreadySeated = table.players.some(p => p.playerId === player.playerId);
 
-            let fullTableCount = 0;
-            let isTableAvailable = false;
+        // Step 10: If the player is already seated, skip broadcast for this player
+        if (isAlreadySeated) {
+          this.logger.debug(`Player ${player.playerId} already in current table`);
+          continue;
+        }
 
-            for (const table of allChannels) {
-              if (table.players.length === table.maxPlayers) {
-                fullTableCount++;
-                continue;
-              }
+        // Step 11: Track full tables and availability
+        let fullCount = 0;
+        let hasAvailableSeat = false;
 
-              const alreadyInTable = table.players.find(p => p.playerId === eachJoinedPlayer.playerId);
-              if (!alreadyInTable) {
-                isTableAvailable = true;
-              }
-            }
+        // Step 12: Iterate over all replica tables
+        for (const t of allTables) {
 
-            if (fullTableCount === allChannels.length || isTableAvailable) {
-              for (const channel of allChannels) {
-                this.broadcastHandler.newSimilarTable({
-                  channelId: channel.channelId,
-                  msg: { channelId: channel.channelId, info: 'join Now' },
-                  route: 'joinSimilarTable'
-                });
-              }
-            }
+          // Step 13: Count full tables
+          if (t.players.length === t.maxPlayers) {
+            fullCount++;
+            continue;
           }
+
+          // Step 14: If player is already in this table, skip
+          const isInTable = t.players.some(p => p.playerId === player.playerId);
+          if (isInTable) continue;
+
+          // Step 15: Found a table with a seat and player not present
+          hasAvailableSeat = true;
+        }
+
+        // Step 16: If all tables are full or at least one available for the player
+        if (fullCount === allTables.length || hasAvailableSeat) {
+
+          // Step 17: Send broadcast for each table in the replica group
+          for (const t of allTables) {
+            await this.broadcastHandler.newSimilarTable({
+              channelId: t.channelId,
+              msg: { channelId: t.channelId, info: 'Join Now' }, // Message to user
+              route: 'joinSimilarTable' // Client route to handle join UI
+            });
+          }
+
+          // Step 18: Log broadcast action
+          this.logger.debug(`Broadcast sent for player ${player.playerId}`);
         }
       }
+
     } catch (error) {
-      this.logger.error('Error in room.channelHandler.similarTableBroadcast', error.stack);
-      throw new Error(`Failed in room.channelHandler.similarTableBroadcast: ${error.message}`);
+      // Step 19: Log any runtime error
+      console.error('Error in similarTableBroadcast:', error);
     }
-
   }
-
 
 
   async joinChannel(client: Socket, msg: any): Promise<any> {
@@ -200,6 +228,8 @@ export class ChannelHandlerService {
         this.similarTableBroadcast(msg);
       }, 1000);
 
+      // console.log("-------nnnn----")
+
       if (this.serverDownManager.checkServerState('joinReq')) {
         return {
           success: false,
@@ -208,29 +238,32 @@ export class ChannelHandlerService {
         };
       }
 
-      await this.redisSessionService.recordLastActivityTime(msg);
-
       const validated = await validateKeySets("Request", "connector", "joinChannel", msg);
 
 
       if (!validated.success) {
         return validated;
       }
+      
+      let channel :any;
+      let sockets:any = await this.roomManagerService.getRooms(msg.channelId);
 
-      // Socket.IO handles channel creation when joining
-      await client.join(msg.channelId);
+      
 
-      const channelId = msg.channelId;
+      if (!await this.roomManagerService.roomExists(msg.channelId)) {
+        // Room does not exist (no connected sockets)
+        // await this.redis.sadd('active:channels', msg.channelId);
 
-      // Optional: store or fetch room data (if needed)
-      const channel = await this.roomManagerService.getOrCreateRoom(channelId);
+        // Ensure this socket joins the room
+        channel = this.roomManagerService.joinRoom(client,msg.channelId);
 
-      const deviceType = await this.redisSessionService.getDeviceType(client.id);
-
-      // console.log("---------Channel-----",channel)
+        sockets = await this.roomManagerService.getRooms(msg.channelId);
+        
+      }
 
       const processJoinResponse = await this.joinChannelHandler.processJoin({
-        channel,
+        socket:client,
+        channel:sockets,
         channelId: msg.channelId,
         channelType: msg.channelType,
         tableId: msg.tableId,
@@ -238,12 +271,12 @@ export class ChannelHandlerService {
         playerName: msg.playerName,
         password: msg.password,
         networkIp: msg.networkIp,
-        deviceType
+        deviceType: msg.deviceType
       });
 
       // console.log("---------- Inside joinChannel----------")
 
-      const res = await this.imdb.getCardShow({ channelId });
+      const res = await this.imdb.getCardShow({ channelId:msg.channelId });
 
       if (res?.length > 0) {
         const eyeResponse = res.map(result => ({
@@ -263,7 +296,10 @@ export class ChannelHandlerService {
         });
       }
 
+      // let channel: any;
+
       const myparams: any = {};
+
       myparams.channel = channel;
 
       if (
@@ -290,10 +326,10 @@ export class ChannelHandlerService {
         console.log("now roundbets added is", potAmount);
       }
 
-      const playerData = await this.imdb.getPlayerData(channelId);
-      myparams.channelId = channelId;
+      const playerData = await this.imdb.getPlayerData(msg.channelId);
+      myparams.channelId = msg.channelId;
       myparams.session = client;
-      myparams.table = { channelId };
+      myparams.table = { channelId:msg.channelId };
       myparams.player = { playerCallTimer: {} };
 
       if (playerData?.players?.length > 0) {
@@ -303,7 +339,7 @@ export class ChannelHandlerService {
           myparams.player = player;
           myparams.player.isForceBlindVisible = player.isForceBlindVisible;
           myparams.player.RITstatus = player.isRunItTwice;
-          myparams.player.playerCallTimer.channelId = channelId;
+          myparams.player.playerCallTimer.channelId = msg.channelId;
           myparams.player.playerCallTimer.playerId = msg.playerId;
 
           if (player.playerCallTimer.status) {

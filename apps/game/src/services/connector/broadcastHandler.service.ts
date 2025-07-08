@@ -35,7 +35,6 @@ export class BroadcastHandlerService1 {
 
 
             if (!playerId || !message) {
-                console.warn('Invalid data:', data);
                 return false;
             }
 

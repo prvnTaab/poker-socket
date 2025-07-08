@@ -77,18 +77,26 @@ export class GateHandler {
 
             if (msg.loginType.toLowerCase() === 'login') {
 
-                let isValidated = await this.handleLogin(msg, activityParams, activityCategory, activitySubCategory);
+                let isLoggedIn = await this.handleLogin(msg, activityParams, activityCategory, activitySubCategory);
 
-                if(isValidated.success) {
-                    let isAddSession = await this.redisSessionService.addUserSession(isValidated.user.playerId,client.id);
+                let redisData = {
+                    playerId:isLoggedIn.user.playerId,
+                    deviceType: msg.deviceType,
+                    socketId: client.id,
+                    socket:client,
+                    userName: isLoggedIn.user.userName
+                }
+
+                if(isLoggedIn.success) {
+                    let isAddSession = await this.redisSessionService.addUserSession(redisData);
 
                     console.log("----Session Add----",isAddSession)
                 }
 
 
-                return isValidated;
+                return isLoggedIn;
 
-            } else if (msg.loginType.toLowerCase() === 'registration') {
+            } else if (msg.loginType.toLowerCase() === 'registration') { 
 
                 return await this.handleRegistration(msg,activityParams, activityCategory, activitySubCategory);
 

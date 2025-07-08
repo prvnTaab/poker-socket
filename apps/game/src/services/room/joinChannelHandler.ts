@@ -16,6 +16,7 @@ import { ChannelTimerHandlerService } from "./channelTimerHandler.service";
 import { BroadcastHandlerService } from "./broadcastHandler.service";
 import { ResponseHandlerRoomService } from "./responseHandlerRoom.service";
 import { validateKeySets } from "shared/common/utils/activity";
+import { RequestRemoteService } from "../database/requestRemote.service";
 
 
 
@@ -36,7 +37,8 @@ export class JoinChannelHandler {
         private readonly commonHandler: CommonHandlerService,
         private readonly channelTimerHandler: ChannelTimerHandlerService,
         private readonly broadcastHandler: BroadcastHandlerService,
-        private readonly responseHandler: ResponseHandlerRoomService
+        private readonly responseHandler: ResponseHandlerRoomService,
+        private readonly requestRemote: RequestRemoteService
     ) { }
 
 
@@ -572,8 +574,7 @@ export class JoinChannelHandler {
 
         try {
             // Pomelo Connection
-            const changeDisconnPlayerStateResponse: any = await pomelo.app.rpc.database.requestRemote.changeDisconnPlayerState(
-                params.session,
+            const changeDisconnPlayerStateResponse: any = await this.requestRemote.changeDisconnPlayerState(
                 {
                     channelId: params.channelId,
                     playerId: params.playerId,

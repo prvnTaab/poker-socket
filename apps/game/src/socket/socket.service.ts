@@ -49,7 +49,7 @@ export class SocketGatewayService {
 
                 
                 case "checkForMultiClient": 
-                    return await this.entryHandler.enter(data);
+                    return await this.entryHandler.enter(client,data); // this was removed and implemented in login event
                     // return { success: true, route: 'connector.entryHandler.enter' }
 
 

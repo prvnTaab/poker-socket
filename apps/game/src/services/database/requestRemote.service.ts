@@ -298,7 +298,7 @@ export class RequestRemoteService {
     /*===============================  START ==========================*/
     // New
     async checkEvHappens(params: any): Promise<{ success: boolean }> {
-        const channel = this.roomManagerService.getRoom(params.channelId); // From RoomManagerService
+        const channel:any = this.roomManagerService.getRoom(params.channelId); // From RoomManagerService
 
         if (channel && (channel.evChopTimer || channel.evRITTimer)) {
             return { success: true };
@@ -372,7 +372,7 @@ export class RequestRemoteService {
     // New
 async playerLeftEv(params: any): Promise<void> {
     
-  const channel = this.roomManagerService.getRoom(params.channelId); // Replaces Pomelo's getChannel
+  const channel:any = this.roomManagerService.getRoom(params.channelId); // Replaces Pomelo's getChannel
 
   if (!channel || (!channel.evChopTimer && !channel.evRITTimer)) {
     return;

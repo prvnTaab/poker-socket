@@ -398,7 +398,7 @@ export class ImdbDatabaseService {
       data.updatedAt = Number(new Date());
       return await this.inMemoryDb
         .collection('userActivity')
-        .updateOne(query, data, { upsert: true });
+        .updateOne(query, {$set:data}, { upsert: true });
     } catch (error) {
       this.logger.error('Error in libs.Imdbdatabase-service.upsertActivity', error.stack);
       throw new Error(`Failed in libs.Imdbdatabase-service.upsertActivity: ${error.message}`);

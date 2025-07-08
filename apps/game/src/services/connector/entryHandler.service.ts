@@ -29,6 +29,7 @@ import { EntryService } from "shared/common/utils/winner-algo/entry.service";
 import { DbRemoteService } from "../database/dbRemote.service";
 import { EntryRemoteService } from "./remote/entryRemote.service";
 import { RedisSessionService } from "../../redis/redis-session.service";
+import { Socket } from "socket.io";
 
 
 
@@ -285,54 +286,57 @@ export class EntryHandlerService {
   // ### Create session for this player with server ###
   // kill old session if found
   // find player's joined channels - return array of object containing channelId
-  async enter(msg: any): Promise<any> {
-    // 1. Optional broadcast for non-socket requests
-    if (!msg.isRequestedBySocket) {
-      await this.broadcastHandler.userLoggedIn({
-        playerId: msg.playerId,
-        action: 'pomeloLoggedIn'
-      });
-    }
+  async enter(client:Socket,msg: any): Promise<any> {
 
-    // 2. Validate the request
+    
+    // 1. Optional broadcast for non-socket requests
+    // let broadcastData = {
+    //   playerId: msg.playerId,
+    //   action: 'pomeloLoggedIn'
+    // }
+    // await this.broadcastHandler.userLoggedIn(broadcastData);
+
+    // // 2. Validate the request
     const validated = await validateKeySets("Request", "connector", "enter", msg);
     if (!validated.success) return validated;
 
-    // 3. Check if session already exists in Redis
+    // // 3. Check if session already exists in Redis
     const sessionExist = await this.redisSessionService.getUserSession(msg.playerId);
 
-    if (sessionExist.success && sessionExist.sessionId) {
-      // Kick previous session if it exists
-      await this.redisSessionService.setSessionField(sessionExist.sessionId, 'isConnected', false);
+    console.log("--------Session Data-----",sessionExist)
 
-      await this.redisSessionService.kickSession(sessionExist.sessionId, 'elseWhere-another device');
-    }
+    // if (sessionExist.success && sessionExist.sessionId) {
+    //   // Kick previous session if it exists
+    //   await this.redisSessionService.setSessionField(sessionExist.sessionId, 'isConnected', false);
 
-    // 4. Add/bind new session
-    const userSession = await this.redisSessionService.addSession({
-      playerId: msg.playerId,
-      playerName: msg.playerName,
-      deviceType: msg.deviceType,
-      socketId: msg.socketId
-    });
+    //   await this.redisSessionService.kickSession(sessionExist.sessionId, 'elseWhere-another device');
+    // }
 
-    // 5. Get joined channels
-    const joinChannelResponse = await this.retryHandler.getJoinedChannles({ playerId: msg.playerId });
+    // // 4. Add/bind new session
+    // const userSession = await this.redisSessionService.addSession({
+    //   playerId: msg.playerId,
+    //   playerName: msg.playerName,
+    //   deviceType: msg.deviceType,
+    //   socketId: msg.socketId
+    // });
 
-    if (joinChannelResponse.success) {
-      return {
-        success: userSession.success,
-        joinChannels: joinChannelResponse.joinedChannels
-      };
-    } else {
-      return {
-        success: false,
-        info: popupTextManager.dbQyeryInfo.GETJOINEDCHANNELSFAIL_ENTRYHANDLER,
-        isRetry: false,
-        isDisplay: true,
-        channelId: ""
-      };
-    }
+    // // 5. Get joined channels
+    // const joinChannelResponse = await this.retryHandler.getJoinedChannles({ playerId: msg.playerId });
+
+    // if (joinChannelResponse.success) {
+    //   return {
+    //     success: userSession.success,
+    //     joinChannels: joinChannelResponse.joinedChannels
+    //   };
+    // } else {
+    //   return {
+    //     success: false,
+    //     info: popupTextManager.dbQyeryInfo.GETJOINEDCHANNELSFAIL_ENTRYHANDLER,
+    //     isRetry: false,
+    //     isDisplay: true,
+    //     channelId: ""
+    //   };
+    // }
   }
 
 
